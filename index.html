@@ -739,22 +739,29 @@
     }
 
     // --- MQTT & NOTIFICATIONS ---
-    function initMQTT() {
-        mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8083, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 4));
-        mqttClient.connect({
-            onSuccess: () => {
-                mqttClient.subscribe('social/messages/' + currentUser);
-                mqttClient.onMessageArrived = (message) => {
-                    const data = JSON.parse(message.payloadString);
-                    if (data.type === 'dm') {
-                        addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
-                        if (currentChat === data.from) renderChatMessages(data.from);
-                        renderMessagesList();
-                    }
-                };
-            }
-        });
-    }
+function initMQTT() {
+    // 8083 yerine SSL destekli 8084 portu ve wss yönlendirmesi
+    mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 4));
+    
+    mqttClient.connect({
+        useSSL: true, // HTTPS (GitHub Pages) için zorunlu SSL parametresi
+        onSuccess: () => {
+            console.log("MQTT SSL Bağlantısı Başarılı!");
+            mqttClient.subscribe('social/messages/' + currentUser);
+            mqttClient.onMessageArrived = (message) => {
+                const data = JSON.parse(message.payloadString);
+                if (data.type === 'dm') {
+                    addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
+                    if (currentChat === data.from) renderChatMessages(data.from);
+                    renderMessagesList();
+                }
+            };
+        },
+        onFailure: (err) => {
+            console.error("MQTT Bağlantı Hatası:", err);
+        }
+    });
+}
 
     function addNotification(text) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
