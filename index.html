@@ -1037,13 +1037,26 @@
         }
     }
 
-    // --- PROFILE & FILE UPLOAD ---
+    // --- PROFILE & FILE UPLOAD (CANVAS COMPRESSION FIXED) ---
     function handleAvatarUpload(event) {
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                uploadedAvatarBase64 = e.target.result;
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const maxWidth = 200;
+                    const maxHeight = 200;
+
+                    canvas.width = maxWidth;
+                    canvas.height = maxHeight;
+
+                    ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
+                    uploadedAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -1076,9 +1089,13 @@
             user.avatar = uploadedAvatarBase64;
         }
 
-        localStorage.setItem('socialUsers', JSON.stringify(users));
-        renderProfile();
-        alert("Profil güncellendi!");
+        try {
+            localStorage.setItem('socialUsers', JSON.stringify(users));
+            renderProfile();
+            alert("Profil güncellendi!");
+        } catch (e) {
+            alert("Hata: Resim boyutu çok büyük! Lütfen daha küçük bir resim seçin.");
+        }
     }
 
     function switchProfileSubTab(tab) {
