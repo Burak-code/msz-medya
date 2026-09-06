@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSZ MEDYA</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #111827;
+            --card-hover: #1f2937;
+            --border-color: #1f293d;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --my-msg: #10b981;
+            --other-msg: #1e293b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.05), transparent 40%);
+        }
+
+        /* SOL SABİT BAR */
+        .left-sidebar {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 850;
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 12px 10px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 640px;
+            padding: 16px;
+            padding-bottom: 90px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* HEADER & LOGO */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            position: sticky;
+            top: 10px;
+            z-index: 800;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .msz-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0284c7, #6366f1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 20px;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+            letter-spacing: -1px;
+        }
+
+        .brand-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        /* NOTIFICATION BELL */
+        .bell-btn {
+            position: relative;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+        .bell-btn:hover { background: rgba(255, 255, 255, 0.05); }
+        .bell-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+
+        /* CARD & BUTTONS */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        }
+        .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 8px; }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: #0d131f;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+        .avatar-sm {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .flex { display: flex; align-items: center; gap: 12px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+        /* NAVIGATION BAR */
+        .tab-bar {
+            display: flex;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 6px;
+            margin-bottom: 16px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--primary);
+        }
+
+        /* PROFILE SUB-TABS */
+        .sub-tab-bar {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin: 16px 0;
+        }
+        .sub-tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .sub-tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* POST CARDS */
+        .post {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .post:hover { border-color: #2e3d52; }
+        .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .post-text { font-size: 15px; line-height: 1.5; margin-bottom: 12px; color: #e5e7eb; }
+        .post-img { width: 100%; border-radius: 14px; margin-bottom: 12px; max-height: 380px; object-fit: cover; }
+        .post-link { display: inline-block; color: var(--primary); word-break: break-all; margin-bottom: 12px; text-decoration: none; }
+        .post-link:hover { text-decoration: underline; }
+        .post-actions {
+            display: flex;
+            gap: 24px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .post-actions span { cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .post-actions span:hover { color: var(--text-main); }
+        .post-actions span.liked { color: var(--danger); }
+
+        /* MODAL */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            width: 90%; max-width: 500px;
+            max-height: 85vh;
+            display: flex; flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        /* EN SOLA TAŞINAN VE PARLAYAN ASSISTANT DÜĞMESİ */
+        .assistant-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999;
+            transition: transform 0.2s;
+            animation: pulseGlow 2s infinite;
+        }
+        .assistant-btn:hover { transform: scale(1.1); }
+
+        @keyframes pulseGlow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8), 0 0 15px rgba(99, 102, 241, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 18px rgba(56, 189, 248, 0), 0 0 25px rgba(99, 102, 241, 0.9);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 0 15px rgba(99, 102, 241, 0.6);
+            }
+        }
+
+        .chat-msg {
+            padding: 10px 14px;
+            border-radius: 14px;
+            margin: 6px 0;
+            font-size: 13px;
+            max-width: 82%;
+            line-height: 1.4;
+        }
+        .chat-bot { background: #1e293b; color: var(--text-main); border-bottom-left-radius: 4px; }
+        .chat-user { background: var(--primary); color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+
+        /* MESSAGING */
+        .message-item {
+            padding: 10px 14px;
+            border-radius: 16px;
+            margin: 6px 0;
+            max-width: 78%;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .message-sent { 
+            background: var(--my-msg); 
+            color: #ffffff; 
+            margin-left: auto; 
+            border-bottom-right-radius: 4px;
+            font-weight: 500;
+        }
+        .message-received { 
+            background: var(--other-msg); 
+            color: var(--text-main); 
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .left-sidebar {
+                position: static;
+                transform: none;
+                flex-direction: row;
+                justify-content: center;
+                margin-bottom: 16px;
+            }
+            .tab-bar {
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                margin-bottom: 0;
+                border-radius: 0;
+                border-top: 1px solid var(--border-color);
+                z-index: 900;
+                background: rgba(17, 24, 39, 0.95);
+                backdrop-filter: blur(10px);
+            }
+            .assistant-btn { bottom: 75px; left: 16px; width: 52px; height: 52px; }
+            .container { padding-bottom: 85px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="left-sidebar">
+    <a href="https://burak-code.github.io/msz/" target="_blank" class="sidebar-link">
+        🌐 Web Sitesi
+    </a>
+    <a href="https://www.instagram.com/burak_msz/" target="_blank" class="sidebar-link">
+        📸 Instagram
+    </a>
+</div>
+
+<div id="notificationsModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="flex-between">
+            <h3>🔔 Bildirimler</h3>
+            <button class="btn btn-outline btn-sm" onclick="closeNotifications()">X</button>
+        </div>
+        <div id="notificationsList" style="margin-top: 16px;"></div>
+    </div>
+</div>
+
+<div id="commentsModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="flex-between">
+            <h3>Yorumlar</h3>
+            <button class="btn btn-outline btn-sm" onclick="closeCommentsModal()">X</button>
+        </div>
+        <div id="commentsList" style="overflow-y:auto; margin:16px 0; flex:1;"></div>
+        <div class="flex">
+            <input type="text" id="commentInput" placeholder="Yorum ekle...">
+            <button class="btn btn-sm" onclick="submitComment()">Gönder</button>
+        </div>
+    </div>
+</div>
+
+<div id="userProfileModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="flex-between" style="margin-bottom:12px;">
+            <h4 id="visitDisplayName"></h4>
+            <button class="btn btn-outline btn-sm" onclick="closeUserProfileModal()">X</button>
+        </div>
+        <div class="flex" style="gap:16px;">
+            <img id="visitAvatar" class="avatar" src="">
+            <div>
+                <p style="color:var(--text-muted); font-size:14px;" id="visitUsername"></p>
+                <p style="margin-top:6px; font-size:13px;" id="visitStats"></p>
+                <button id="visitFollowBtn" class="btn btn-sm" style="margin-top:8px;"></button>
+            </div>
+        </div>
+        <p id="visitBio" style="margin:12px 0; font-size:14px; color:#e5e7eb;"></p>
+        <hr style="border-color:var(--border-color); margin:12px 0;">
+        <h5>Gönderileri</h5>
+        <div id="visitPostsContainer" style="margin-top:10px;"></div>
+    </div>
+</div>
+
+<div id="assistantModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="flex-between" style="padding-bottom:10px; border-bottom:1px solid var(--border-color);">
+            <div class="flex">
+                <div class="msz-icon" style="width:32px; height:32px; font-size:15px;">M</div>
+                <h4>MSZ Asistan</h4>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="toggleAssistant()">X</button>
+        </div>
+        <div id="assistantMessages" style="height:220px; overflow-y:auto; margin:12px 0;">
+            <div class="chat-msg chat-bot">Selam! Ben MSZ Asistan. Sana bu sitede yardımcı olacağım. Sol taraftaki bağlantılardan web sitemizi ve Instagram hesabımızı da ziyaret edebilirsin!</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('who')">❓ Sen kimsin?</button>
+            <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('what')">🚀 Ne yapacağız?</button>
+            <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('links')">🔗 Sosyal Medya & Bağlantılar</button>
+        </div>
+    </div>
+</div>
+
+<button class="assistant-btn" onclick="toggleAssistant()">
+    <div class="msz-icon" style="box-shadow:none; background:transparent; font-size:24px;">M</div>
+</button>
+
+<div class="container">
+    <div id="authPage">
+        <div class="card" style="margin-top: 40px; text-align: center;">
+            <div class="brand-logo" style="justify-content:center; margin-bottom:16px;">
+                <div class="msz-icon">M</div>
+                <div class="brand-title" style="font-size: 26px;">MSZ MEDYA</div>
+            </div>
+            
+            <div id="loginForm">
+                <input type="text" id="loginUsername" placeholder="Kullanıcı Adı">
+                <input type="password" id="loginPassword" placeholder="Şifre">
+                <button class="btn" onclick="login()" style="width:100%; margin-top: 10px;">Giriş Yap</button>
+                <p style="margin-top:16px; color: var(--text-muted); font-size: 14px;">
+                    Hesabın yok mu? <a href="#" onclick="showRegister()" style="color:var(--primary); text-decoration:none;">Kayıt Ol</a>
+                </p>
+            </div>
+
+            <div id="registerForm" class="hidden">
+                <input type="text" id="regUsername" placeholder="Kullanıcı Adı">
+                <input type="password" id="regPassword" placeholder="Şifre">
+                <input type="text" id="regDisplayName" placeholder="Görünen İsim">
+                <textarea id="regBio" placeholder="Biyografi" rows="2"></textarea>
+                <button class="btn" onclick="register()" style="width:100%; margin-top: 10px;">Kayıt Ol</button>
+                <p style="margin-top:16px; color: var(--text-muted); font-size: 14px;">
+                    Zaten hesabın var mı? <a href="#" onclick="showLogin()" style="color:var(--primary); text-decoration:none;">Giriş Yap</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="hidden">
+        <div class="app-header">
+            <div class="brand-logo">
+                <div class="msz-icon">M</div>
+                <div class="brand-title">MSZ MEDYA</div>
+            </div>
+            <div class="flex">
+                <button class="bell-btn" onclick="openNotifications()">
+                    🔔 <span id="bellBadge" class="bell-badge hidden">0</span>
+                </button>
+                <span id="currentUserDisplay" style="font-weight:600; font-size: 13px; color: var(--primary);"></span>
+                <button class="btn btn-outline btn-sm" onclick="logout()">Çıkış</button>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('feed')">Akış</button>
+            <button class="tab-btn" onclick="switchTab('profile')">Profil</button>
+            <button class="tab-btn" onclick="switchTab('messages')">Mesajlar</button>
+            <button class="tab-btn" onclick="switchTab('users')">Kullanıcılar</button>
+        </div>
+
+        <div id="feedTab">
+            <div class="card">
+                <select id="postTypeSelect" onchange="handlePostTypeChange()">
+                    <option value="text">📝 Yazı Gönderisi</option>
+                    <option value="image">🖼️ Fotoğraf (URL)</option>
+                    <option value="link">🔗 Bağlantı / Link</option>
+                </select>
+                <textarea id="postContent" placeholder="Neler düşünüyorsun?" rows="3"></textarea>
+                <input type="text" id="postExtraInput" class="hidden" placeholder="Görsel veya Link URL'si girin...">
+                <div style="text-align:right; margin-top: 8px;">
+                    <button class="btn btn-sm" onclick="createPost()">Paylaş</button>
+                </div>
+            </div>
+            <div id="feedContainer"></div>
+        </div>
+
+        <div id="profileTab" class="hidden">
+            <div class="card">
+                <div class="flex" style="gap: 16px;">
+                    <img id="profileAvatar" class="avatar" src="">
+                    <div>
+                        <h3 id="profileDisplayName"></h3>
+                        <p style="color:var(--text-muted); font-size: 14px;" id="profileUsername"></p>
+                        <p style="margin-top:6px; font-size: 13px;" id="profileFollowStats"></p>
+                    </div>
+                </div>
+                <p id="profileBio" style="margin: 12px 0; font-size: 14px; color: #e5e7eb;"></p>
+
+                <hr style="border-color: var(--border-color); margin: 16px 0;">
+
+                <h4 style="margin-bottom:8px;">Profili Düzenle</h4>
+                <input type="text" id="editDisplayName" placeholder="Görünen İsim">
+                <textarea id="editBio" placeholder="Biyografi" rows="2"></textarea>
+                
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-top:6px;">Profil Resmi Yükle (Cihazınızdan):</label>
+                <input type="file" id="editAvatarFile" accept="image/*" onchange="handleAvatarUpload(event)">
+
+                <button class="btn btn-sm" onclick="updateProfile()" style="width:100%; margin-top:8px;">Güncelle</button>
+
+                <hr style="border-color: var(--border-color); margin: 20px 0;">
+                <button class="btn btn-danger btn-sm" onclick="deleteAccount()" style="width:100%;">Hesabı Sil</button>
+            </div>
+
+            <div class="sub-tab-bar">
+                <button class="sub-tab-btn active" onclick="switchProfileSubTab('myPosts')">Gönderilerim</button>
+                <button class="sub-tab-btn" onclick="switchProfileSubTab('myLikes')">Beğendiklerim</button>
+                <button class="sub-tab-btn" onclick="switchProfileSubTab('myComments')">Yorumlarım</button>
+            </div>
+            <div id="profileTabContent"></div>
+        </div>
+
+        <div id="messagesTab" class="hidden">
+            <div class="card">
+                <h4>Özel Mesajlar</h4>
+                <div id="messageUsersList" style="margin-top: 10px;"></div>
+
+                <div id="messageChat" class="hidden" style="margin-top: 16px;">
+                    <div class="flex-between" style="padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                        <h5 id="chatPartnerName"></h5>
+                        <button class="btn btn-outline btn-sm" onclick="closeChat()">Kapat</button>
+                    </div>
+                    <div id="messageContainer" style="height:280px; overflow-y:auto; padding:8px 0;"></div>
+                    <div class="flex" style="margin-top: 8px;">
+                        <input type="text" id="messageInput" placeholder="Mesaj yaz..." style="margin:0;">
+                        <button class="btn btn-sm" onclick="sendMessage()">Gönder</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="usersTab" class="hidden">
+            <div class="card">
+                <h4>Kullanıcılar</h4>
+                <input type="text" id="userSearch" placeholder="Arama yap..." oninput="renderUsersList()">
+                <div id="usersList" style="margin-top:10px;"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let currentUser = null;
+    let currentChat = null;
+    let activeCommentPostId = null;
+    let activeProfileSubTab = 'myPosts';
+    let uploadedAvatarBase64 = null;
+    let mqttClient = null;
+
+    // --- AUTOMATIC SESSION RESTORE ---
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedSession = localStorage.getItem('socialActiveSession');
+        if (savedSession) {
+            const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+            if (users[savedSession]) {
+                currentUser = savedSession;
+                startApp();
+            }
+        }
+    });
+
+    function startApp() {
+        document.getElementById('authPage').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('currentUserDisplay').textContent = '@' + currentUser;
+
+        initMQTT();
+        loadFeed();
+        renderProfile();
+        updateNotificationBadge();
+    }
+
+    // --- AUTHENTICATION ---
+    function showRegister() {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+    }
+    function showLogin() {
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+    }
+
+    function register() {
+        const username = document.getElementById('regUsername').value.trim().toLowerCase();
+        const password = document.getElementById('regPassword').value.trim();
+        const displayName = document.getElementById('regDisplayName').value.trim() || username;
+        const bio = document.getElementById('regBio').value.trim();
+
+        if (!username || !password) return alert('Kullanıcı adı ve şifre gereklidir!');
+
+        let users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        if (users[username]) return alert('Bu kullanıcı adı zaten alınmış!');
+
+        users[username] = {
+            password: password,
+            displayName: displayName,
+            bio: bio,
+            avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=0284c7&color=fff',
+            followers: [],
+            following: [],
+            notifications: []
+        };
+
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+        alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+        showLogin();
+    }
+
+    function login() {
+        const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+        const password = document.getElementById('loginPassword').value.trim();
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+
+        if (!users[username] || users[username].password !== password) {
+            return alert('Kullanıcı adı veya şifre hatalı!');
+        }
+
+        currentUser = username;
+        localStorage.setItem('socialActiveSession', currentUser);
+        startApp();
+    }
+
+    function logout() {
+        if (mqttClient && mqttClient.isConnected()) mqttClient.disconnect();
+        localStorage.removeItem('socialActiveSession');
+        currentUser = null;
+        document.getElementById('authPage').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+    }
+
+    function deleteAccount() {
+        if (!confirm("Hesabınızı silmek istediğinizden emin misiniz?")) return;
+        const pass = prompt("Güvenlik doğrulaması için şifrenizi girin:");
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+
+        if (users[currentUser] && users[currentUser].password === pass) {
+            delete users[currentUser];
+            localStorage.setItem('socialUsers', JSON.stringify(users));
+
+            let feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+            feed = feed.filter(p => p.username !== currentUser);
+            localStorage.setItem('socialFeed', JSON.stringify(feed));
+
+            alert("Hesabınız silindi.");
+            logout();
+        } else {
+            alert("Hatalı şifre!");
+        }
+    }
+
+    // --- MQTT & NOTIFICATIONS ---
+    function initMQTT() {
+        mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8083, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 4));
+        mqttClient.connect({
+            onSuccess: () => {
+                mqttClient.subscribe('social/messages/' + currentUser);
+                mqttClient.onMessageArrived = (message) => {
+                    const data = JSON.parse(message.payloadString);
+                    if (data.type === 'dm') {
+                        addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
+                        if (currentChat === data.from) renderChatMessages(data.from);
+                        renderMessagesList();
+                    }
+                };
+            }
+        });
+    }
+
+    function addNotification(text) {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        if (!users[currentUser].notifications) users[currentUser].notifications = [];
+        users[currentUser].notifications.unshift({ text: text, time: Date.now() });
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+        updateNotificationBadge();
+    }
+
+    function updateNotificationBadge() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const notifs = users[currentUser]?.notifications || [];
+        const badge = document.getElementById('bellBadge');
+        if (notifs.length > 0) {
+            badge.textContent = notifs.length;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function openNotifications() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const list = document.getElementById('notificationsList');
+        const notifs = users[currentUser]?.notifications || [];
+        list.innerHTML = '';
+
+        if (notifs.length === 0) {
+            list.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz bildirim yok.</p>';
+        } else {
+            notifs.forEach(n => {
+                const div = document.createElement('div');
+                div.style.padding = '10px 0';
+                div.style.borderBottom = '1px solid var(--border-color)';
+                div.innerHTML = `<p style="font-size:14px;">${n.text}</p><span style="font-size:11px; color:var(--text-muted);">${new Date(n.time).toLocaleString()}</span>`;
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('notificationsModal').classList.remove('hidden');
+    }
+
+    function closeNotifications() {
+        document.getElementById('notificationsModal').classList.add('hidden');
+    }
+
+    // --- ASSISTANT LOGIC ---
+    function toggleAssistant() {
+        document.getElementById('assistantModal').classList.toggle('hidden');
+    }
+
+    function askAssistant(type) {
+        const msgContainer = document.getElementById('assistantMessages');
+        let question = '', response = '';
+
+        if (type === 'who') {
+            question = "Sen kimsin?";
+            response = "Ben MSZ Asistan. Sana bu sitede yardımcı olacağım.";
+        } else if (type === 'what') {
+            question = "Ne yapacağız?";
+            response = "Yapacağın ilk şey profilini düzenlemek olmalı. X / Twitter gibi yeni bir sosyal medya olan MSZ Medya'ya hoş geldin.";
+        } else if (type === 'links') {
+            question = "Sosyal Medya & Bağlantılar";
+            response = `Resmi web sitemize <a href="https://burak-code.github.io/msz/" target="_blank" style="color:var(--primary);">buradan</a>, Instagram hesabımıza ise <a href="https://www.instagram.com/burak_msz/" target="_blank" style="color:var(--primary);">@burak_msz</a> adresinden ulaşabilirsin!`;
+        }
+
+        msgContainer.innerHTML += `<div class="chat-msg chat-user">${question}</div>`;
+        setTimeout(() => {
+            msgContainer.innerHTML += `<div class="chat-msg chat-bot">${response}</div>`;
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+        }, 250);
+    }
+
+    // --- POST CREATION ---
+    function handlePostTypeChange() {
+        const type = document.getElementById('postTypeSelect').value;
+        const extraInput = document.getElementById('postExtraInput');
+        if (type === 'image') {
+            extraInput.placeholder = "Fotoğraf URL'si yapıştırın...";
+            extraInput.classList.remove('hidden');
+        } else if (type === 'link') {
+            extraInput.placeholder = "Link URL'si yapıştırın...";
+            extraInput.classList.remove('hidden');
+        } else {
+            extraInput.classList.add('hidden');
+        }
+    }
+
+    function createPost() {
+        const content = document.getElementById('postContent').value.trim();
+        const type = document.getElementById('postTypeSelect').value;
+        const extra = document.getElementById('postExtraInput').value.trim();
+
+        if (!content) return alert('İçerik boş bırakılamaz!');
+
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const newPost = {
+            id: 'post_' + Date.now(),
+            username: currentUser,
+            content: content,
+            type: type,
+            extra: extra,
+            timestamp: Date.now(),
+            likes: [],
+            replies: []
+        };
+
+        feed.unshift(newPost);
+        localStorage.setItem('socialFeed', JSON.stringify(feed));
+        document.getElementById('postContent').value = '';
+        document.getElementById('postExtraInput').value = '';
+        loadFeed();
+    }
+
+    function loadFeed() {
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const container = document.getElementById('feedContainer');
+        container.innerHTML = '';
+        feed.forEach(post => container.appendChild(createPostCard(post)));
+    }
+
+    function createPostCard(post) {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const author = users[post.username] || { displayName: post.username, avatar: '' };
+        const isLiked = post.likes.includes(currentUser);
+
+        let mediaHTML = '';
+        if (post.type === 'image' && post.extra) {
+            mediaHTML = `<img src="${post.extra}" class="post-img">`;
+        } else if (post.type === 'link' && post.extra) {
+            mediaHTML = `<a href="${post.extra}" target="_blank" class="post-link">🔗 ${post.extra}</a>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'post';
+        card.innerHTML = `
+            <div class="post-header">
+                <img class="avatar-sm" src="${author.avatar || 'https://ui-avatars.com/api/?name=' + post.username}" onclick="openUserProfile('${post.username}')">
+                <div>
+                    <strong style="cursor:pointer;" onclick="openUserProfile('${post.username}')">${author.displayName}</strong>
+                    <span style="color:var(--text-muted); font-size:13px;">@${post.username} · ${new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+            </div>
+            <div class="post-text">${post.content}</div>
+            ${mediaHTML}
+            <div class="post-actions">
+                <span class="${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}')">
+                    ${isLiked ? '❤️' : '🤍'} ${post.likes.length}
+                </span>
+                <span onclick="openCommentsModal('${post.id}')">💬 ${post.replies.length}</span>
+                ${post.username === currentUser ? `<span onclick="deletePost('${post.id}')" style="color:var(--danger); margin-left:auto;">Sil</span>` : ''}
+            </div>
+        `;
+        return card;
+    }
+
+    function toggleLike(postId) {
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const post = feed.find(p => p.id === postId);
+
+        if (post) {
+            const index = post.likes.indexOf(currentUser);
+            if (index > -1) {
+                post.likes.splice(index, 1);
+            } else {
+                post.likes.push(currentUser);
+                if (post.username !== currentUser) {
+                    addNotificationToUser(post.username, `❤️ @${currentUser} gönderini beğendi.`);
+                }
+            }
+            localStorage.setItem('socialFeed', JSON.stringify(feed));
+            loadFeed();
+        }
+    }
+
+    function addNotificationToUser(targetUser, text) {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        if (users[targetUser]) {
+            if (!users[targetUser].notifications) users[targetUser].notifications = [];
+            users[targetUser].notifications.unshift({ text: text, time: Date.now() });
+            localStorage.setItem('socialUsers', JSON.stringify(users));
+        }
+    }
+
+    function deletePost(postId) {
+        if (!confirm("Gönderi silinsin mi?")) return;
+        let feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        feed = feed.filter(p => p.id !== postId);
+        localStorage.setItem('socialFeed', JSON.stringify(feed));
+        loadFeed();
+    }
+
+    // --- VISITING OTHER USERS PROFILES ---
+    function openUserProfile(username) {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const user = users[username];
+        if (!user) return;
+
+        document.getElementById('visitDisplayName').textContent = user.displayName;
+        document.getElementById('visitUsername').textContent = '@' + username;
+        document.getElementById('visitAvatar').src = user.avatar;
+        document.getElementById('visitBio').textContent = user.bio || 'Biyografi yok.';
+        document.getElementById('visitStats').textContent = `${user.followers ? user.followers.length : 0} Takipçi · ${user.following ? user.following.length : 0} Takip Edilen`;
+
+        const followBtn = document.getElementById('visitFollowBtn');
+        if (username === currentUser) {
+            followBtn.classList.add('hidden');
+        } else {
+            followBtn.classList.remove('hidden');
+            const isFollowing = user.followers && user.followers.includes(currentUser);
+            followBtn.textContent = isFollowing ? 'Takipten Çık' : 'Takip Et';
+            followBtn.className = `btn btn-sm ${isFollowing ? 'btn-outline' : ''}`;
+            followBtn.onclick = () => { toggleFollow(username); openUserProfile(username); };
+        }
+
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const posts = feed.filter(p => p.username === username);
+        const container = document.getElementById('visitPostsContainer');
+        container.innerHTML = '';
+        posts.forEach(p => container.appendChild(createPostCard(p)));
+
+        document.getElementById('userProfileModal').classList.remove('hidden');
+    }
+
+    function closeUserProfileModal() {
+        document.getElementById('userProfileModal').classList.add('hidden');
+    }
+
+    // --- COMMENTS MODAL ---
+    function openCommentsModal(postId) {
+        activeCommentPostId = postId;
+        document.getElementById('commentsModal').classList.remove('hidden');
+        renderCommentsList();
+    }
+
+    function closeCommentsModal() {
+        document.getElementById('commentsModal').classList.add('hidden');
+        activeCommentPostId = null;
+    }
+
+    function renderCommentsList() {
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const post = feed.find(p => p.id === activeCommentPostId);
+        const list = document.getElementById('commentsList');
+        list.innerHTML = '';
+
+        if (!post || !post.replies.length) {
+            list.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz yorum yok.</p>';
+            return;
+        }
+
+        post.replies.forEach(r => {
+            const div = document.createElement('div');
+            div.style.padding = '8px 0';
+            div.style.borderBottom = '1px solid var(--border-color)';
+            div.innerHTML = `
+                <strong style="font-size:13px; color:var(--primary);">@${r.username}</strong>
+                <p style="font-size:14px; margin-top:2px;">${r.text}</p>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function submitComment() {
+        const input = document.getElementById('commentInput');
+        const text = input.value.trim();
+        if (!text || !activeCommentPostId) return;
+
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const post = feed.find(p => p.id === activeCommentPostId);
+
+        if (post) {
+            post.replies.push({ username: currentUser, text: text, timestamp: Date.now() });
+            localStorage.setItem('socialFeed', JSON.stringify(feed));
+            if (post.username !== currentUser) {
+                addNotificationToUser(post.username, `💬 @${currentUser} gönderine yorum yaptı.`);
+            }
+            input.value = '';
+            renderCommentsList();
+            loadFeed();
+        }
+    }
+
+    // --- PROFILE & FILE UPLOAD ---
+    function handleAvatarUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedAvatarBase64 = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function renderProfile() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const user = users[currentUser];
+        if (!user) return;
+
+        document.getElementById('profileAvatar').src = user.avatar;
+        document.getElementById('profileDisplayName').textContent = user.displayName;
+        document.getElementById('profileUsername').textContent = '@' + currentUser;
+        document.getElementById('profileBio').textContent = user.bio || 'Henüz bir biyografi eklenmedi.';
+        document.getElementById('profileFollowStats').textContent = `${user.followers ? user.followers.length : 0} Takipçi · ${user.following ? user.following.length : 0} Takip Edilen`;
+
+        document.getElementById('editDisplayName').value = user.displayName;
+        document.getElementById('editBio').value = user.bio || '';
+
+        renderProfileSubTab();
+    }
+
+    function updateProfile() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const user = users[currentUser];
+
+        user.displayName = document.getElementById('editDisplayName').value.trim() || currentUser;
+        user.bio = document.getElementById('editBio').value.trim();
+        if (uploadedAvatarBase64) {
+            user.avatar = uploadedAvatarBase64;
+        }
+
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+        renderProfile();
+        alert("Profil güncellendi!");
+    }
+
+    function switchProfileSubTab(tab) {
+        activeProfileSubTab = tab;
+        document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        renderProfileSubTab();
+    }
+
+    function renderProfileSubTab() {
+        const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+        const container = document.getElementById('profileTabContent');
+        container.innerHTML = '';
+
+        if (activeProfileSubTab === 'myPosts') {
+            const posts = feed.filter(p => p.username === currentUser);
+            posts.forEach(p => container.appendChild(createPostCard(p)));
+        } else if (activeProfileSubTab === 'myLikes') {
+            const likedPosts = feed.filter(p => p.likes.includes(currentUser));
+            likedPosts.forEach(lp => container.appendChild(createPostCard(lp)));
+        } else if (activeProfileSubTab === 'myComments') {
+            feed.forEach(post => {
+                const myComments = post.replies.filter(r => r.username === currentUser);
+                myComments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <p style="color:var(--text-muted); font-size:12px;">Gönderiye yorum yapıldı (@${post.username}):</p>
+                        <p style="margin:6px 0; font-weight:bold;">"${c.text}"</p>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        }
+    }
+
+    // --- USERS & FOLLOW SYSTEM ---
+    function renderUsersList() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const search = document.getElementById('userSearch').value.toLowerCase();
+        const container = document.getElementById('usersList');
+        container.innerHTML = '';
+
+        Object.keys(users).forEach(uname => {
+            if (uname === currentUser) return;
+            const u = users[uname];
+
+            if (uname.includes(search) || u.displayName.toLowerCase().includes(search)) {
+                const isFollowing = u.followers && u.followers.includes(currentUser);
+                const div = document.createElement('div');
+                div.className = 'flex-between';
+                div.style.padding = '10px 0';
+                div.style.borderBottom = '1px solid var(--border-color)';
+                div.innerHTML = `
+                    <div class="flex">
+                        <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')">
+                        <div>
+                            <strong style="cursor:pointer;" onclick="openUserProfile('${uname}')">${u.displayName}</strong>
+                            <p style="color:var(--text-muted); font-size:12px;">@${uname}</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm ${isFollowing ? 'btn-outline' : ''}" onclick="toggleFollow('${uname}')">
+                        ${isFollowing ? 'Takipten Çık' : 'Takip Et'}
+                    </button>
+                `;
+                container.appendChild(div);
+            }
+        });
+    }
+
+    function toggleFollow(targetUsername) {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const me = users[currentUser];
+        const target = users[targetUsername];
+
+        if (!me.following) me.following = [];
+        if (!target.followers) target.followers = [];
+
+        const index = me.following.indexOf(targetUsername);
+        if (index > -1) {
+            me.following.splice(index, 1);
+            target.followers.splice(target.followers.indexOf(currentUser), 1);
+        } else {
+            me.following.push(targetUsername);
+            target.followers.push(currentUser);
+            addNotificationToUser(targetUsername, `👥 @${currentUser} seni takip etmeye başladı.`);
+        }
+
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+        renderUsersList();
+        renderProfile();
+    }
+
+    // --- MESSAGING ---
+    function renderMessagesList() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const container = document.getElementById('messageUsersList');
+        container.innerHTML = '';
+
+        Object.keys(users).forEach(uname => {
+            if (uname === currentUser) return;
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline btn-sm';
+            btn.style.margin = '4px';
+            btn.textContent = '@' + uname;
+            btn.onclick = () => openChat(uname);
+            container.appendChild(btn);
+        });
+    }
+
+    function openChat(username) {
+        currentChat = username;
+        document.getElementById('chatPartnerName').textContent = '@' + username;
+        document.getElementById('messageChat').classList.remove('hidden');
+        renderChatMessages(username);
+    }
+
+    function closeChat() {
+        currentChat = null;
+        document.getElementById('messageChat').classList.add('hidden');
+    }
+
+    function renderChatMessages(username) {
+        const messages = JSON.parse(localStorage.getItem('socialMessages') || '{}');
+        const key = [currentUser, username].sort().join('_');
+        const chatList = messages[key] || [];
+
+        const container = document.getElementById('messageContainer');
+        container.innerHTML = '';
+
+        chatList.forEach(m => {
+            const div = document.createElement('div');
+            div.className = `message-item ${m.from === currentUser ? 'message-sent' : 'message-received'}`;
+            div.textContent = m.text;
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if (!text || !currentChat) return;
+
+        const messages = JSON.parse(localStorage.getItem('socialMessages') || '{}');
+        const key = [currentUser, currentChat].sort().join('_');
+        if (!messages[key]) messages[key] = [];
+
+        messages[key].push({ from: currentUser, to: currentChat, text: text, timestamp: Date.now() });
+        localStorage.setItem('socialMessages', JSON.stringify(messages));
+
+        if (mqttClient && mqttClient.isConnected()) {
+            const payload = new Paho.MQTT.Message(JSON.stringify({ type: 'dm', from: currentUser, text: text }));
+            payload.destinationName = 'social/messages/' + currentChat;
+            mqttClient.send(payload);
+        }
+
+        input.value = '';
+        renderChatMessages(currentChat);
+    }
+
+    // --- TABS ---
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('#feedTab, #profileTab, #messagesTab, #usersTab').forEach(el => el.classList.add('hidden'));
+
+        if (tab === 'feed') {
+            document.getElementById('feedTab').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            loadFeed();
+        } else if (tab === 'profile') {
+            document.getElementById('profileTab').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            renderProfile();
+        } else if (tab === 'messages') {
+            document.getElementById('messagesTab').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            renderMessagesList();
+        } else if (tab === 'users') {
+            document.getElementById('usersTab').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[3].classList.add('active');
+            renderUsersList();
+        }
+    }
+</script>
+</body>
+</html>
