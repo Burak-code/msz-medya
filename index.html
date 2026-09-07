@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MSZ MEDYA</title>
-    <!-- FAVICON -->
-    <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="apple-touch-icon" href="favicon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
         :root {
@@ -120,6 +117,7 @@
         .msz-icon {
             width: 34px;
             height: 34px;
+            background: linear-gradient(135deg, #0284c7, #6366f1);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -127,15 +125,8 @@
             font-weight: 900;
             font-size: 17px;
             color: #fff;
-            letter-spacing: -1px;
-            background-size: cover;
-            background-position: center;
-            background-image: url('favicon.png');
             box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
-        }
-        /* Fallback if favicon.png not found */
-        .msz-icon.fallback {
-            background: linear-gradient(135deg, #0284c7, #6366f1);
+            letter-spacing: -1px;
         }
 
         .brand-title {
@@ -392,16 +383,10 @@
         .assistant-btn:hover { transform: scale(1.1); }
         .assistant-btn .msz-icon {
             box-shadow: none;
-            background-image: url('favicon.png');
-            background-size: cover;
-            background-position: center;
-            font-size: 22px;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-        }
-        .assistant-btn .msz-icon.fallback {
             background: transparent;
+            font-size: 22px;
+            width: auto;
+            height: auto;
         }
 
         @keyframes pulseGlow {
@@ -483,6 +468,16 @@
         }
         .forgot-password-link:hover { color: var(--primary); }
 
+        .mqtt-status {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #1e293b;
+            color: var(--text-muted);
+        }
+        .mqtt-status.connected { color: #10b981; background: #064e3b; }
+        .mqtt-status.disconnected { color: #ef4444; background: #7f1d1d; }
+
         @media (max-width: 768px) {
             .left-sidebar {
                 position: fixed;
@@ -526,7 +521,7 @@
             .tab-btn .tab-label { font-size: 9px; }
             
             .assistant-btn { bottom: 75px; left: 12px; width: 48px; height: 48px; }
-            .assistant-btn .msz-icon { font-size: 20px; width: 32px; height: 32px; }
+            .assistant-btn .msz-icon { font-size: 20px; }
             .container { padding: 10px; padding-bottom: 75px; }
             .app-header { padding: 8px 12px; margin-bottom: 12px; top: 4px; }
             .brand-title { font-size: 15px; }
@@ -619,7 +614,7 @@
     <div class="modal-content">
         <div class="flex-between" style="padding-bottom:10px; border-bottom:1px solid var(--border-color);">
             <div class="flex">
-                <div class="msz-icon" style="width:28px; height:28px; font-size:13px; background-image:url('favicon.png'); background-size:cover; background-position:center; border-radius:6px;"></div>
+                <div class="msz-icon" style="width:28px; height:28px; font-size:13px;">M</div>
                 <h4 style="font-size:15px;">MSZ Asistan</h4>
             </div>
             <button class="btn btn-outline btn-sm" onclick="toggleAssistant()">✕</button>
@@ -648,14 +643,14 @@
 </div>
 
 <button class="assistant-btn" onclick="toggleAssistant()">
-    <div class="msz-icon" style="background-image:url('favicon.png'); background-size:cover; background-position:center;"></div>
+    <div class="msz-icon">🤖</div>
 </button>
 
 <div class="container">
     <div id="authPage">
         <div class="card auth-card">
             <div class="brand-logo">
-                <div class="msz-icon" style="background-image:url('favicon.png'); background-size:cover; background-position:center;"></div>
+                <div class="msz-icon">M</div>
                 <div class="brand-title">MSZ MEDYA</div>
             </div>
             
@@ -685,7 +680,7 @@
     <div id="mainApp" class="hidden">
         <div class="app-header">
             <div class="brand-logo">
-                <div class="msz-icon" style="background-image:url('favicon.png'); background-size:cover; background-position:center;"></div>
+                <div class="msz-icon">M</div>
                 <div class="brand-title">MSZ MEDYA</div>
             </div>
             <div class="header-right">
@@ -693,6 +688,7 @@
                     🔔 <span id="bellBadge" class="bell-badge hidden">0</span>
                 </button>
                 <span id="currentUserDisplay"></span>
+                <span id="mqttStatus" class="mqtt-status disconnected">MQTT ⚪</span>
                 <button class="btn btn-outline btn-sm" onclick="logout()">Çıkış</button>
             </div>
         </div>
@@ -818,31 +814,6 @@
 </div>
 
 <script>
-    // --- LOGO FALLBACK ---
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if favicon.png loads, if not add fallback class
-        const icons = document.querySelectorAll('.msz-icon');
-        icons.forEach(icon => {
-            const img = new Image();
-            img.onload = function() {
-                // Image loaded, keep as is
-            };
-            img.onerror = function() {
-                // Image not found, add fallback
-                icon.classList.add('fallback');
-                icon.style.background = 'linear-gradient(135deg, #0284c7, #6366f1)';
-                icon.textContent = 'M';
-                icon.style.display = 'flex';
-                icon.style.alignItems = 'center';
-                icon.style.justifyContent = 'center';
-                icon.style.color = '#fff';
-                icon.style.fontWeight = '900';
-                icon.style.fontSize = '17px';
-            };
-            img.src = 'favicon.png';
-        });
-    });
-
     let currentUser = null;
     let currentChat = null;
     let activeCommentPostId = null;
@@ -850,6 +821,11 @@
     let uploadedAvatarBase64 = null;
     let mqttClient = null;
     let notificationCount = 0;
+
+    // MQTT Bağlantı Ayarları
+    const MQTT_BROKER = "broker.emqx.io";
+    const MQTT_PORT = 8084;
+    const MQTT_TOPIC_PREFIX = "social/msz/";
 
     window.addEventListener('DOMContentLoaded', () => {
         const savedSession = localStorage.getItem('socialActiveSession');
@@ -889,6 +865,8 @@
         const bio = document.getElementById('regBio').value.trim();
 
         if (!username || !password) return alert('Kullanıcı adı ve şifre gereklidir!');
+        if (username.length < 3) return alert('Kullanıcı adı en az 3 karakter olmalı!');
+        if (password.length < 4) return alert('Şifre en az 4 karakter olmalı!');
 
         let users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         if (users[username]) return alert('Bu kullanıcı adı zaten alınmış!');
@@ -926,11 +904,14 @@
     }
 
     function logout() {
-        if (mqttClient && mqttClient.isConnected()) mqttClient.disconnect();
+        if (mqttClient && mqttClient.isConnected()) {
+            try { mqttClient.disconnect(); } catch(e) {}
+        }
         localStorage.removeItem('socialActiveSession');
         currentUser = null;
         document.getElementById('authPage').classList.remove('hidden');
         document.getElementById('mainApp').classList.add('hidden');
+        updateMQTTStatus(false);
     }
 
     function deleteAccount() {
@@ -1038,34 +1019,75 @@
     }
 
     // --- MQTT ---
+    function updateMQTTStatus(connected) {
+        const statusEl = document.getElementById('mqttStatus');
+        if (connected) {
+            statusEl.className = 'mqtt-status connected';
+            statusEl.textContent = 'MQTT ●';
+        } else {
+            statusEl.className = 'mqtt-status disconnected';
+            statusEl.textContent = 'MQTT ○';
+        }
+    }
+
     function initMQTT() {
         try {
-            mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 6));
+            const clientId = "msz_" + currentUser + "_" + Math.random().toString(36).substr(2, 8);
+            mqttClient = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, clientId);
             
-            mqttClient.connect({
+            const connectOptions = {
                 useSSL: true,
                 timeout: 10,
                 onSuccess: () => {
                     console.log("✅ MQTT bağlandı!");
-                    mqttClient.subscribe('social/messages/' + currentUser);
+                    updateMQTTStatus(true);
+                    
+                    // Kullanıcının özel kanalına abone ol
+                    const topic = MQTT_TOPIC_PREFIX + currentUser;
+                    mqttClient.subscribe(topic);
+                    console.log("📡 Abone olundu:", topic);
+                    
                     mqttClient.onMessageArrived = (message) => {
                         try {
                             const data = JSON.parse(message.payloadString);
+                            console.log("📨 MQTT mesajı:", data);
+                            
                             if (data.type === 'dm') {
                                 addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
                                 if (currentChat === data.from) renderChatMessages(data.from);
                                 renderMessagesList();
                             }
-                        } catch(e) { console.warn('MQTT mesaj ayrıştırma hatası:', e); }
+                        } catch(e) { 
+                            console.warn('MQTT mesaj ayrıştırma hatası:', e); 
+                        }
                     };
                 },
                 onFailure: (err) => {
-                    console.warn("⚠️ MQTT bağlanamadı, offline modda çalışılıyor");
+                    console.warn("⚠️ MQTT bağlanamadı:", err);
+                    updateMQTTStatus(false);
                 }
-            });
+            };
+            
+            mqttClient.connect(connectOptions);
         } catch(e) {
-            console.warn("⚠️ MQTT başlatılamadı, offline modda çalışılıyor");
+            console.warn("⚠️ MQTT başlatılamadı:", e);
+            updateMQTTStatus(false);
         }
+    }
+
+    function publishMQTTMessage(topic, data) {
+        if (mqttClient && mqttClient.isConnected()) {
+            try {
+                const payload = new Paho.MQTT.Message(JSON.stringify(data));
+                payload.destinationName = topic;
+                mqttClient.send(payload);
+                return true;
+            } catch(e) {
+                console.warn('MQTT mesaj gönderilemedi:', e);
+                return false;
+            }
+        }
+        return false;
     }
 
     function addNotification(text) {
@@ -1209,7 +1231,7 @@
 
         let mediaHTML = '';
         if (post.type === 'image' && post.extra) {
-            mediaHTML = `<img src="${post.extra}" class="post-img">`;
+            mediaHTML = `<img src="${post.extra}" class="post-img" onerror="this.style.display='none'">`;
         } else if (post.type === 'link' && post.extra) {
             mediaHTML = `<a href="${post.extra}" target="_blank" class="post-link">🔗 ${post.extra}</a>`;
         }
@@ -1218,7 +1240,7 @@
         card.className = 'post';
         card.innerHTML = `
             <div class="post-header">
-                <img class="avatar-sm" src="${author.avatar}" onclick="openUserProfile('${post.username}')">
+                <img class="avatar-sm" src="${author.avatar}" onclick="openUserProfile('${post.username}')" onerror="this.src='https://ui-avatars.com/api/?name=${post.username}&background=0284c7&color=fff&size=128'">
                 <div>
                     <strong style="cursor:pointer; font-size:14px;" onclick="openUserProfile('${post.username}')">${author.displayName}</strong>
                     <span style="color:var(--text-muted); font-size:11px; display:block;">@${post.username} · ${new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -1510,7 +1532,7 @@
                 div.style.borderBottom = '1px solid var(--border-color)';
                 div.innerHTML = `
                     <div class="flex" style="gap:8px;">
-                        <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')">
+                        <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')" onerror="this.src='https://ui-avatars.com/api/?name=${uname}&background=0284c7&color=fff&size=128'">
                         <div>
                             <strong style="cursor:pointer; font-size:13px;" onclick="openUserProfile('${uname}')">${u.displayName}</strong>
                             <p style="color:var(--text-muted); font-size:11px;">@${uname}</p>
@@ -1559,6 +1581,7 @@
         const container = document.getElementById('leaderboardContainer');
         container.innerHTML = '';
 
+        // Sırala: takipçi sayısına göre
         const sorted = Object.keys(users).sort((a, b) => {
             const countA = users[a].followers ? users[a].followers.length : 0;
             const countB = users[b].followers ? users[b].followers.length : 0;
@@ -1585,7 +1608,7 @@
             div.className = 'leaderboard-item';
             div.innerHTML = `
                 <span class="leaderboard-rank ${rankClass}">${medal || rank}</span>
-                <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')">
+                <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')" onerror="this.src='https://ui-avatars.com/api/?name=${uname}&background=0284c7&color=fff&size=128'">
                 <div style="flex:1;">
                     <strong style="cursor:pointer;" onclick="openUserProfile('${uname}')">${u.displayName}</strong>
                     <p style="color:var(--text-muted); font-size:11px;">@${uname}</p>
@@ -1666,13 +1689,16 @@
         messages[key].push({ from: currentUser, to: currentChat, text: text, timestamp: Date.now() });
         localStorage.setItem('socialMessages', JSON.stringify(messages));
 
-        if (mqttClient && mqttClient.isConnected()) {
-            try {
-                const payload = new Paho.MQTT.Message(JSON.stringify({ type: 'dm', from: currentUser, text: text }));
-                payload.destinationName = 'social/messages/' + currentChat;
-                mqttClient.send(payload);
-            } catch(e) { console.warn('MQTT mesaj gönderilemedi:', e); }
-        }
+        // MQTT ile gerçek zamanlı gönder
+        const topic = MQTT_TOPIC_PREFIX + currentChat;
+        const data = {
+            type: 'dm',
+            from: currentUser,
+            to: currentChat,
+            text: text,
+            timestamp: Date.now()
+        };
+        publishMQTTMessage(topic, data);
 
         input.value = '';
         renderChatMessages(currentChat);
@@ -1705,68 +1731,6 @@
             renderLeaderboard();
         }
     }
-
-    // --- INIT DEMO DATA ---
-    (function initDemoData() {
-        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
-        if (Object.keys(users).length === 0) {
-            users['demo'] = {
-                password: '1234',
-                displayName: 'Demo Kullanıcı',
-                bio: 'MSZ Medya\'ya hoş geldiniz! 🎉',
-                avatar: 'https://ui-avatars.com/api/?name=Demo&background=0284c7&color=fff&size=128',
-                followers: [],
-                following: [],
-                notifications: []
-            };
-            
-            users['burak'] = {
-                password: '1234',
-                displayName: 'Burak MSZ',
-                bio: '🚀 MSZ Medya kurucusu | Web geliştirici',
-                avatar: 'https://ui-avatars.com/api/?name=Burak&background=0284c7&color=fff&size=128',
-                followers: ['demo'],
-                following: ['demo'],
-                notifications: []
-            };
-
-            users['msz'] = {
-                password: '1234',
-                displayName: 'MSZ Medya',
-                bio: '📱 Yeni nesil sosyal medya platformu',
-                avatar: 'https://ui-avatars.com/api/?name=MSZ&background=0284c7&color=fff&size=128',
-                followers: ['demo', 'burak'],
-                following: ['demo'],
-                notifications: []
-            };
-
-            localStorage.setItem('socialUsers', JSON.stringify(users));
-
-            const feed = [
-                {
-                    id: 'demo_post_1',
-                    username: 'demo',
-                    content: 'MSZ Medya\'ya hoş geldiniz! Bu yeni sosyal medya platformunda paylaşım yapabilir, takipleşebilir ve mesajlaşabilirsiniz. 🚀',
-                    type: 'text',
-                    extra: '',
-                    timestamp: Date.now() - 3600000,
-                    likes: ['demo', 'burak'],
-                    replies: [{ username: 'burak', text: 'Harika bir başlangıç! 🎉', timestamp: Date.now() - 1800000 }]
-                },
-                {
-                    id: 'demo_post_2',
-                    username: 'burak',
-                    content: 'MSZ Medya\'nın mobil uygulaması yakında geliyor! 📱',
-                    type: 'text',
-                    extra: '',
-                    timestamp: Date.now() - 7200000,
-                    likes: ['demo'],
-                    replies: [{ username: 'msz', text: 'Mükemmel haber!', timestamp: Date.now() - 3600000 }]
-                }
-            ];
-            localStorage.setItem('socialFeed', JSON.stringify(feed));
-        }
-    })();
 </script>
 </body>
 </html>
