@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MSZ MEDYA</title>
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
         :root {
@@ -117,7 +120,6 @@
         .msz-icon {
             width: 34px;
             height: 34px;
-            background: linear-gradient(135deg, #0284c7, #6366f1);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -125,8 +127,15 @@
             font-weight: 900;
             font-size: 17px;
             color: #fff;
-            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
             letter-spacing: -1px;
+            background-size: cover;
+            background-position: center;
+            background-image: url('favicon.png');
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+        }
+        /* Fallback if favicon.png not found */
+        .msz-icon.fallback {
+            background: linear-gradient(135deg, #0284c7, #6366f1);
         }
 
         .brand-title {
@@ -383,10 +392,16 @@
         .assistant-btn:hover { transform: scale(1.1); }
         .assistant-btn .msz-icon {
             box-shadow: none;
-            background: transparent;
+            background-image: url('favicon.png');
+            background-size: cover;
+            background-position: center;
             font-size: 22px;
-            width: auto;
-            height: auto;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+        .assistant-btn .msz-icon.fallback {
+            background: transparent;
         }
 
         @keyframes pulseGlow {
@@ -511,7 +526,7 @@
             .tab-btn .tab-label { font-size: 9px; }
             
             .assistant-btn { bottom: 75px; left: 12px; width: 48px; height: 48px; }
-            .assistant-btn .msz-icon { font-size: 20px; }
+            .assistant-btn .msz-icon { font-size: 20px; width: 32px; height: 32px; }
             .container { padding: 10px; padding-bottom: 75px; }
             .app-header { padding: 8px 12px; margin-bottom: 12px; top: 4px; }
             .brand-title { font-size: 15px; }
@@ -604,7 +619,7 @@
     <div class="modal-content">
         <div class="flex-between" style="padding-bottom:10px; border-bottom:1px solid var(--border-color);">
             <div class="flex">
-                <div class="msz-icon" style="width:28px; height:28px; font-size:13px;">M</div>
+                <div class="msz-icon" style="width:28px; height:28px; font-size:13px; background-image:url('favicon.png'); background-size:cover; background-position:center; border-radius:6px;"></div>
                 <h4 style="font-size:15px;">MSZ Asistan</h4>
             </div>
             <button class="btn btn-outline btn-sm" onclick="toggleAssistant()">✕</button>
@@ -633,14 +648,14 @@
 </div>
 
 <button class="assistant-btn" onclick="toggleAssistant()">
-    <div class="msz-icon">🤖</div>
+    <div class="msz-icon" style="background-image:url('favicon.png'); background-size:cover; background-position:center;"></div>
 </button>
 
 <div class="container">
     <div id="authPage">
         <div class="card auth-card">
             <div class="brand-logo">
-                <div class="msz-icon">M</div>
+                <div class="msz-icon" style="background-image:url('favicon.png'); background-size:cover; background-position:center;"></div>
                 <div class="brand-title">MSZ MEDYA</div>
             </div>
             
@@ -670,7 +685,7 @@
     <div id="mainApp" class="hidden">
         <div class="app-header">
             <div class="brand-logo">
-                <div class="msz-icon">M</div>
+                <div class="msz-icon" style="background-image:url('favicon.png'); background-size:cover; background-position:center;"></div>
                 <div class="brand-title">MSZ MEDYA</div>
             </div>
             <div class="header-right">
@@ -803,6 +818,31 @@
 </div>
 
 <script>
+    // --- LOGO FALLBACK ---
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if favicon.png loads, if not add fallback class
+        const icons = document.querySelectorAll('.msz-icon');
+        icons.forEach(icon => {
+            const img = new Image();
+            img.onload = function() {
+                // Image loaded, keep as is
+            };
+            img.onerror = function() {
+                // Image not found, add fallback
+                icon.classList.add('fallback');
+                icon.style.background = 'linear-gradient(135deg, #0284c7, #6366f1)';
+                icon.textContent = 'M';
+                icon.style.display = 'flex';
+                icon.style.alignItems = 'center';
+                icon.style.justifyContent = 'center';
+                icon.style.color = '#fff';
+                icon.style.fontWeight = '900';
+                icon.style.fontSize = '17px';
+            };
+            img.src = 'favicon.png';
+        });
+    });
+
     let currentUser = null;
     let currentChat = null;
     let activeCommentPostId = null;
@@ -1519,7 +1559,6 @@
         const container = document.getElementById('leaderboardContainer');
         container.innerHTML = '';
 
-        // Sırala: takipçi sayısına göre
         const sorted = Object.keys(users).sort((a, b) => {
             const countA = users[a].followers ? users[a].followers.length : 0;
             const countB = users[b].followers ? users[b].followers.length : 0;
