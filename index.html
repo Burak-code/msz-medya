@@ -19,6 +19,9 @@
             --danger-hover: #dc2626;
             --my-msg: #10b981;
             --other-msg: #1e293b;
+            --gold: #fbbf24;
+            --silver: #9ca3af;
+            --bronze: #d97706;
         }
 
         * {
@@ -37,7 +40,6 @@
             background-image: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.05), transparent 40%);
         }
 
-        /* SOL SABİT BAR - MOBİL UYUMLU */
         .left-sidebar {
             position: fixed;
             left: 12px;
@@ -78,12 +80,8 @@
             transform: translateX(3px);
         }
 
-        .sidebar-link .icon {
-            font-size: 16px;
-        }
-        .sidebar-link .label {
-            font-size: 11px;
-        }
+        .sidebar-link .icon { font-size: 16px; }
+        .sidebar-link .label { font-size: 11px; }
 
         .container {
             width: 100%;
@@ -94,7 +92,6 @@
 
         .hidden { display: none !important; }
 
-        /* HEADER & LOGO */
         .app-header {
             display: flex;
             align-items: center;
@@ -203,6 +200,9 @@
         }
         .btn-outline:hover { background: rgba(255,255,255,0.05); }
         .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
+        .btn-gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25); }
+        .btn-silver { background: linear-gradient(135deg, #9ca3af, #6b7280); box-shadow: 0 4px 12px rgba(156, 163, 175, 0.25); }
+        .btn-bronze { background: linear-gradient(135deg, #d97706, #b45309); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25); }
 
         input, textarea, select {
             width: 100%;
@@ -236,11 +236,16 @@
             object-fit: cover;
             cursor: pointer;
         }
+        .avatar-xs {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
 
         .flex { display: flex; align-items: center; gap: 10px; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
-        /* NAVIGATION BAR - MOBİL UYUMLU */
         .tab-bar {
             display: flex;
             background: var(--card-bg);
@@ -268,21 +273,13 @@
             text-align: center;
             white-space: nowrap;
         }
-        .tab-btn .tab-icon {
-            display: block;
-            font-size: 18px;
-            margin-bottom: 2px;
-        }
-        .tab-btn .tab-label {
-            display: block;
-            font-size: 10px;
-        }
+        .tab-btn .tab-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+        .tab-btn .tab-label { display: block; font-size: 10px; }
         .tab-btn.active {
             background: rgba(56, 189, 248, 0.12);
             color: var(--primary);
         }
 
-        /* CARD */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -292,7 +289,6 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
-        /* PROFILE SUB-TABS */
         .sub-tab-bar {
             display: flex;
             border-bottom: 1px solid var(--border-color);
@@ -318,7 +314,6 @@
             border-bottom-color: var(--primary);
         }
 
-        /* POST CARDS */
         .post {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -345,7 +340,6 @@
         .post-actions span:hover { color: var(--text-main); }
         .post-actions span.liked { color: var(--danger); }
 
-        /* MODAL */
         .modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -368,7 +362,6 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
-        /* ASSISTANT BUTTON */
         .assistant-btn {
             position: fixed;
             bottom: 80px;
@@ -397,15 +390,9 @@
         }
 
         @keyframes pulseGlow {
-            0% {
-                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8), 0 0 15px rgba(99, 102, 241, 0.6);
-            }
-            70% {
-                box-shadow: 0 0 0 18px rgba(56, 189, 248, 0), 0 0 25px rgba(99, 102, 241, 0.9);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 0 15px rgba(99, 102, 241, 0.6);
-            }
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8), 0 0 15px rgba(99, 102, 241, 0.6); }
+            70% { box-shadow: 0 0 0 18px rgba(56, 189, 248, 0), 0 0 25px rgba(99, 102, 241, 0.9); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 0 15px rgba(99, 102, 241, 0.6); }
         }
 
         .chat-msg {
@@ -419,7 +406,6 @@
         .chat-bot { background: #1e293b; color: var(--text-main); border-bottom-left-radius: 4px; }
         .chat-user { background: var(--primary); color: white; margin-left: auto; border-bottom-right-radius: 4px; }
 
-        /* MESSAGING */
         .message-item {
             padding: 10px 14px;
             border-radius: 16px;
@@ -443,7 +429,6 @@
             border-bottom-left-radius: 4px;
         }
 
-        /* AUTH PAGE */
         .auth-card {
             margin-top: 30px;
             text-align: center;
@@ -456,7 +441,33 @@
             font-size: 22px;
         }
 
-        /* MOBILE RESPONSIVE */
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .leaderboard-rank {
+            font-weight: 800;
+            font-size: 18px;
+            min-width: 30px;
+            text-align: center;
+        }
+        .rank-1 { color: var(--gold); }
+        .rank-2 { color: var(--silver); }
+        .rank-3 { color: var(--bronze); }
+
+        .forgot-password-link {
+            display: block;
+            margin-top: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .forgot-password-link:hover { color: var(--primary); }
+
         @media (max-width: 768px) {
             .left-sidebar {
                 position: fixed;
@@ -474,17 +485,9 @@
                 box-shadow: 0 4px 20px rgba(0,0,0,0.5);
                 z-index: 900;
             }
-            .sidebar-link {
-                padding: 6px 10px;
-                font-size: 11px;
-                gap: 4px;
-            }
-            .sidebar-link .label {
-                display: none;
-            }
-            .sidebar-link .icon {
-                font-size: 18px;
-            }
+            .sidebar-link { padding: 6px 10px; font-size: 11px; gap: 4px; }
+            .sidebar-link .label { display: none; }
+            .sidebar-link .icon { font-size: 18px; }
             
             .tab-bar {
                 position: fixed;
@@ -503,138 +506,43 @@
                 padding: 4px 6px;
                 top: auto;
             }
-            .tab-btn {
-                padding: 6px 2px;
-                font-size: 10px;
-            }
-            .tab-btn .tab-icon {
-                font-size: 20px;
-                margin-bottom: 1px;
-            }
-            .tab-btn .tab-label {
-                font-size: 9px;
-            }
+            .tab-btn { padding: 6px 2px; font-size: 10px; }
+            .tab-btn .tab-icon { font-size: 20px; margin-bottom: 1px; }
+            .tab-btn .tab-label { font-size: 9px; }
             
-            .assistant-btn {
-                bottom: 75px;
-                left: 12px;
-                width: 48px;
-                height: 48px;
-            }
-            .assistant-btn .msz-icon {
-                font-size: 20px;
-            }
-            
-            .container {
-                padding: 10px;
-                padding-bottom: 75px;
-            }
-            
-            .app-header {
-                padding: 8px 12px;
-                margin-bottom: 12px;
-                top: 4px;
-            }
-            .brand-title {
-                font-size: 15px;
-            }
-            .msz-icon {
-                width: 30px;
-                height: 30px;
-                font-size: 15px;
-            }
-            #currentUserDisplay {
-                font-size: 11px;
-            }
-            
-            .card {
-                padding: 14px;
-                margin-bottom: 12px;
-                border-radius: 14px;
-            }
-            
-            .avatar {
-                width: 56px;
-                height: 56px;
-            }
-            .avatar-sm {
-                width: 36px;
-                height: 36px;
-            }
-            
-            .post {
-                padding: 12px;
-                margin-bottom: 12px;
-                border-radius: 14px;
-            }
-            .post-text {
-                font-size: 13px;
-            }
-            .post-actions {
-                font-size: 12px;
-                gap: 12px;
-            }
-            
-            .modal-content {
-                padding: 14px;
-                max-height: 80vh;
-            }
-            
-            .message-item {
-                font-size: 13px;
-                padding: 8px 12px;
-                max-width: 85%;
-            }
-            
-            input, textarea, select {
-                padding: 8px 12px;
-                font-size: 13px;
-            }
-            
-            .btn {
-                padding: 7px 14px;
-                font-size: 12px;
-            }
-            .btn-sm {
-                padding: 4px 10px;
-                font-size: 11px;
-            }
-            
-            .sub-tab-btn {
-                font-size: 11px;
-                padding: 6px 4px;
-                min-width: 60px;
-            }
+            .assistant-btn { bottom: 75px; left: 12px; width: 48px; height: 48px; }
+            .assistant-btn .msz-icon { font-size: 20px; }
+            .container { padding: 10px; padding-bottom: 75px; }
+            .app-header { padding: 8px 12px; margin-bottom: 12px; top: 4px; }
+            .brand-title { font-size: 15px; }
+            .msz-icon { width: 30px; height: 30px; font-size: 15px; }
+            #currentUserDisplay { font-size: 11px; }
+            .card { padding: 14px; margin-bottom: 12px; border-radius: 14px; }
+            .avatar { width: 56px; height: 56px; }
+            .avatar-sm { width: 36px; height: 36px; }
+            .post { padding: 12px; margin-bottom: 12px; border-radius: 14px; }
+            .post-text { font-size: 13px; }
+            .post-actions { font-size: 12px; gap: 12px; }
+            .modal-content { padding: 14px; max-height: 80vh; }
+            .message-item { font-size: 13px; padding: 8px 12px; max-width: 85%; }
+            input, textarea, select { padding: 8px 12px; font-size: 13px; }
+            .btn { padding: 7px 14px; font-size: 12px; }
+            .btn-sm { padding: 4px 10px; font-size: 11px; }
+            .sub-tab-btn { font-size: 11px; padding: 6px 4px; min-width: 60px; }
         }
 
         @media (max-width: 400px) {
-            .left-sidebar {
-                padding: 6px 10px;
-                gap: 4px;
-                bottom: 72px;
-            }
-            .sidebar-link {
-                padding: 4px 8px;
-                font-size: 10px;
-            }
-            .sidebar-link .icon {
-                font-size: 16px;
-            }
-            .brand-title {
-                font-size: 13px;
-            }
-            .tab-btn .tab-icon {
-                font-size: 17px;
-            }
-            .tab-btn .tab-label {
-                font-size: 8px;
-            }
+            .left-sidebar { padding: 6px 10px; gap: 4px; bottom: 72px; }
+            .sidebar-link { padding: 4px 8px; font-size: 10px; }
+            .sidebar-link .icon { font-size: 16px; }
+            .brand-title { font-size: 13px; }
+            .tab-btn .tab-icon { font-size: 17px; }
+            .tab-btn .tab-label { font-size: 8px; }
         }
     </style>
 </head>
 <body>
 
-<!-- SOL SABİT BAR - MOBİLDE ALTA ALINIYOR -->
 <div class="left-sidebar">
     <a href="https://burak-code.github.io/msz/" target="_blank" class="sidebar-link">
         <span class="icon">🌐</span>
@@ -702,13 +610,25 @@
             <button class="btn btn-outline btn-sm" onclick="toggleAssistant()">✕</button>
         </div>
         <div id="assistantMessages" style="height:200px; overflow-y:auto; margin:10px 0;">
-            <div class="chat-msg chat-bot">Selam! Ben MSZ Asistan. Sana bu sitede yardımcı olacağım. Sol taraftaki bağlantılardan web sitemizi ve Instagram hesabımızı da ziyaret edebilirsin!</div>
+            <div class="chat-msg chat-bot">Selam! Ben MSZ Asistan. Sana bu sitede yardımcı olacağım.</div>
         </div>
         <div style="display:flex; flex-direction:column; gap:4px;">
             <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('who')">❓ Sen kimsin?</button>
             <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('what')">🚀 Ne yapacağız?</button>
             <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('links')">🔗 Sosyal Medya & Bağlantılar</button>
         </div>
+    </div>
+</div>
+
+<div id="forgotPasswordModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="flex-between" style="margin-bottom:12px;">
+            <h3>🔑 Şifremi Unuttum</h3>
+            <button class="btn btn-outline btn-sm" onclick="closeForgotPassword()">✕</button>
+        </div>
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:8px;">Hesabını bulmak için kullanıcı adını seç:</p>
+        <div id="forgotUsersList" style="max-height:300px; overflow-y:auto;"></div>
+        <div id="forgotResult" style="margin-top:12px;"></div>
     </div>
 </div>
 
@@ -728,7 +648,8 @@
                 <input type="text" id="loginUsername" placeholder="Kullanıcı Adı">
                 <input type="password" id="loginPassword" placeholder="Şifre">
                 <button class="btn" onclick="login()" style="width:100%; margin-top:8px;">Giriş Yap</button>
-                <p style="margin-top:14px; color: var(--text-muted); font-size:13px;">
+                <span class="forgot-password-link" onclick="openForgotPassword()">🔑 Şifremi Unuttum</span>
+                <p style="margin-top:10px; color: var(--text-muted); font-size:13px;">
                     Hesabın yok mu? <a href="#" onclick="showRegister()" style="color:var(--primary); text-decoration:none;">Kayıt Ol</a>
                 </p>
             </div>
@@ -739,7 +660,7 @@
                 <input type="text" id="regDisplayName" placeholder="Görünen İsim">
                 <textarea id="regBio" placeholder="Biyografi" rows="2"></textarea>
                 <button class="btn" onclick="register()" style="width:100%; margin-top:8px;">Kayıt Ol</button>
-                <p style="margin-top:14px; color: var(--text-muted); font-size:13px;">
+                <p style="margin-top:10px; color: var(--text-muted); font-size:13px;">
                     Zaten hesabın var mı? <a href="#" onclick="showLogin()" style="color:var(--primary); text-decoration:none;">Giriş Yap</a>
                 </p>
             </div>
@@ -761,7 +682,6 @@
             </div>
         </div>
 
-        <!-- NAVBAR - MOBİLDE İKONLU -->
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('feed')">
                 <span class="tab-icon">🏠</span>
@@ -778,6 +698,10 @@
             <button class="tab-btn" onclick="switchTab('users')">
                 <span class="tab-icon">👥</span>
                 <span class="tab-label">Kullanıcılar</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('leaderboard')">
+                <span class="tab-icon">🏆</span>
+                <span class="tab-label">Liderlik</span>
             </button>
         </div>
 
@@ -820,6 +744,14 @@
 
                 <button class="btn btn-sm" onclick="updateProfile()" style="width:100%; margin-top:6px;">Güncelle</button>
 
+                <hr style="border-color: var(--border-color); margin:14px 0;">
+
+                <h4 style="margin-bottom:6px; font-size:15px;">🔑 Şifre Değiştir</h4>
+                <input type="password" id="currentPassword" placeholder="Mevcut Şifre">
+                <input type="password" id="newPassword" placeholder="Yeni Şifre">
+                <input type="password" id="newPasswordConfirm" placeholder="Yeni Şifre (Tekrar)">
+                <button class="btn btn-sm" onclick="changePassword()" style="width:100%; margin-top:6px;">Şifreyi Güncelle</button>
+
                 <hr style="border-color: var(--border-color); margin:16px 0;">
                 <button class="btn btn-danger btn-sm" onclick="deleteAccount()" style="width:100%;">Hesabı Sil</button>
             </div>
@@ -859,6 +791,14 @@
             </div>
         </div>
 
+        <div id="leaderboardTab" class="hidden">
+            <div class="card">
+                <h4 style="font-size:15px;">🏆 Liderlik Tablosu</h4>
+                <p style="color:var(--text-muted); font-size:12px; margin-bottom:8px;">En çok takipçisi olanlar sıralanıyor.</p>
+                <div id="leaderboardContainer"></div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -869,8 +809,8 @@
     let activeProfileSubTab = 'myPosts';
     let uploadedAvatarBase64 = null;
     let mqttClient = null;
+    let notificationCount = 0;
 
-    // --- AUTOMATIC SESSION RESTORE ---
     window.addEventListener('DOMContentLoaded', () => {
         const savedSession = localStorage.getItem('socialActiveSession');
         if (savedSession) {
@@ -893,7 +833,6 @@
         updateNotificationBadge();
     }
 
-    // --- AUTHENTICATION ---
     function showRegister() {
         document.getElementById('loginForm').classList.add('hidden');
         document.getElementById('registerForm').classList.remove('hidden');
@@ -925,8 +864,11 @@
         };
 
         localStorage.setItem('socialUsers', JSON.stringify(users));
-        alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+        alert('✅ Kayıt başarılı! Giriş yapabilirsiniz.');
         showLogin();
+        document.getElementById('loginUsername').value = username;
+        document.getElementById('loginPassword').value = password;
+        login();
     }
 
     function login() {
@@ -935,7 +877,7 @@
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
 
         if (!users[username] || users[username].password !== password) {
-            return alert('Kullanıcı adı veya şifre hatalı!');
+            return alert('❌ Kullanıcı adı veya şifre hatalı!');
         }
 
         currentUser = username;
@@ -964,14 +906,98 @@
             feed = feed.filter(p => p.username !== currentUser);
             localStorage.setItem('socialFeed', JSON.stringify(feed));
 
-            alert("Hesabınız silindi.");
+            alert("✅ Hesabınız silindi.");
             logout();
         } else {
-            alert("Hatalı şifre!");
+            alert("❌ Hatalı şifre!");
         }
     }
 
-    // --- MQTT & NOTIFICATIONS ---
+    function changePassword() {
+        const current = document.getElementById('currentPassword').value.trim();
+        const newPass = document.getElementById('newPassword').value.trim();
+        const confirmPass = document.getElementById('newPasswordConfirm').value.trim();
+
+        if (!current || !newPass || !confirmPass) {
+            return alert('Lütfen tüm alanları doldurun!');
+        }
+
+        if (newPass !== confirmPass) {
+            return alert('❌ Yeni şifreler eşleşmiyor!');
+        }
+
+        if (newPass.length < 4) {
+            return alert('❌ Şifre en az 4 karakter olmalı!');
+        }
+
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        if (users[currentUser].password !== current) {
+            return alert('❌ Mevcut şifre hatalı!');
+        }
+
+        users[currentUser].password = newPass;
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+        alert('✅ Şifre başarıyla güncellendi!');
+        
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newPasswordConfirm').value = '';
+    }
+
+    // --- FORGOT PASSWORD ---
+    function openForgotPassword() {
+        document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        renderForgotUsersList();
+    }
+
+    function closeForgotPassword() {
+        document.getElementById('forgotPasswordModal').classList.add('hidden');
+        document.getElementById('forgotResult').innerHTML = '';
+    }
+
+    function renderForgotUsersList() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const container = document.getElementById('forgotUsersList');
+        container.innerHTML = '';
+
+        Object.keys(users).forEach(uname => {
+            const u = users[uname];
+            const div = document.createElement('div');
+            div.className = 'leaderboard-item';
+            div.style.cursor = 'pointer';
+            div.onclick = () => handleForgotPassword(uname);
+            div.innerHTML = `
+                <img class="avatar-xs" src="${u.avatar}">
+                <div>
+                    <strong style="font-size:14px;">${u.displayName}</strong>
+                    <p style="color:var(--text-muted); font-size:11px;">@${uname}</p>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        if (Object.keys(users).length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz kayıtlı kullanıcı yok.</p>';
+        }
+    }
+
+    function handleForgotPassword(username) {
+        const result = document.getElementById('forgotResult');
+        result.innerHTML = `
+            <div style="background:#1e293b; padding:12px; border-radius:10px; text-align:center;">
+                <p style="margin-bottom:8px;">🔐 <strong>@${username}</strong> hesabı için:</p>
+                <p style="color:var(--text-muted); font-size:13px;">Lütfen Instagram DM'den <strong>@burak_msz</strong>'a</p>
+                <p style="color:var(--text-muted); font-size:13px;">"<em>Şifremi unuttum: @${username}</em>" yaz.</p>
+                <br>
+                <a href="https://www.instagram.com/burak_msz/" target="_blank" class="btn btn-sm" style="display:inline-block;">📸 Instagram'a Git</a>
+                <br><br>
+                <button class="btn btn-outline btn-sm" onclick="closeForgotPassword()">Kapat</button>
+            </div>
+        `;
+        document.getElementById('forgotUsersList').innerHTML = '<p style="color:var(--text-muted); text-align:center;">✅ Hesap bulundu. Yukarıdaki adımları takip edin.</p>';
+    }
+
+    // --- MQTT ---
     function initMQTT() {
         try {
             mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 6));
@@ -1005,17 +1031,19 @@
     function addNotification(text) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         if (!users[currentUser].notifications) users[currentUser].notifications = [];
-        users[currentUser].notifications.unshift({ text: text, time: Date.now() });
+        users[currentUser].notifications.unshift({ text: text, time: Date.now(), read: false });
         localStorage.setItem('socialUsers', JSON.stringify(users));
+        notificationCount++;
         updateNotificationBadge();
     }
 
     function updateNotificationBadge() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const notifs = users[currentUser]?.notifications || [];
+        const unread = notifs.filter(n => !n.read).length;
         const badge = document.getElementById('bellBadge');
-        if (notifs.length > 0) {
-            badge.textContent = notifs.length;
+        if (unread > 0) {
+            badge.textContent = unread;
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
@@ -1028,8 +1056,17 @@
         const notifs = users[currentUser]?.notifications || [];
         list.innerHTML = '';
 
+        // Mark all as read
+        if (notifs.length > 0) {
+            notifs.forEach(n => n.read = true);
+            users[currentUser].notifications = notifs;
+            localStorage.setItem('socialUsers', JSON.stringify(users));
+            notificationCount = 0;
+            updateNotificationBadge();
+        }
+
         if (notifs.length === 0) {
-            list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz bildirim yok.</p>';
+            list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">📭 Henüz bildirim yok.</p>';
         } else {
             notifs.forEach(n => {
                 const div = document.createElement('div');
@@ -1046,7 +1083,7 @@
         document.getElementById('notificationsModal').classList.add('hidden');
     }
 
-    // --- ASSISTANT LOGIC ---
+    // --- ASSISTANT ---
     function toggleAssistant() {
         document.getElementById('assistantModal').classList.toggle('hidden');
     }
@@ -1073,7 +1110,7 @@
         }, 250);
     }
 
-    // --- POST CREATION ---
+    // --- POSTS ---
     function handlePostTypeChange() {
         const type = document.getElementById('postTypeSelect').value;
         const extraInput = document.getElementById('postExtraInput');
@@ -1183,7 +1220,7 @@
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         if (users[targetUser]) {
             if (!users[targetUser].notifications) users[targetUser].notifications = [];
-            users[targetUser].notifications.unshift({ text: text, time: Date.now() });
+            users[targetUser].notifications.unshift({ text: text, time: Date.now(), read: false });
             localStorage.setItem('socialUsers', JSON.stringify(users));
         }
     }
@@ -1196,7 +1233,7 @@
         loadFeed();
     }
 
-    // --- VISITING OTHER USERS PROFILES ---
+    // --- USER PROFILE ---
     function openUserProfile(username) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const user = users[username];
@@ -1236,7 +1273,7 @@
         document.getElementById('userProfileModal').classList.add('hidden');
     }
 
-    // --- COMMENTS MODAL ---
+    // --- COMMENTS ---
     function openCommentsModal(postId) {
         activeCommentPostId = postId;
         document.getElementById('commentsModal').classList.remove('hidden');
@@ -1291,7 +1328,7 @@
         }
     }
 
-    // --- PROFILE & FILE UPLOAD ---
+    // --- PROFILE ---
     function handleAvatarUpload(event) {
         const file = event.target.files[0];
         if (file) {
@@ -1412,7 +1449,7 @@
         }
     }
 
-    // --- USERS & FOLLOW SYSTEM ---
+    // --- USERS & FOLLOW ---
     function renderUsersList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const search = document.getElementById('userSearch').value.toLowerCase();
@@ -1473,6 +1510,54 @@
         localStorage.setItem('socialUsers', JSON.stringify(users));
         renderUsersList();
         renderProfile();
+        renderLeaderboard();
+    }
+
+    // --- LEADERBOARD ---
+    function renderLeaderboard() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const container = document.getElementById('leaderboardContainer');
+        container.innerHTML = '';
+
+        // Sırala: takipçi sayısına göre
+        const sorted = Object.keys(users).sort((a, b) => {
+            const countA = users[a].followers ? users[a].followers.length : 0;
+            const countB = users[b].followers ? users[b].followers.length : 0;
+            return countB - countA;
+        });
+
+        if (sorted.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz kullanıcı yok.</p>';
+            return;
+        }
+
+        sorted.forEach((uname, index) => {
+            const u = users[uname];
+            const followerCount = u.followers ? u.followers.length : 0;
+            const rank = index + 1;
+            let rankClass = '';
+            let medal = '';
+            
+            if (rank === 1) { rankClass = 'rank-1'; medal = '🥇'; }
+            else if (rank === 2) { rankClass = 'rank-2'; medal = '🥈'; }
+            else if (rank === 3) { rankClass = 'rank-3'; medal = '🥉'; }
+
+            const div = document.createElement('div');
+            div.className = 'leaderboard-item';
+            div.innerHTML = `
+                <span class="leaderboard-rank ${rankClass}">${medal || rank}</span>
+                <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')">
+                <div style="flex:1;">
+                    <strong style="cursor:pointer;" onclick="openUserProfile('${uname}')">${u.displayName}</strong>
+                    <p style="color:var(--text-muted); font-size:11px;">@${uname}</p>
+                </div>
+                <div style="text-align:right;">
+                    <span style="font-weight:700; font-size:16px;">${followerCount}</span>
+                    <p style="color:var(--text-muted); font-size:10px;">takipçi</p>
+                </div>
+            `;
+            container.appendChild(div);
+        });
     }
 
     // --- MESSAGING ---
@@ -1557,7 +1642,7 @@
     // --- TABS ---
     function switchTab(tab) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('#feedTab, #profileTab, #messagesTab, #usersTab').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('#feedTab, #profileTab, #messagesTab, #usersTab, #leaderboardTab').forEach(el => el.classList.add('hidden'));
 
         if (tab === 'feed') {
             document.getElementById('feedTab').classList.remove('hidden');
@@ -1575,10 +1660,14 @@
             document.getElementById('usersTab').classList.remove('hidden');
             document.querySelectorAll('.tab-btn')[3].classList.add('active');
             renderUsersList();
+        } else if (tab === 'leaderboard') {
+            document.getElementById('leaderboardTab').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[4].classList.add('active');
+            renderLeaderboard();
         }
     }
 
-    // --- INITIALIZE DEMO DATA ---
+    // --- INIT DEMO DATA ---
     (function initDemoData() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         if (Object.keys(users).length === 0) {
@@ -1591,6 +1680,27 @@
                 following: [],
                 notifications: []
             };
+            
+            users['burak'] = {
+                password: '1234',
+                displayName: 'Burak MSZ',
+                bio: '🚀 MSZ Medya kurucusu | Web geliştirici',
+                avatar: 'https://ui-avatars.com/api/?name=Burak&background=0284c7&color=fff&size=128',
+                followers: ['demo'],
+                following: ['demo'],
+                notifications: []
+            };
+
+            users['msz'] = {
+                password: '1234',
+                displayName: 'MSZ Medya',
+                bio: '📱 Yeni nesil sosyal medya platformu',
+                avatar: 'https://ui-avatars.com/api/?name=MSZ&background=0284c7&color=fff&size=128',
+                followers: ['demo', 'burak'],
+                following: ['demo'],
+                notifications: []
+            };
+
             localStorage.setItem('socialUsers', JSON.stringify(users));
 
             const feed = [
@@ -1601,18 +1711,18 @@
                     type: 'text',
                     extra: '',
                     timestamp: Date.now() - 3600000,
-                    likes: ['demo'],
-                    replies: [{ username: 'demo', text: 'Harika bir başlangıç!', timestamp: Date.now() - 1800000 }]
+                    likes: ['demo', 'burak'],
+                    replies: [{ username: 'burak', text: 'Harika bir başlangıç! 🎉', timestamp: Date.now() - 1800000 }]
                 },
                 {
                     id: 'demo_post_2',
-                    username: 'demo',
-                    content: 'Web sitemizi ve Instagram\'ı ziyaret etmeyi unutmayın!',
-                    type: 'link',
-                    extra: 'https://burak-code.github.io/msz/',
+                    username: 'burak',
+                    content: 'MSZ Medya\'nın mobil uygulaması yakında geliyor! 📱',
+                    type: 'text',
+                    extra: '',
                     timestamp: Date.now() - 7200000,
-                    likes: [],
-                    replies: []
+                    likes: ['demo'],
+                    replies: [{ username: 'msz', text: 'Mükemmel haber!', timestamp: Date.now() - 3600000 }]
                 }
             ];
             localStorage.setItem('socialFeed', JSON.stringify(feed));
