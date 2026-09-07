@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MSZ MEDYA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
@@ -37,20 +37,20 @@
             background-image: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.05), transparent 40%);
         }
 
-        /* SOL SABİT BAR */
+        /* SOL SABİT BAR - MOBİL UYUMLU */
         .left-sidebar {
             position: fixed;
-            left: 20px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             z-index: 850;
-            background: rgba(17, 24, 39, 0.8);
+            background: rgba(17, 24, 39, 0.85);
             backdrop-filter: blur(12px);
-            padding: 12px 10px;
-            border-radius: 16px;
+            padding: 10px 8px;
+            border-radius: 14px;
             border: 1px solid var(--border-color);
             box-shadow: 0 8px 25px rgba(0,0,0,0.4);
         }
@@ -58,30 +58,38 @@
         .sidebar-link {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             color: var(--text-main);
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            padding: 8px 12px;
-            border-radius: 10px;
+            padding: 6px 10px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid transparent;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
         .sidebar-link:hover {
             background: rgba(56, 189, 248, 0.15);
             border-color: var(--primary);
             color: var(--primary);
-            transform: translateX(4px);
+            transform: translateX(3px);
+        }
+
+        .sidebar-link .icon {
+            font-size: 16px;
+        }
+        .sidebar-link .label {
+            font-size: 11px;
         }
 
         .container {
             width: 100%;
             max-width: 640px;
-            padding: 16px;
-            padding-bottom: 90px;
+            padding: 12px;
+            padding-bottom: 80px;
         }
 
         .hidden { display: none !important; }
@@ -91,92 +99,95 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
-            padding: 12px 16px;
+            margin-bottom: 16px;
+            padding: 10px 14px;
             background: rgba(17, 24, 39, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 14px;
             position: sticky;
-            top: 10px;
+            top: 8px;
             z-index: 800;
         }
 
         .brand-logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             text-decoration: none;
         }
 
         .msz-icon {
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
             background: linear-gradient(135deg, #0284c7, #6366f1);
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            font-size: 20px;
+            font-size: 17px;
             color: #fff;
             box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
             letter-spacing: -1px;
         }
 
         .brand-title {
-            font-size: 20px;
+            font-size: 17px;
             font-weight: 800;
-            letter-spacing: 1.2px;
+            letter-spacing: 1px;
             background: linear-gradient(to right, #38bdf8, #818cf8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
         }
 
-        /* NOTIFICATION BELL */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .bell-btn {
             position: relative;
             background: transparent;
             border: none;
             color: var(--text-main);
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
-            padding: 8px;
+            padding: 6px;
             border-radius: 50%;
             transition: 0.2s;
         }
         .bell-btn:hover { background: rgba(255, 255, 255, 0.05); }
         .bell-badge {
             position: absolute;
-            top: 2px;
-            right: 2px;
+            top: 0px;
+            right: 0px;
             background: var(--danger);
             color: white;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: bold;
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 10px;
             box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            min-width: 16px;
+            text-align: center;
         }
 
-        /* CARD & BUTTONS */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        #currentUserDisplay {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--primary);
         }
 
         .btn {
             background: linear-gradient(135deg, #38bdf8, #0284c7);
             color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -191,15 +202,15 @@
             box-shadow: none;
         }
         .btn-outline:hover { background: rgba(255,255,255,0.05); }
-        .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 8px; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
 
         input, textarea, select {
             width: 100%;
-            padding: 12px 16px;
-            margin: 8px 0;
+            padding: 10px 14px;
+            margin: 6px 0;
             background: #0d131f;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 10px;
             color: var(--text-main);
             font-size: 14px;
             transition: 0.2s;
@@ -211,65 +222,96 @@
         }
 
         .avatar {
-            width: 72px;
-            height: 72px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--primary);
             box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
         }
         .avatar-sm {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
             cursor: pointer;
         }
 
-        .flex { display: flex; align-items: center; gap: 12px; }
+        .flex { display: flex; align-items: center; gap: 10px; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
-        /* NAVIGATION BAR */
+        /* NAVIGATION BAR - MOBİL UYUMLU */
         .tab-bar {
             display: flex;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 6px;
-            margin-bottom: 16px;
+            border-radius: 14px;
+            padding: 5px;
+            margin-bottom: 14px;
+            position: sticky;
+            top: 70px;
+            z-index: 750;
+            background: rgba(17, 24, 39, 0.92);
+            backdrop-filter: blur(10px);
         }
         .tab-btn {
             flex: 1;
-            padding: 10px;
+            padding: 8px 4px;
             border: none;
             background: transparent;
             color: var(--text-muted);
             font-weight: 600;
+            font-size: 12px;
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 8px;
             transition: 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .tab-btn .tab-icon {
+            display: block;
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+        .tab-btn .tab-label {
+            display: block;
+            font-size: 10px;
         }
         .tab-btn.active {
             background: rgba(56, 189, 248, 0.12);
             color: var(--primary);
         }
 
+        /* CARD */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
         /* PROFILE SUB-TABS */
         .sub-tab-bar {
             display: flex;
             border-bottom: 1px solid var(--border-color);
-            margin: 16px 0;
+            margin: 12px 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .sub-tab-btn {
             flex: 1;
-            padding: 10px;
+            padding: 8px 6px;
             border: none;
             background: transparent;
             color: var(--text-muted);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            min-width: 80px;
         }
         .sub-tab-btn.active {
             color: var(--primary);
@@ -280,26 +322,26 @@
         .post {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 18px;
-            margin-bottom: 16px;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
             transition: border-color 0.2s;
         }
         .post:hover { border-color: #2e3d52; }
-        .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-        .post-text { font-size: 15px; line-height: 1.5; margin-bottom: 12px; color: #e5e7eb; }
-        .post-img { width: 100%; border-radius: 14px; margin-bottom: 12px; max-height: 380px; object-fit: cover; }
-        .post-link { display: inline-block; color: var(--primary); word-break: break-all; margin-bottom: 12px; text-decoration: none; }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .post-text { font-size: 14px; line-height: 1.5; margin-bottom: 10px; color: #e5e7eb; }
+        .post-img { width: 100%; border-radius: 12px; margin-bottom: 10px; max-height: 380px; object-fit: cover; }
+        .post-link { display: inline-block; color: var(--primary); word-break: break-all; margin-bottom: 10px; text-decoration: none; font-size: 13px; }
         .post-link:hover { text-decoration: underline; }
         .post-actions {
             display: flex;
-            gap: 24px;
-            padding-top: 12px;
+            gap: 16px;
+            padding-top: 10px;
             border-top: 1px solid var(--border-color);
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 13px;
         }
-        .post-actions span { cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .post-actions span { cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s; }
         .post-actions span:hover { color: var(--text-main); }
         .post-actions span.liked { color: var(--danger); }
 
@@ -311,26 +353,28 @@
             backdrop-filter: blur(6px);
             display: flex; justify-content: center; align-items: center;
             z-index: 1000;
+            padding: 16px;
         }
         .modal-content {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            width: 90%; max-width: 500px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
             max-height: 85vh;
             display: flex; flex-direction: column;
-            padding: 20px;
+            padding: 16px;
             overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
-        /* EN SOLA TAŞINAN VE PARLAYAN ASSISTANT DÜĞMESİ */
+        /* ASSISTANT BUTTON */
         .assistant-btn {
             position: fixed;
-            bottom: 24px;
-            left: 24px;
-            width: 60px;
-            height: 60px;
+            bottom: 80px;
+            left: 16px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             background: linear-gradient(135deg, #38bdf8, #818cf8);
             border: none;
@@ -344,6 +388,13 @@
             animation: pulseGlow 2s infinite;
         }
         .assistant-btn:hover { transform: scale(1.1); }
+        .assistant-btn .msz-icon {
+            box-shadow: none;
+            background: transparent;
+            font-size: 22px;
+            width: auto;
+            height: auto;
+        }
 
         @keyframes pulseGlow {
             0% {
@@ -392,48 +443,217 @@
             border-bottom-left-radius: 4px;
         }
 
+        /* AUTH PAGE */
+        .auth-card {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .auth-card .brand-logo {
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .auth-card .brand-title {
+            font-size: 22px;
+        }
+
         /* MOBILE RESPONSIVE */
         @media (max-width: 768px) {
             .left-sidebar {
-                position: static;
-                transform: none;
+                position: fixed;
+                top: auto;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
                 flex-direction: row;
-                justify-content: center;
-                margin-bottom: 16px;
+                gap: 6px;
+                padding: 8px 12px;
+                border-radius: 30px;
+                background: rgba(17, 24, 39, 0.92);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--border-color);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                z-index: 900;
             }
+            .sidebar-link {
+                padding: 6px 10px;
+                font-size: 11px;
+                gap: 4px;
+            }
+            .sidebar-link .label {
+                display: none;
+            }
+            .sidebar-link .icon {
+                font-size: 18px;
+            }
+            
             .tab-bar {
                 position: fixed;
-                bottom: 0; left: 0; right: 0;
+                bottom: 0;
+                left: 0;
+                right: 0;
                 margin-bottom: 0;
                 border-radius: 0;
                 border-top: 1px solid var(--border-color);
+                border-bottom: none;
+                border-left: none;
+                border-right: none;
                 z-index: 900;
                 background: rgba(17, 24, 39, 0.95);
                 backdrop-filter: blur(10px);
+                padding: 4px 6px;
+                top: auto;
             }
-            .assistant-btn { bottom: 75px; left: 16px; width: 52px; height: 52px; }
-            .container { padding-bottom: 85px; }
+            .tab-btn {
+                padding: 6px 2px;
+                font-size: 10px;
+            }
+            .tab-btn .tab-icon {
+                font-size: 20px;
+                margin-bottom: 1px;
+            }
+            .tab-btn .tab-label {
+                font-size: 9px;
+            }
+            
+            .assistant-btn {
+                bottom: 75px;
+                left: 12px;
+                width: 48px;
+                height: 48px;
+            }
+            .assistant-btn .msz-icon {
+                font-size: 20px;
+            }
+            
+            .container {
+                padding: 10px;
+                padding-bottom: 75px;
+            }
+            
+            .app-header {
+                padding: 8px 12px;
+                margin-bottom: 12px;
+                top: 4px;
+            }
+            .brand-title {
+                font-size: 15px;
+            }
+            .msz-icon {
+                width: 30px;
+                height: 30px;
+                font-size: 15px;
+            }
+            #currentUserDisplay {
+                font-size: 11px;
+            }
+            
+            .card {
+                padding: 14px;
+                margin-bottom: 12px;
+                border-radius: 14px;
+            }
+            
+            .avatar {
+                width: 56px;
+                height: 56px;
+            }
+            .avatar-sm {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .post {
+                padding: 12px;
+                margin-bottom: 12px;
+                border-radius: 14px;
+            }
+            .post-text {
+                font-size: 13px;
+            }
+            .post-actions {
+                font-size: 12px;
+                gap: 12px;
+            }
+            
+            .modal-content {
+                padding: 14px;
+                max-height: 80vh;
+            }
+            
+            .message-item {
+                font-size: 13px;
+                padding: 8px 12px;
+                max-width: 85%;
+            }
+            
+            input, textarea, select {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            .btn {
+                padding: 7px 14px;
+                font-size: 12px;
+            }
+            .btn-sm {
+                padding: 4px 10px;
+                font-size: 11px;
+            }
+            
+            .sub-tab-btn {
+                font-size: 11px;
+                padding: 6px 4px;
+                min-width: 60px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .left-sidebar {
+                padding: 6px 10px;
+                gap: 4px;
+                bottom: 72px;
+            }
+            .sidebar-link {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            .sidebar-link .icon {
+                font-size: 16px;
+            }
+            .brand-title {
+                font-size: 13px;
+            }
+            .tab-btn .tab-icon {
+                font-size: 17px;
+            }
+            .tab-btn .tab-label {
+                font-size: 8px;
+            }
         }
     </style>
 </head>
 <body>
 
+<!-- SOL SABİT BAR - MOBİLDE ALTA ALINIYOR -->
 <div class="left-sidebar">
     <a href="https://burak-code.github.io/msz/" target="_blank" class="sidebar-link">
-        🌐 Web Sitesi
+        <span class="icon">🌐</span>
+        <span class="label">Web</span>
     </a>
     <a href="https://www.instagram.com/burak_msz/" target="_blank" class="sidebar-link">
-        📸 Instagram
+        <span class="icon">📸</span>
+        <span class="label">Instagram</span>
     </a>
 </div>
 
+<!-- MODALLAR -->
 <div id="notificationsModal" class="modal hidden">
     <div class="modal-content">
         <div class="flex-between">
             <h3>🔔 Bildirimler</h3>
-            <button class="btn btn-outline btn-sm" onclick="closeNotifications()">X</button>
+            <button class="btn btn-outline btn-sm" onclick="closeNotifications()">✕</button>
         </div>
-        <div id="notificationsList" style="margin-top: 16px;"></div>
+        <div id="notificationsList" style="margin-top: 14px;"></div>
     </div>
 </div>
 
@@ -441,9 +661,9 @@
     <div class="modal-content">
         <div class="flex-between">
             <h3>Yorumlar</h3>
-            <button class="btn btn-outline btn-sm" onclick="closeCommentsModal()">X</button>
+            <button class="btn btn-outline btn-sm" onclick="closeCommentsModal()">✕</button>
         </div>
-        <div id="commentsList" style="overflow-y:auto; margin:16px 0; flex:1;"></div>
+        <div id="commentsList" style="overflow-y:auto; margin:14px 0; flex:1;"></div>
         <div class="flex">
             <input type="text" id="commentInput" placeholder="Yorum ekle...">
             <button class="btn btn-sm" onclick="submitComment()">Gönder</button>
@@ -455,20 +675,20 @@
     <div class="modal-content">
         <div class="flex-between" style="margin-bottom:12px;">
             <h4 id="visitDisplayName"></h4>
-            <button class="btn btn-outline btn-sm" onclick="closeUserProfileModal()">X</button>
+            <button class="btn btn-outline btn-sm" onclick="closeUserProfileModal()">✕</button>
         </div>
-        <div class="flex" style="gap:16px;">
+        <div class="flex" style="gap:14px;">
             <img id="visitAvatar" class="avatar" src="">
             <div>
-                <p style="color:var(--text-muted); font-size:14px;" id="visitUsername"></p>
-                <p style="margin-top:6px; font-size:13px;" id="visitStats"></p>
-                <button id="visitFollowBtn" class="btn btn-sm" style="margin-top:8px;"></button>
+                <p style="color:var(--text-muted); font-size:13px;" id="visitUsername"></p>
+                <p style="margin-top:4px; font-size:12px;" id="visitStats"></p>
+                <button id="visitFollowBtn" class="btn btn-sm" style="margin-top:6px;"></button>
             </div>
         </div>
-        <p id="visitBio" style="margin:12px 0; font-size:14px; color:#e5e7eb;"></p>
-        <hr style="border-color:var(--border-color); margin:12px 0;">
-        <h5>Gönderileri</h5>
-        <div id="visitPostsContainer" style="margin-top:10px;"></div>
+        <p id="visitBio" style="margin:10px 0; font-size:13px; color:#e5e7eb;"></p>
+        <hr style="border-color:var(--border-color); margin:10px 0;">
+        <h5 style="font-size:14px;">Gönderileri</h5>
+        <div id="visitPostsContainer" style="margin-top:8px;"></div>
     </div>
 </div>
 
@@ -476,15 +696,15 @@
     <div class="modal-content">
         <div class="flex-between" style="padding-bottom:10px; border-bottom:1px solid var(--border-color);">
             <div class="flex">
-                <div class="msz-icon" style="width:32px; height:32px; font-size:15px;">M</div>
-                <h4>MSZ Asistan</h4>
+                <div class="msz-icon" style="width:28px; height:28px; font-size:13px;">M</div>
+                <h4 style="font-size:15px;">MSZ Asistan</h4>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="toggleAssistant()">X</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleAssistant()">✕</button>
         </div>
-        <div id="assistantMessages" style="height:220px; overflow-y:auto; margin:12px 0;">
+        <div id="assistantMessages" style="height:200px; overflow-y:auto; margin:10px 0;">
             <div class="chat-msg chat-bot">Selam! Ben MSZ Asistan. Sana bu sitede yardımcı olacağım. Sol taraftaki bağlantılardan web sitemizi ve Instagram hesabımızı da ziyaret edebilirsin!</div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
             <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('who')">❓ Sen kimsin?</button>
             <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('what')">🚀 Ne yapacağız?</button>
             <button class="btn btn-outline btn-sm" style="text-align:left;" onclick="askAssistant('links')">🔗 Sosyal Medya & Bağlantılar</button>
@@ -493,22 +713,22 @@
 </div>
 
 <button class="assistant-btn" onclick="toggleAssistant()">
-    <div class="msz-icon" style="box-shadow:none; background:transparent; font-size:24px;">M</div>
+    <div class="msz-icon">M</div>
 </button>
 
 <div class="container">
     <div id="authPage">
-        <div class="card" style="margin-top: 40px; text-align: center;">
-            <div class="brand-logo" style="justify-content:center; margin-bottom:16px;">
+        <div class="card auth-card">
+            <div class="brand-logo">
                 <div class="msz-icon">M</div>
-                <div class="brand-title" style="font-size: 26px;">MSZ MEDYA</div>
+                <div class="brand-title">MSZ MEDYA</div>
             </div>
             
             <div id="loginForm">
                 <input type="text" id="loginUsername" placeholder="Kullanıcı Adı">
                 <input type="password" id="loginPassword" placeholder="Şifre">
-                <button class="btn" onclick="login()" style="width:100%; margin-top: 10px;">Giriş Yap</button>
-                <p style="margin-top:16px; color: var(--text-muted); font-size: 14px;">
+                <button class="btn" onclick="login()" style="width:100%; margin-top:8px;">Giriş Yap</button>
+                <p style="margin-top:14px; color: var(--text-muted); font-size:13px;">
                     Hesabın yok mu? <a href="#" onclick="showRegister()" style="color:var(--primary); text-decoration:none;">Kayıt Ol</a>
                 </p>
             </div>
@@ -518,8 +738,8 @@
                 <input type="password" id="regPassword" placeholder="Şifre">
                 <input type="text" id="regDisplayName" placeholder="Görünen İsim">
                 <textarea id="regBio" placeholder="Biyografi" rows="2"></textarea>
-                <button class="btn" onclick="register()" style="width:100%; margin-top: 10px;">Kayıt Ol</button>
-                <p style="margin-top:16px; color: var(--text-muted); font-size: 14px;">
+                <button class="btn" onclick="register()" style="width:100%; margin-top:8px;">Kayıt Ol</button>
+                <p style="margin-top:14px; color: var(--text-muted); font-size:13px;">
                     Zaten hesabın var mı? <a href="#" onclick="showLogin()" style="color:var(--primary); text-decoration:none;">Giriş Yap</a>
                 </p>
             </div>
@@ -532,20 +752,33 @@
                 <div class="msz-icon">M</div>
                 <div class="brand-title">MSZ MEDYA</div>
             </div>
-            <div class="flex">
+            <div class="header-right">
                 <button class="bell-btn" onclick="openNotifications()">
                     🔔 <span id="bellBadge" class="bell-badge hidden">0</span>
                 </button>
-                <span id="currentUserDisplay" style="font-weight:600; font-size: 13px; color: var(--primary);"></span>
+                <span id="currentUserDisplay"></span>
                 <button class="btn btn-outline btn-sm" onclick="logout()">Çıkış</button>
             </div>
         </div>
 
+        <!-- NAVBAR - MOBİLDE İKONLU -->
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('feed')">Akış</button>
-            <button class="tab-btn" onclick="switchTab('profile')">Profil</button>
-            <button class="tab-btn" onclick="switchTab('messages')">Mesajlar</button>
-            <button class="tab-btn" onclick="switchTab('users')">Kullanıcılar</button>
+            <button class="tab-btn active" onclick="switchTab('feed')">
+                <span class="tab-icon">🏠</span>
+                <span class="tab-label">Akış</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('profile')">
+                <span class="tab-icon">👤</span>
+                <span class="tab-label">Profil</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('messages')">
+                <span class="tab-icon">💬</span>
+                <span class="tab-label">Mesajlar</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('users')">
+                <span class="tab-icon">👥</span>
+                <span class="tab-label">Kullanıcılar</span>
+            </button>
         </div>
 
         <div id="feedTab">
@@ -557,7 +790,7 @@
                 </select>
                 <textarea id="postContent" placeholder="Neler düşünüyorsun?" rows="3"></textarea>
                 <input type="text" id="postExtraInput" class="hidden" placeholder="Görsel veya Link URL'si girin...">
-                <div style="text-align:right; margin-top: 8px;">
+                <div style="text-align:right; margin-top:6px;">
                     <button class="btn btn-sm" onclick="createPost()">Paylaş</button>
                 </div>
             </div>
@@ -566,28 +799,28 @@
 
         <div id="profileTab" class="hidden">
             <div class="card">
-                <div class="flex" style="gap: 16px;">
+                <div class="flex" style="gap:14px;">
                     <img id="profileAvatar" class="avatar" src="">
                     <div>
-                        <h3 id="profileDisplayName"></h3>
-                        <p style="color:var(--text-muted); font-size: 14px;" id="profileUsername"></p>
-                        <p style="margin-top:6px; font-size: 13px;" id="profileFollowStats"></p>
+                        <h3 id="profileDisplayName" style="font-size:18px;"></h3>
+                        <p style="color:var(--text-muted); font-size:13px;" id="profileUsername"></p>
+                        <p style="margin-top:4px; font-size:12px;" id="profileFollowStats"></p>
                     </div>
                 </div>
-                <p id="profileBio" style="margin: 12px 0; font-size: 14px; color: #e5e7eb;"></p>
+                <p id="profileBio" style="margin:10px 0; font-size:13px; color:#e5e7eb;"></p>
 
-                <hr style="border-color: var(--border-color); margin: 16px 0;">
+                <hr style="border-color: var(--border-color); margin:14px 0;">
 
-                <h4 style="margin-bottom:8px;">Profili Düzenle</h4>
+                <h4 style="margin-bottom:6px; font-size:15px;">Profili Düzenle</h4>
                 <input type="text" id="editDisplayName" placeholder="Görünen İsim">
                 <textarea id="editBio" placeholder="Biyografi" rows="2"></textarea>
                 
-                <label style="font-size:12px; color:var(--text-muted); display:block; margin-top:6px;">Profil Resmi Yükle (Cihazınızdan):</label>
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">Profil Resmi Yükle:</label>
                 <input type="file" id="editAvatarFile" accept="image/*" onchange="handleAvatarUpload(event)">
 
-                <button class="btn btn-sm" onclick="updateProfile()" style="width:100%; margin-top:8px;">Güncelle</button>
+                <button class="btn btn-sm" onclick="updateProfile()" style="width:100%; margin-top:6px;">Güncelle</button>
 
-                <hr style="border-color: var(--border-color); margin: 20px 0;">
+                <hr style="border-color: var(--border-color); margin:16px 0;">
                 <button class="btn btn-danger btn-sm" onclick="deleteAccount()" style="width:100%;">Hesabı Sil</button>
             </div>
 
@@ -601,16 +834,16 @@
 
         <div id="messagesTab" class="hidden">
             <div class="card">
-                <h4>Özel Mesajlar</h4>
-                <div id="messageUsersList" style="margin-top: 10px;"></div>
+                <h4 style="font-size:15px;">Özel Mesajlar</h4>
+                <div id="messageUsersList" style="margin-top:8px;"></div>
 
-                <div id="messageChat" class="hidden" style="margin-top: 16px;">
-                    <div class="flex-between" style="padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
-                        <h5 id="chatPartnerName"></h5>
+                <div id="messageChat" class="hidden" style="margin-top:12px;">
+                    <div class="flex-between" style="padding-bottom:6px; border-bottom:1px solid var(--border-color);">
+                        <h5 id="chatPartnerName" style="font-size:14px;"></h5>
                         <button class="btn btn-outline btn-sm" onclick="closeChat()">Kapat</button>
                     </div>
-                    <div id="messageContainer" style="height:280px; overflow-y:auto; padding:8px 0;"></div>
-                    <div class="flex" style="margin-top: 8px;">
+                    <div id="messageContainer" style="height:240px; overflow-y:auto; padding:6px 0;"></div>
+                    <div class="flex" style="margin-top:6px;">
                         <input type="text" id="messageInput" placeholder="Mesaj yaz..." style="margin:0;">
                         <button class="btn btn-sm" onclick="sendMessage()">Gönder</button>
                     </div>
@@ -620,9 +853,9 @@
 
         <div id="usersTab" class="hidden">
             <div class="card">
-                <h4>Kullanıcılar</h4>
+                <h4 style="font-size:15px;">Kullanıcılar</h4>
                 <input type="text" id="userSearch" placeholder="Arama yap..." oninput="renderUsersList()">
-                <div id="usersList" style="margin-top:10px;"></div>
+                <div id="usersList" style="margin-top:8px;"></div>
             </div>
         </div>
 
@@ -685,7 +918,7 @@
             password: password,
             displayName: displayName,
             bio: bio,
-            avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=0284c7&color=fff',
+            avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=0284c7&color=fff&size=128',
             followers: [],
             following: [],
             notifications: []
@@ -741,7 +974,6 @@
     // --- MQTT & NOTIFICATIONS ---
     function initMQTT() {
         try {
-            // WebSocket üzerinden MQTT için güvenli bağlantı
             mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 6));
             
             mqttClient.connect({
@@ -762,12 +994,11 @@
                     };
                 },
                 onFailure: (err) => {
-                    console.warn("⚠️ MQTT bağlanamadı, offline modda çalışılıyor:", err.errorMessage);
-                    // Offline modda çalışmaya devam et
+                    console.warn("⚠️ MQTT bağlanamadı, offline modda çalışılıyor");
                 }
             });
         } catch(e) {
-            console.warn("⚠️ MQTT başlatılamadı, offline modda çalışılıyor:", e);
+            console.warn("⚠️ MQTT başlatılamadı, offline modda çalışılıyor");
         }
     }
 
@@ -798,13 +1029,13 @@
         list.innerHTML = '';
 
         if (notifs.length === 0) {
-            list.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz bildirim yok.</p>';
+            list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz bildirim yok.</p>';
         } else {
             notifs.forEach(n => {
                 const div = document.createElement('div');
-                div.style.padding = '10px 0';
+                div.style.padding = '8px 0';
                 div.style.borderBottom = '1px solid var(--border-color)';
-                div.innerHTML = `<p style="font-size:14px;">${n.text}</p><span style="font-size:11px; color:var(--text-muted);">${new Date(n.time).toLocaleString()}</span>`;
+                div.innerHTML = `<p style="font-size:13px;">${n.text}</p><span style="font-size:10px; color:var(--text-muted);">${new Date(n.time).toLocaleString()}</span>`;
                 list.appendChild(div);
             });
         }
@@ -887,12 +1118,16 @@
         const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
         const container = document.getElementById('feedContainer');
         container.innerHTML = '';
-        feed.forEach(post => container.appendChild(createPostCard(post)));
+        if (feed.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz gönderi yok. İlk gönderiyi sen yap!</p>';
+        } else {
+            feed.forEach(post => container.appendChild(createPostCard(post)));
+        }
     }
 
     function createPostCard(post) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
-        const author = users[post.username] || { displayName: post.username, avatar: 'https://ui-avatars.com/api/?name=' + post.username };
+        const author = users[post.username] || { displayName: post.username, avatar: 'https://ui-avatars.com/api/?name=' + post.username + '&background=0284c7&color=fff&size=128' };
         const isLiked = post.likes.includes(currentUser);
 
         let mediaHTML = '';
@@ -908,8 +1143,8 @@
             <div class="post-header">
                 <img class="avatar-sm" src="${author.avatar}" onclick="openUserProfile('${post.username}')">
                 <div>
-                    <strong style="cursor:pointer;" onclick="openUserProfile('${post.username}')">${author.displayName}</strong>
-                    <span style="color:var(--text-muted); font-size:13px;">@${post.username} · ${new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <strong style="cursor:pointer; font-size:14px;" onclick="openUserProfile('${post.username}')">${author.displayName}</strong>
+                    <span style="color:var(--text-muted); font-size:11px; display:block;">@${post.username} · ${new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 </div>
             </div>
             <div class="post-text">${post.content}</div>
@@ -919,7 +1154,7 @@
                     ${isLiked ? '❤️' : '🤍'} ${post.likes.length}
                 </span>
                 <span onclick="openCommentsModal('${post.id}')">💬 ${post.replies.length}</span>
-                ${post.username === currentUser ? `<span onclick="deletePost('${post.id}')" style="color:var(--danger); margin-left:auto;">Sil</span>` : ''}
+                ${post.username === currentUser ? `<span onclick="deletePost('${post.id}')" style="color:var(--danger); margin-left:auto;">🗑️</span>` : ''}
             </div>
         `;
         return card;
@@ -988,7 +1223,11 @@
         const posts = feed.filter(p => p.username === username);
         const container = document.getElementById('visitPostsContainer');
         container.innerHTML = '';
-        posts.forEach(p => container.appendChild(createPostCard(p)));
+        if (posts.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">Bu kullanıcının henüz gönderisi yok.</p>';
+        } else {
+            posts.forEach(p => container.appendChild(createPostCard(p)));
+        }
 
         document.getElementById('userProfileModal').classList.remove('hidden');
     }
@@ -1016,17 +1255,17 @@
         list.innerHTML = '';
 
         if (!post || !post.replies.length) {
-            list.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz yorum yok.</p>';
+            list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz yorum yok.</p>';
             return;
         }
 
         post.replies.forEach(r => {
             const div = document.createElement('div');
-            div.style.padding = '8px 0';
+            div.style.padding = '6px 0';
             div.style.borderBottom = '1px solid var(--border-color)';
             div.innerHTML = `
-                <strong style="font-size:13px; color:var(--primary);">@${r.username}</strong>
-                <p style="font-size:14px; margin-top:2px;">${r.text}</p>
+                <strong style="font-size:12px; color:var(--primary);">@${r.username}</strong>
+                <p style="font-size:13px; margin-top:2px;">${r.text}</p>
             `;
             list.appendChild(div);
         });
@@ -1070,7 +1309,7 @@
 
                     ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
                     uploadedAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                    alert('Resim yüklendi! Profili güncelle butonuna tıklayın.');
+                    alert('✅ Resim yüklendi! "Güncelle" butonuna tıklayın.');
                 };
                 img.src = e.target.result;
             };
@@ -1108,9 +1347,9 @@
         try {
             localStorage.setItem('socialUsers', JSON.stringify(users));
             renderProfile();
-            alert("Profil güncellendi!");
+            alert("✅ Profil güncellendi!");
         } catch (e) {
-            alert("Hata: Resim boyutu çok büyük! Lütfen daha küçük bir resim seçin.");
+            alert("❌ Hata: Resim boyutu çok büyük! Lütfen daha küçük bir resim seçin.");
         }
     }
 
@@ -1139,14 +1378,14 @@
         if (activeProfileSubTab === 'myPosts') {
             const posts = feed.filter(p => p.username === currentUser);
             if (posts.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz gönderin yok.</p>';
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz gönderin yok.</p>';
             } else {
                 posts.forEach(p => container.appendChild(createPostCard(p)));
             }
         } else if (activeProfileSubTab === 'myLikes') {
             const likedPosts = feed.filter(p => p.likes.includes(currentUser));
             if (likedPosts.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz beğendiğin gönderi yok.</p>';
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz beğendiğin gönderi yok.</p>';
             } else {
                 likedPosts.forEach(lp => container.appendChild(createPostCard(lp)));
             }
@@ -1158,15 +1397,17 @@
                     hasComments = true;
                     const div = document.createElement('div');
                     div.className = 'card';
+                    div.style.padding = '12px';
+                    div.style.marginBottom = '8px';
                     div.innerHTML = `
-                        <p style="color:var(--text-muted); font-size:12px;">Gönderiye yorum yapıldı (@${post.username}):</p>
-                        <p style="margin:6px 0; font-weight:bold;">"${c.text}"</p>
+                        <p style="color:var(--text-muted); font-size:11px;">Gönderiye yorum yapıldı (@${post.username}):</p>
+                        <p style="margin:4px 0; font-weight:bold; font-size:13px;">"${c.text}"</p>
                     `;
                     container.appendChild(div);
                 });
             });
             if (!hasComments) {
-                container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz yorumun yok.</p>';
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz yorumun yok.</p>';
             }
         }
     }
@@ -1178,31 +1419,36 @@
         const container = document.getElementById('usersList');
         container.innerHTML = '';
 
+        let found = false;
         Object.keys(users).forEach(uname => {
             if (uname === currentUser) return;
             const u = users[uname];
 
             if (uname.includes(search) || u.displayName.toLowerCase().includes(search)) {
+                found = true;
                 const isFollowing = u.followers && u.followers.includes(currentUser);
                 const div = document.createElement('div');
                 div.className = 'flex-between';
-                div.style.padding = '10px 0';
+                div.style.padding = '8px 0';
                 div.style.borderBottom = '1px solid var(--border-color)';
                 div.innerHTML = `
-                    <div class="flex">
+                    <div class="flex" style="gap:8px;">
                         <img class="avatar-sm" src="${u.avatar}" onclick="openUserProfile('${uname}')">
                         <div>
-                            <strong style="cursor:pointer;" onclick="openUserProfile('${uname}')">${u.displayName}</strong>
-                            <p style="color:var(--text-muted); font-size:12px;">@${uname}</p>
+                            <strong style="cursor:pointer; font-size:13px;" onclick="openUserProfile('${uname}')">${u.displayName}</strong>
+                            <p style="color:var(--text-muted); font-size:11px;">@${uname}</p>
                         </div>
                     </div>
-                    <button class="btn btn-sm ${isFollowing ? 'btn-outline' : ''}" onclick="toggleFollow('${uname}')">
+                    <button class="btn btn-sm ${isFollowing ? 'btn-outline' : ''}" onclick="toggleFollow('${uname}')" style="font-size:10px;">
                         ${isFollowing ? 'Takipten Çık' : 'Takip Et'}
                     </button>
                 `;
                 container.appendChild(div);
             }
         });
+        if (!found) {
+            container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Kullanıcı bulunamadı.</p>';
+        }
     }
 
     function toggleFollow(targetUsername) {
@@ -1233,17 +1479,22 @@
     function renderMessagesList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const container = document.getElementById('messageUsersList');
-        container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; margin-bottom:8px;">Mesajlaşmak için bir kullanıcı seçin:</p>';
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:12px; margin-bottom:6px;">Mesajlaşmak için bir kullanıcı seçin:</p>';
 
+        let hasUsers = false;
         Object.keys(users).forEach(uname => {
             if (uname === currentUser) return;
+            hasUsers = true;
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline btn-sm';
-            btn.style.margin = '4px';
+            btn.style.margin = '3px';
             btn.textContent = '@' + uname;
             btn.onclick = () => openChat(uname);
             container.appendChild(btn);
         });
+        if (!hasUsers) {
+            container.innerHTML += '<p style="color:var(--text-muted); font-size:12px;">Başka kullanıcı yok.</p>';
+        }
     }
 
     function openChat(username) {
@@ -1291,7 +1542,6 @@
         messages[key].push({ from: currentUser, to: currentChat, text: text, timestamp: Date.now() });
         localStorage.setItem('socialMessages', JSON.stringify(messages));
 
-        // MQTT ile gönder
         if (mqttClient && mqttClient.isConnected()) {
             try {
                 const payload = new Paho.MQTT.Message(JSON.stringify({ type: 'dm', from: currentUser, text: text }));
@@ -1336,7 +1586,7 @@
                 password: '1234',
                 displayName: 'Demo Kullanıcı',
                 bio: 'MSZ Medya\'ya hoş geldiniz! 🎉',
-                avatar: 'https://ui-avatars.com/api/?name=Demo&background=0284c7&color=fff',
+                avatar: 'https://ui-avatars.com/api/?name=Demo&background=0284c7&color=fff&size=128',
                 followers: [],
                 following: [],
                 notifications: []
