@@ -592,9 +592,9 @@
             </div>
 
             <div class="sub-tab-bar">
-                <button class="sub-tab-btn active" onclick="switchProfileSubTab('myPosts')">Gönderilerim</button>
-                <button class="sub-tab-btn" onclick="switchProfileSubTab('myLikes')">Beğendiklerim</button>
-                <button class="sub-tab-btn" onclick="switchProfileSubTab('myComments')">Yorumlarım</button>
+                <button class="sub-tab-btn active" onclick="switchProfileSubTab(event, 'myPosts')">Gönderilerim</button>
+                <button class="sub-tab-btn" onclick="switchProfileSubTab(event, 'myLikes')">Beğendiklerim</button>
+                <button class="sub-tab-btn" onclick="switchProfileSubTab(event, 'myComments')">Yorumlarım</button>
             </div>
             <div id="profileTabContent"></div>
         </div>
@@ -739,29 +739,37 @@
     }
 
     // --- MQTT & NOTIFICATIONS ---
-function initMQTT() {
-    // 8083 yerine SSL destekli 8084 portu ve wss yönlendirmesi
-    mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 4));
-    
-    mqttClient.connect({
-        useSSL: true, // HTTPS (GitHub Pages) için zorunlu SSL parametresi
-        onSuccess: () => {
-            console.log("MQTT SSL Bağlantısı Başarılı!");
-            mqttClient.subscribe('social/messages/' + currentUser);
-            mqttClient.onMessageArrived = (message) => {
-                const data = JSON.parse(message.payloadString);
-                if (data.type === 'dm') {
-                    addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
-                    if (currentChat === data.from) renderChatMessages(data.from);
-                    renderMessagesList();
+    function initMQTT() {
+        try {
+            // WebSocket üzerinden MQTT için güvenli bağlantı
+            mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "client_" + currentUser + "_" + Math.random().toString(36).substr(2, 6));
+            
+            mqttClient.connect({
+                useSSL: true,
+                timeout: 10,
+                onSuccess: () => {
+                    console.log("✅ MQTT bağlandı!");
+                    mqttClient.subscribe('social/messages/' + currentUser);
+                    mqttClient.onMessageArrived = (message) => {
+                        try {
+                            const data = JSON.parse(message.payloadString);
+                            if (data.type === 'dm') {
+                                addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
+                                if (currentChat === data.from) renderChatMessages(data.from);
+                                renderMessagesList();
+                            }
+                        } catch(e) { console.warn('MQTT mesaj ayrıştırma hatası:', e); }
+                    };
+                },
+                onFailure: (err) => {
+                    console.warn("⚠️ MQTT bağlanamadı, offline modda çalışılıyor:", err.errorMessage);
+                    // Offline modda çalışmaya devam et
                 }
-            };
-        },
-        onFailure: (err) => {
-            console.error("MQTT Bağlantı Hatası:", err);
+            });
+        } catch(e) {
+            console.warn("⚠️ MQTT başlatılamadı, offline modda çalışılıyor:", e);
         }
-    });
-}
+    }
 
     function addNotification(text) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
@@ -884,7 +892,7 @@ function initMQTT() {
 
     function createPostCard(post) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
-        const author = users[post.username] || { displayName: post.username, avatar: '' };
+        const author = users[post.username] || { displayName: post.username, avatar: 'https://ui-avatars.com/api/?name=' + post.username };
         const isLiked = post.likes.includes(currentUser);
 
         let mediaHTML = '';
@@ -898,7 +906,7 @@ function initMQTT() {
         card.className = 'post';
         card.innerHTML = `
             <div class="post-header">
-                <img class="avatar-sm" src="${author.avatar || 'https://ui-avatars.com/api/?name=' + post.username}" onclick="openUserProfile('${post.username}')">
+                <img class="avatar-sm" src="${author.avatar}" onclick="openUserProfile('${post.username}')">
                 <div>
                     <strong style="cursor:pointer;" onclick="openUserProfile('${post.username}')">${author.displayName}</strong>
                     <span style="color:var(--text-muted); font-size:13px;">@${post.username} · ${new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -1044,7 +1052,7 @@ function initMQTT() {
         }
     }
 
-    // --- PROFILE & FILE UPLOAD (CANVAS COMPRESSION FIXED) ---
+    // --- PROFILE & FILE UPLOAD ---
     function handleAvatarUpload(event) {
         const file = event.target.files[0];
         if (file) {
@@ -1062,6 +1070,7 @@ function initMQTT() {
 
                     ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
                     uploadedAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                    alert('Resim yüklendi! Profili güncelle butonuna tıklayın.');
                 };
                 img.src = e.target.result;
             };
@@ -1105,10 +1114,20 @@ function initMQTT() {
         }
     }
 
-    function switchProfileSubTab(tab) {
+    function switchProfileSubTab(event, tab) {
         activeProfileSubTab = tab;
         document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        if (event && event.target) {
+            event.target.classList.add('active');
+        } else {
+            document.querySelectorAll('.sub-tab-btn').forEach((btn, i) => {
+                if ((tab === 'myPosts' && i === 0) || 
+                    (tab === 'myLikes' && i === 1) || 
+                    (tab === 'myComments' && i === 2)) {
+                    btn.classList.add('active');
+                }
+            });
+        }
         renderProfileSubTab();
     }
 
@@ -1119,14 +1138,24 @@ function initMQTT() {
 
         if (activeProfileSubTab === 'myPosts') {
             const posts = feed.filter(p => p.username === currentUser);
-            posts.forEach(p => container.appendChild(createPostCard(p)));
+            if (posts.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz gönderin yok.</p>';
+            } else {
+                posts.forEach(p => container.appendChild(createPostCard(p)));
+            }
         } else if (activeProfileSubTab === 'myLikes') {
             const likedPosts = feed.filter(p => p.likes.includes(currentUser));
-            likedPosts.forEach(lp => container.appendChild(createPostCard(lp)));
+            if (likedPosts.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz beğendiğin gönderi yok.</p>';
+            } else {
+                likedPosts.forEach(lp => container.appendChild(createPostCard(lp)));
+            }
         } else if (activeProfileSubTab === 'myComments') {
+            let hasComments = false;
             feed.forEach(post => {
                 const myComments = post.replies.filter(r => r.username === currentUser);
                 myComments.forEach(c => {
+                    hasComments = true;
                     const div = document.createElement('div');
                     div.className = 'card';
                     div.innerHTML = `
@@ -1136,6 +1165,9 @@ function initMQTT() {
                     container.appendChild(div);
                 });
             });
+            if (!hasComments) {
+                container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Henüz yorumun yok.</p>';
+            }
         }
     }
 
@@ -1184,7 +1216,8 @@ function initMQTT() {
         const index = me.following.indexOf(targetUsername);
         if (index > -1) {
             me.following.splice(index, 1);
-            target.followers.splice(target.followers.indexOf(currentUser), 1);
+            const followerIndex = target.followers.indexOf(currentUser);
+            if (followerIndex > -1) target.followers.splice(followerIndex, 1);
         } else {
             me.following.push(targetUsername);
             target.followers.push(currentUser);
@@ -1200,7 +1233,7 @@ function initMQTT() {
     function renderMessagesList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const container = document.getElementById('messageUsersList');
-        container.innerHTML = '';
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; margin-bottom:8px;">Mesajlaşmak için bir kullanıcı seçin:</p>';
 
         Object.keys(users).forEach(uname => {
             if (uname === currentUser) return;
@@ -1233,12 +1266,16 @@ function initMQTT() {
         const container = document.getElementById('messageContainer');
         container.innerHTML = '';
 
-        chatList.forEach(m => {
-            const div = document.createElement('div');
-            div.className = `message-item ${m.from === currentUser ? 'message-sent' : 'message-received'}`;
-            div.textContent = m.text;
-            container.appendChild(div);
-        });
+        if (chatList.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">Henüz mesaj yok.</p>';
+        } else {
+            chatList.forEach(m => {
+                const div = document.createElement('div');
+                div.className = `message-item ${m.from === currentUser ? 'message-sent' : 'message-received'}`;
+                div.textContent = m.text;
+                container.appendChild(div);
+            });
+        }
         container.scrollTop = container.scrollHeight;
     }
 
@@ -1254,10 +1291,13 @@ function initMQTT() {
         messages[key].push({ from: currentUser, to: currentChat, text: text, timestamp: Date.now() });
         localStorage.setItem('socialMessages', JSON.stringify(messages));
 
+        // MQTT ile gönder
         if (mqttClient && mqttClient.isConnected()) {
-            const payload = new Paho.MQTT.Message(JSON.stringify({ type: 'dm', from: currentUser, text: text }));
-            payload.destinationName = 'social/messages/' + currentChat;
-            mqttClient.send(payload);
+            try {
+                const payload = new Paho.MQTT.Message(JSON.stringify({ type: 'dm', from: currentUser, text: text }));
+                payload.destinationName = 'social/messages/' + currentChat;
+                mqttClient.send(payload);
+            } catch(e) { console.warn('MQTT mesaj gönderilemedi:', e); }
         }
 
         input.value = '';
@@ -1287,6 +1327,47 @@ function initMQTT() {
             renderUsersList();
         }
     }
+
+    // --- INITIALIZE DEMO DATA ---
+    (function initDemoData() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        if (Object.keys(users).length === 0) {
+            users['demo'] = {
+                password: '1234',
+                displayName: 'Demo Kullanıcı',
+                bio: 'MSZ Medya\'ya hoş geldiniz! 🎉',
+                avatar: 'https://ui-avatars.com/api/?name=Demo&background=0284c7&color=fff',
+                followers: [],
+                following: [],
+                notifications: []
+            };
+            localStorage.setItem('socialUsers', JSON.stringify(users));
+
+            const feed = [
+                {
+                    id: 'demo_post_1',
+                    username: 'demo',
+                    content: 'MSZ Medya\'ya hoş geldiniz! Bu yeni sosyal medya platformunda paylaşım yapabilir, takipleşebilir ve mesajlaşabilirsiniz. 🚀',
+                    type: 'text',
+                    extra: '',
+                    timestamp: Date.now() - 3600000,
+                    likes: ['demo'],
+                    replies: [{ username: 'demo', text: 'Harika bir başlangıç!', timestamp: Date.now() - 1800000 }]
+                },
+                {
+                    id: 'demo_post_2',
+                    username: 'demo',
+                    content: 'Web sitemizi ve Instagram\'ı ziyaret etmeyi unutmayın!',
+                    type: 'link',
+                    extra: 'https://burak-code.github.io/msz/',
+                    timestamp: Date.now() - 7200000,
+                    likes: [],
+                    replies: []
+                }
+            ];
+            localStorage.setItem('socialFeed', JSON.stringify(feed));
+        }
+    })();
 </script>
 </body>
 </html>
