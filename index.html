@@ -440,10 +440,6 @@
     // KONFIGURASYON
     // ============================================================
     const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
-    // Alternatif brokerlar: 
-    // const BROKER_URL = 'wss://test.mosquitto.org:8081/mqtt';
-    // const BROKER_URL = 'ws://broker.emqx.io:8083/mqtt';
-    
     const TOPIC_PREFIX = 'social_pulse_net_v3/';
     const TOPIC_POSTS = TOPIC_PREFIX + 'posts';
     const TOPIC_LIKES = TOPIC_PREFIX + 'likes';
@@ -484,7 +480,6 @@
           }
         });
         
-        // Enter tuşu ile gönderi paylaşma (Shift+Enter satır atlar)
         postInput.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -710,12 +705,12 @@
           statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium';
           statusText.innerText = 'Canlı Bağlantı';
 
-          mqttClient.subscribe(TOPIC_POSTS, (err) => { if (err) logSystem('Posts subscribe error: ' + err); });
-          mqttClient.subscribe(TOPIC_LIKES, (err) => { if (err) logSystem('Likes subscribe error: ' + err); });
-          mqttClient.subscribe(TOPIC_USERS, (err) => { if (err) logSystem('Users subscribe error: ' + err); });
-          mqttClient.subscribe(TOPIC_FOLLOWS, (err) => { if (err) logSystem('Follows subscribe error: ' + err); });
-          mqttClient.subscribe(TOPIC_DM + currentUser.username, (err) => { if (err) logSystem('DM subscribe error: ' + err); });
-          mqttClient.subscribe(TOPIC_COMMENTS, (err) => { if (err) logSystem('Comments subscribe error: ' + err); });
+          mqttClient.subscribe(TOPIC_POSTS);
+          mqttClient.subscribe(TOPIC_LIKES);
+          mqttClient.subscribe(TOPIC_USERS);
+          mqttClient.subscribe(TOPIC_FOLLOWS);
+          mqttClient.subscribe(TOPIC_DM + currentUser.username);
+          mqttClient.subscribe(TOPIC_COMMENTS);
 
           mqttClient.publish(TOPIC_USERS, JSON.stringify({
             type: 'PRESENCE',
@@ -759,7 +754,6 @@
     // MQTT MESSAGE HANDLER
     // ============================================================
     function handleIncomingNetworkData(topic, data) {
-      // POSTS
       if (topic === TOPIC_POSTS && data.type === 'NEW_POST') {
         if (!postsDb.some(p => p.id === data.post.id)) {
           postsDb.unshift(data.post);
@@ -772,7 +766,6 @@
         return;
       }
 
-      // LIKES
       if (topic === TOPIC_LIKES && data.type === 'TOGGLE_LIKE') {
         const targetPost = postsDb.find(p => p.id === data.postId);
         if (targetPost) {
@@ -783,7 +776,6 @@
         return;
       }
 
-      // USERS
       if (topic === TOPIC_USERS && data.type === 'PRESENCE') {
         const rxUser = data.user;
         if (rxUser.username !== currentUser.username) {
@@ -800,7 +792,6 @@
         return;
       }
 
-      // FOLLOWS
       if (topic === TOPIC_FOLLOWS && data.type === 'FOLLOW_UPDATE') {
         if (usersDb[data.targetUsername]) {
           usersDb[data.targetUsername].followers = data.followers;
@@ -822,7 +813,6 @@
         return;
       }
 
-      // DIRECT MESSAGES
       if (topic === TOPIC_DM + currentUser.username && data.type === 'DIRECT_MESSAGE') {
         dmsDb.push(data.message);
         localStorage.setItem('sp_social_dms', JSON.stringify(dmsDb));
@@ -836,7 +826,6 @@
         return;
       }
 
-      // COMMENTS
       if (topic === TOPIC_COMMENTS && data.type === 'NEW_COMMENT') {
         if (!commentsDb.some(c => c.id === data.comment.id)) {
           commentsDb.push(data.comment);
@@ -952,6 +941,45 @@
     }
 
     // ============================================================
+    // SAVE FUNCTIONS - LOCALSTORAGE KOTA SORUNU ÇÖZÜLDÜ
+    // ============================================================
+    function savePostsLocally() {
+      try {
+        // Maksimum 100 gönderi sakla
+        if (postsDb.length > 100) {
+          postsDb = postsDb.slice(0, 100);
+        }
+        localStorage.setItem('sp_social_posts', JSON.stringify(postsDb));
+      } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+          console.warn('⚠️ localStorage dolu, eski veriler temizleniyor...');
+          postsDb = postsDb.slice(0, 30);
+          try {
+            localStorage.setItem('sp_social_posts', JSON.stringify(postsDb));
+          } catch (e2) {
+            postsDb = [];
+            localStorage.setItem('sp_social_posts', JSON.stringify(postsDb));
+          }
+          showToast('⚠️ Eski veriler temizlendi, tekrar deneyin.', 'warning');
+        }
+      }
+    }
+
+    function saveCommentsLocally() {
+      try {
+        if (commentsDb.length > 300) {
+          commentsDb = commentsDb.slice(-200);
+        }
+        localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+      } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+          commentsDb = commentsDb.slice(-100);
+          localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+        }
+      }
+    }
+
+    // ============================================================
     // POSTS
     // ============================================================
     function submitPost() {
@@ -1039,7 +1067,7 @@
       };
 
       commentsDb.push(comment);
-      localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+      saveCommentsLocally();
 
       const post = postsDb.find(p => p.id === postId);
       if (post) {
@@ -1095,7 +1123,7 @@
 
     function deleteComment(commentId, postId) {
       commentsDb = commentsDb.filter(c => c.id !== commentId);
-      localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+      saveCommentsLocally();
       
       const post = postsDb.find(p => p.id === postId);
       if (post && post.comments) {
@@ -1109,10 +1137,7 @@
 
     function toggleLike(postId) {
       const post = postsDb.find(p => p.id === postId);
-      if (!post) {
-        console.warn('Post bulunamadı:', postId);
-        return;
-      }
+      if (!post) return;
 
       const userIndex = post.likes.indexOf(currentUser.username);
       if (userIndex === -1) {
@@ -1135,7 +1160,7 @@
 
     function deletePost(postId) {
       commentsDb = commentsDb.filter(c => c.postId !== postId);
-      localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+      saveCommentsLocally();
       
       postsDb = postsDb.filter(p => p.id !== postId);
       savePostsLocally();
@@ -1144,16 +1169,9 @@
       showToast('Gönderi silindi.', 'info');
     }
 
-    function savePostsLocally() {
-      localStorage.setItem('sp_social_posts', JSON.stringify(postsDb));
-    }
-
     function renderFeed() {
       const container = document.getElementById('posts-container');
-      if (!container) {
-        console.warn('posts-container bulunamadı!');
-        return;
-      }
+      if (!container) return;
       
       postsDb = JSON.parse(localStorage.getItem('sp_social_posts') || '[]');
       commentsDb = JSON.parse(localStorage.getItem('sp_social_comments') || '[]');
@@ -1256,7 +1274,6 @@
       const badge = document.getElementById('total-users-badge');
       if (!container) return;
 
-      usersDb = JSON.parse(localStorage.getItem('sp_social_users') || '{}');
       const allUsers = Object.values(usersDb);
       if (badge) badge.innerText = `${allUsers.length} Kayıtlı Üye`;
 
@@ -1364,7 +1381,6 @@
       const container = document.getElementById('dm-users-list');
       if (!container) return;
 
-      usersDb = JSON.parse(localStorage.getItem('sp_social_users') || '{}');
       const otherUsers = Object.values(usersDb).filter(u => u.username !== currentUser.username);
 
       if (otherUsers.length === 0) {
@@ -1470,7 +1486,6 @@
         return;
       }
 
-      dmsDb = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
       const conversation = dmsDb.filter(m => 
         (m.sender === currentUser.username && m.recipient === selectedDmUser) ||
         (m.sender === selectedDmUser && m.recipient === currentUser.username)
@@ -1522,7 +1537,6 @@
       document.getElementById('profile-username-display').innerText = '@' + currentUser.username;
       document.getElementById('profile-bio').innerText = currentUser.bio;
 
-      postsDb = JSON.parse(localStorage.getItem('sp_social_posts') || '[]');
       const myPosts = postsDb.filter(p => p.author.username === currentUser.username);
       document.getElementById('profile-stat-posts').innerText = myPosts.length;
       document.getElementById('profile-stat-followers').innerText = (currentUser.followers || []).length;
@@ -1684,7 +1698,7 @@
           c.author.avatarUrl = currentUser.avatarUrl;
         }
       });
-      localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+      saveCommentsLocally();
 
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_USERS, JSON.stringify({
