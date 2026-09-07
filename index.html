@@ -12,8 +12,6 @@
   <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
   <!-- Inter Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png">
   <style>
     * { -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
@@ -21,15 +19,10 @@
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
-    
-    /* Mobile touch improvements */
     .touch-target { min-height: 44px; min-width: 44px; }
     .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-    
-    /* Smooth transitions */
     .smooth-transition { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Mobile drawer for nav */
     @media (max-width: 640px) {
       .nav-btn span { display: none; }
       .nav-btn { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
@@ -99,19 +92,17 @@
     <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative z-10">
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
-          <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
+          <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover" onerror="this.style.display='none'">
         </div>
         <h1 class="text-2xl font-extrabold text-white tracking-tight">MSZ MEDYA</h1>
         <p class="text-xs text-slate-400 mt-1">Gerçek Zamanlı Sosyal Ağ</p>
       </div>
 
-      <!-- Auth Tabs -->
       <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
         <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target">Giriş Yap</button>
         <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target">Kayıt Ol</button>
       </div>
 
-      <!-- Login Form -->
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
@@ -139,7 +130,6 @@
         </button>
       </form>
 
-      <!-- Register Form -->
       <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
@@ -161,16 +151,14 @@
     </div>
   </div>
 
-  <!-- MAIN APP CONTAINER -->
+  <!-- MAIN APP -->
   <div id="main-app" class="hidden min-h-screen flex flex-col">
     
-    <!-- Top Navigation Bar - Mobile Optimized -->
     <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 safe-bottom">
       <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-        <!-- Logo -->
         <div class="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0" onclick="switchTab('feed')">
           <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-cyan-500/20 overflow-hidden shrink-0">
-            <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
+            <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover" onerror="this.style.display='none'">
           </div>
           <div class="hidden xs:block">
             <span class="font-bold text-sm sm:text-base text-white tracking-tight header-title">MSZ MEDYA</span>
@@ -181,7 +169,6 @@
           </div>
         </div>
 
-        <!-- Navigation Tabs - Mobile Friendly -->
         <nav class="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar flex-1 justify-end">
           <button onclick="switchTab('feed')" id="nav-feed" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50 touch-target whitespace-nowrap">
             <i class="fa-solid fa-house text-sm sm:text-base"></i>
@@ -202,12 +189,9 @@
           </button>
         </nav>
 
-        <!-- User Menu -->
         <div class="flex items-center gap-2 shrink-0">
           <div class="flex items-center gap-1 sm:gap-2 cursor-pointer" onclick="switchTab('profile')">
-            <div id="header-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow overflow-hidden shrink-0">
-              ?
-            </div>
+            <div id="header-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow overflow-hidden shrink-0">?</div>
             <div class="hidden md:block text-left">
               <div id="header-username-display" class="text-xs font-semibold text-white truncate max-w-[80px]">@...</div>
             </div>
@@ -229,10 +213,8 @@
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
       
-      <!-- Left Sidebar - Hidden on Mobile -->
       <aside class="hidden lg:block lg:col-span-3 space-y-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
           <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
@@ -281,12 +263,9 @@
         </div>
       </aside>
 
-      <!-- Center Main Content -->
       <section class="lg:col-span-9 space-y-4 sm:space-y-6">
         
-        <!-- FEED TAB -->
         <div id="tab-content-feed" class="space-y-4 sm:space-y-6">
-          <!-- Post Composer - Mobile Optimized -->
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
             <div class="flex gap-3">
               <div id="composer-avatar" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">?</div>
@@ -313,7 +292,6 @@
             </div>
           </div>
 
-          <!-- Feed Posts List -->
           <div class="space-y-4">
             <div class="flex items-center justify-between px-1">
               <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
@@ -322,17 +300,13 @@
               <span class="text-xs text-slate-500" id="post-feed-count">0 Gönderi</span>
             </div>
 
-            <div id="posts-container" class="space-y-4">
-              <!-- Posts dynamically populated -->
-            </div>
+            <div id="posts-container" class="space-y-4"></div>
           </div>
         </div>
 
-        <!-- DIRECT MESSAGES TAB - Mobile Optimized -->
         <div id="tab-content-messages" class="hidden space-y-4">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl min-h-[500px] flex flex-col md:flex-row">
             
-            <!-- Users List Side -->
             <div class="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 flex flex-col">
               <div class="p-3 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sohbetler</h3>
@@ -341,12 +315,9 @@
                   <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
                 </div>
               </div>
-              <div id="dm-users-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 max-h-[200px] md:max-h-none">
-                <!-- User items -->
-              </div>
+              <div id="dm-users-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 max-h-[200px] md:max-h-none"></div>
             </div>
 
-            <!-- Chat Window Side -->
             <div class="flex-1 flex flex-col bg-slate-900 min-h-[300px]">
               <div id="chat-header" class="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 gap-2 flex-wrap">
                 <div class="flex items-center gap-3 min-w-0">
@@ -379,7 +350,6 @@
           </div>
         </div>
 
-        <!-- USERS TAB - Mobile Optimized -->
         <div id="tab-content-users" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -394,22 +364,17 @@
               </div>
             </div>
 
-            <div id="users-leaderboard-container" class="space-y-3 pt-2">
-              <!-- Populated dynamically -->
-            </div>
+            <div id="users-leaderboard-container" class="space-y-3 pt-2"></div>
           </div>
         </div>
 
-        <!-- MY PROFILE TAB - Mobile Optimized -->
         <div id="tab-content-profile" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="h-24 sm:h-32 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative"></div>
             
             <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 relative space-y-4">
               <div class="flex items-end justify-between -mt-12 gap-2">
-                <div id="profile-main-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">
-                  ?
-                </div>
+                <div id="profile-main-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">?</div>
                 <button onclick="openEditProfileModal()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1 sm:gap-2 touch-target">
                   <i class="fa-solid fa-pen-to-square"></i>
                   <span class="hidden xs:inline">Profili Düzenle</span>
@@ -434,9 +399,7 @@
 
           <div class="space-y-4">
             <h3 class="text-sm font-bold text-slate-300">Gönderilerim</h3>
-            <div id="profile-posts-container" class="space-y-4">
-              <!-- User posts dynamically added -->
-            </div>
+            <div id="profile-posts-container" class="space-y-4"></div>
           </div>
         </div>
 
@@ -444,7 +407,7 @@
     </main>
   </div>
 
-  <!-- PUBLIC USER PROFILE MODAL - Mobile Optimized -->
+  <!-- PUBLIC PROFILE MODAL -->
   <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-0 max-h-[90vh] flex flex-col mx-auto">
       <div class="h-24 sm:h-28 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
@@ -455,13 +418,9 @@
 
       <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
         <div class="flex items-end justify-between -mt-10 gap-2 flex-wrap">
-          <div id="pub-profile-avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-xl overflow-hidden shrink-0">
-            ?
-          </div>
+          <div id="pub-profile-avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-xl overflow-hidden shrink-0">?</div>
           <div class="flex items-center gap-2 flex-wrap">
-            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">
-              Takip Et
-            </button>
+            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">Takip Et</button>
             <button id="pub-profile-dm-btn" onclick="messagePublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target">
               <i class="fa-solid fa-paper-plane mr-1"></i> Mesaj
             </button>
@@ -483,15 +442,13 @@
 
         <div class="space-y-3 pt-2">
           <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Gönderileri</h4>
-          <div id="pub-profile-posts-list" class="space-y-3">
-            <!-- User's posts -->
-          </div>
+          <div id="pub-profile-posts-list" class="space-y-3"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- EDIT PROFILE MODAL - Mobile Optimized -->
+  <!-- EDIT PROFILE MODAL -->
   <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 mx-auto">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -503,9 +460,7 @@
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-2">Profil Fotoğrafı Yükle</label>
           <div class="flex items-center gap-4 flex-wrap">
-            <div id="edit-avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 text-white flex items-center justify-center font-bold text-xl overflow-hidden border border-slate-700 shrink-0">
-              ?
-            </div>
+            <div id="edit-avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 text-white flex items-center justify-center font-bold text-xl overflow-hidden border border-slate-700 shrink-0">?</div>
             <div class="flex-1 space-y-1 min-w-[120px]">
               <input type="file" id="edit-avatar-input" accept="image/*" onchange="handleAvatarSelect(event)" class="hidden">
               <button type="button" onclick="document.getElementById('edit-avatar-input').click()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition touch-target">
@@ -534,10 +489,9 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT LOGIC -->
   <script>
     
-    // Application System Constants
+    // ======== CONSTANTS ========
     const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
     const TOPIC_PREFIX = 'social_pulse_net_v3/';
     const TOPIC_POSTS = TOPIC_PREFIX + 'posts';
@@ -547,22 +501,23 @@
     const TOPIC_DM = TOPIC_PREFIX + 'dm/';
     const TOPIC_COMMENTS = TOPIC_PREFIX + 'comments';
 
-    // Application State Variables
+    // ======== STATE ========
     let currentUser = null;
     let mqttClient = null;
     let activeTab = 'feed';
     let selectedDmUser = null;
     let viewingPublicUsername = null;
     let tempAvatarBase64 = null;
+    let isMqttConnected = false;
 
-    // Local Storage Data Management
+    // ======== DATABASE ========
     let usersDb = JSON.parse(localStorage.getItem('sp_social_users') || '{}');
     let postsDb = JSON.parse(localStorage.getItem('sp_social_posts') || '[]');
     let dmsDb = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
     let commentsDb = JSON.parse(localStorage.getItem('sp_social_comments') || '[]');
 
+    // ======== INIT ========
     window.addEventListener('DOMContentLoaded', () => {
-      // Character Counter Listener
       const postInput = document.getElementById('post-input');
       if (postInput) {
         postInput.addEventListener('input', (e) => {
@@ -570,7 +525,6 @@
         });
       }
 
-      // Session Verification
       const savedSession = localStorage.getItem('sp_social_active_user');
       const savedUsername = localStorage.getItem('sp_social_username');
       const savedPassword = localStorage.getItem('sp_social_password');
@@ -589,6 +543,7 @@
       }
     });
 
+    // ======== AUTH ========
     function switchAuthTab(tab) {
       const loginForm = document.getElementById('login-form');
       const regForm = document.getElementById('register-form');
@@ -694,6 +649,7 @@
       renderUsersLeaderboard();
     }
 
+    // ======== PASSWORD ========
     function openChangePasswordModal() {
       document.getElementById('change-password-modal').classList.remove('hidden');
       document.getElementById('current-password').value = '';
@@ -738,6 +694,7 @@
       showToast('Şifreniz başarıyla güncellendi!', 'success');
     }
 
+    // ======== SETTINGS ========
     function toggleSettingsDropdown() {
       const dropdown = document.getElementById('settings-dropdown');
       dropdown.classList.toggle('hidden');
@@ -751,6 +708,7 @@
       }
     });
 
+    // ======== MQTT ========
     function initNetworkConnection() {
       const statusBadge = document.getElementById('status-badge');
       const statusText = document.getElementById('status-text');
@@ -763,21 +721,23 @@
         mqttClient = mqtt.connect(BROKER_URL, {
           clientId: clientId,
           clean: true,
-          connectTimeout: 8000,
-          reconnectPeriod: 3000
+          connectTimeout: 10000,
+          reconnectPeriod: 3000,
+          keepalive: 60
         });
 
         mqttClient.on('connect', () => {
+          isMqttConnected = true;
           logSystem('Canlı ağ bağlantısı başarıyla oluşturuldu.');
           statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium';
           statusText.innerText = 'Canlı Bağlantı';
 
-          mqttClient.subscribe(TOPIC_POSTS);
-          mqttClient.subscribe(TOPIC_LIKES);
-          mqttClient.subscribe(TOPIC_USERS);
-          mqttClient.subscribe(TOPIC_FOLLOWS);
-          mqttClient.subscribe(TOPIC_DM + currentUser.username);
-          mqttClient.subscribe(TOPIC_COMMENTS);
+          mqttClient.subscribe(TOPIC_POSTS, (err) => { if (err) logSystem('Posts subscribe error: ' + err); });
+          mqttClient.subscribe(TOPIC_LIKES, (err) => { if (err) logSystem('Likes subscribe error: ' + err); });
+          mqttClient.subscribe(TOPIC_USERS, (err) => { if (err) logSystem('Users subscribe error: ' + err); });
+          mqttClient.subscribe(TOPIC_FOLLOWS, (err) => { if (err) logSystem('Follows subscribe error: ' + err); });
+          mqttClient.subscribe(TOPIC_DM + currentUser.username, (err) => { if (err) logSystem('DM subscribe error: ' + err); });
+          mqttClient.subscribe(TOPIC_COMMENTS, (err) => { if (err) logSystem('Comments subscribe error: ' + err); });
 
           mqttClient.publish(TOPIC_USERS, JSON.stringify({
             type: 'PRESENCE',
@@ -788,7 +748,6 @@
         mqttClient.on('message', (topic, payload) => {
           try {
             const data = JSON.parse(payload.toString());
-            logSystem(`Veri Paketi Alındı [${topic.replace(TOPIC_PREFIX, '')}]`);
             handleIncomingNetworkData(topic, data);
           } catch (err) {
             console.error('Data Parsing Error:', err);
@@ -796,14 +755,21 @@
         });
 
         mqttClient.on('error', (err) => {
+          isMqttConnected = false;
           logSystem(`Bağlantı Hatası: ${err.message}`);
           statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-rose-400 font-medium';
           statusText.innerText = 'Bağlantı Hatası';
         });
 
         mqttClient.on('offline', () => {
+          isMqttConnected = false;
           statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-amber-400 font-medium';
           statusText.innerText = 'Çevrimdışı';
+        });
+
+        mqttClient.on('reconnect', () => {
+          logSystem('Yeniden bağlanılıyor...');
+          statusText.innerText = 'Yeniden Bağlanıyor...';
         });
 
       } catch (err) {
@@ -812,87 +778,98 @@
     }
 
     function handleIncomingNetworkData(topic, data) {
-      if (topic === TOPIC_POSTS) {
-        if (data.type === 'NEW_POST') {
-          if (!postsDb.some(p => p.id === data.post.id)) {
-            postsDb.unshift(data.post);
-            savePostsLocally();
-            renderFeed();
-            if (data.post.author.username !== currentUser.username) {
-              showToast(`@${data.post.author.username} yeni bir gönderi paylaştı.`, 'info');
-            }
-          }
+      // POSTS
+      if (topic === TOPIC_POSTS && data.type === 'NEW_POST') {
+        if (!postsDb.some(p => p.id === data.post.id)) {
+          postsDb.unshift(data.post);
+          savePostsLocally();
         }
-      } else if (topic === TOPIC_LIKES) {
-        if (data.type === 'TOGGLE_LIKE') {
-          const targetPost = postsDb.find(p => p.id === data.postId);
-          if (targetPost) {
-            targetPost.likes = data.likes;
-            savePostsLocally();
-            renderFeed();
-          }
+        renderFeed(); // <-- HER ZAMAN RENDER ET
+        if (data.post.author.username !== currentUser.username) {
+          showToast(`@${data.post.author.username} yeni bir gönderi paylaştı.`, 'info');
         }
-      } else if (topic === TOPIC_USERS) {
-        if (data.type === 'PRESENCE') {
-          const rxUser = data.user;
-          if (rxUser.username !== currentUser.username) {
-            usersDb[rxUser.username] = {
-              ...(usersDb[rxUser.username] || {}),
-              ...rxUser,
-              followers: rxUser.followers || (usersDb[rxUser.username] ? usersDb[rxUser.username].followers : []),
-              following: rxUser.following || (usersDb[rxUser.username] ? usersDb[rxUser.username].following : [])
-            };
-            localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
-            renderDmUserList();
-            renderUsersLeaderboard();
-          }
-        }
-      } else if (topic === TOPIC_FOLLOWS) {
-        if (data.type === 'FOLLOW_UPDATE') {
-          if (usersDb[data.targetUsername]) {
-            usersDb[data.targetUsername].followers = data.followers;
-          }
-          if (usersDb[data.followerUsername]) {
-            usersDb[data.followerUsername].following = data.following;
-          }
-          localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
-          
-          if (data.targetUsername === currentUser.username) {
-            currentUser.followers = data.followers;
-          }
-          
-          renderUsersLeaderboard();
-          updateUserUI();
-          if (viewingPublicUsername) {
-            renderPublicProfileModal(viewingPublicUsername);
-          }
-        }
-      } else if (topic === TOPIC_DM + currentUser.username) {
-        if (data.type === 'DIRECT_MESSAGE') {
-          dmsDb.push(data.message);
-          localStorage.setItem('sp_social_dms', JSON.stringify(dmsDb));
+        return;
+      }
 
-          if (activeTab === 'messages' && selectedDmUser === data.message.sender) {
-            renderChatMessages();
-          } else {
-            updateUnreadBadge();
-            showToast(`@${data.message.sender} kullanıcısından mesajınız var!`, 'info');
-          }
+      // LIKES
+      if (topic === TOPIC_LIKES && data.type === 'TOGGLE_LIKE') {
+        const targetPost = postsDb.find(p => p.id === data.postId);
+        if (targetPost) {
+          targetPost.likes = data.likes;
+          savePostsLocally();
         }
-      } else if (topic === TOPIC_COMMENTS) {
-        if (data.type === 'NEW_COMMENT') {
-          if (!commentsDb.some(c => c.id === data.comment.id)) {
-            commentsDb.push(data.comment);
-            localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
-            renderFeed();
-            if (data.comment.author.username !== currentUser.username) {
-              showToast(`@${data.comment.author.username} bir gönderiye yorum yaptı.`, 'info');
-            }
-          }
+        renderFeed(); // <-- HER ZAMAN RENDER ET
+        return;
+      }
+
+      // USERS
+      if (topic === TOPIC_USERS && data.type === 'PRESENCE') {
+        const rxUser = data.user;
+        if (rxUser.username !== currentUser.username) {
+          usersDb[rxUser.username] = {
+            ...(usersDb[rxUser.username] || {}),
+            ...rxUser,
+            followers: rxUser.followers || (usersDb[rxUser.username] ? usersDb[rxUser.username].followers : []),
+            following: rxUser.following || (usersDb[rxUser.username] ? usersDb[rxUser.username].following : [])
+          };
+          localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
+          renderDmUserList();
+          renderUsersLeaderboard();
         }
+        return;
+      }
+
+      // FOLLOWS
+      if (topic === TOPIC_FOLLOWS && data.type === 'FOLLOW_UPDATE') {
+        if (usersDb[data.targetUsername]) {
+          usersDb[data.targetUsername].followers = data.followers;
+        }
+        if (usersDb[data.followerUsername]) {
+          usersDb[data.followerUsername].following = data.following;
+        }
+        localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
+        
+        if (data.targetUsername === currentUser.username) {
+          currentUser.followers = data.followers;
+        }
+        
+        renderUsersLeaderboard();
+        updateUserUI();
+        if (viewingPublicUsername) {
+          renderPublicProfileModal(viewingPublicUsername);
+        }
+        return;
+      }
+
+      // DIRECT MESSAGES
+      if (topic === TOPIC_DM + currentUser.username && data.type === 'DIRECT_MESSAGE') {
+        dmsDb.push(data.message);
+        localStorage.setItem('sp_social_dms', JSON.stringify(dmsDb));
+
+        if (activeTab === 'messages' && selectedDmUser === data.message.sender) {
+          renderChatMessages();
+        } else {
+          updateUnreadBadge();
+          showToast(`@${data.message.sender} kullanıcısından mesajınız var!`, 'info');
+        }
+        return;
+      }
+
+      // COMMENTS
+      if (topic === TOPIC_COMMENTS && data.type === 'NEW_COMMENT') {
+        if (!commentsDb.some(c => c.id === data.comment.id)) {
+          commentsDb.push(data.comment);
+          localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
+        }
+        renderFeed(); // <-- HER ZAMAN RENDER ET
+        if (data.comment.author.username !== currentUser.username) {
+          showToast(`@${data.comment.author.username} bir gönderiye yorum yaptı.`, 'info');
+        }
+        return;
       }
     }
 
+    // ======== HELPERS ========
     function sanitizeUserObj(u) {
       return {
         username: u.username,
@@ -955,7 +932,7 @@
 
     function renderAvatarElement(userObj, sizeClasses = "w-10 h-10 text-sm") {
       if (userObj && userObj.avatarUrl) {
-        return `<img src="${userObj.avatarUrl}" class="${sizeClasses} object-cover rounded-xl shadow" alt="Avatar">`;
+        return `<img src="${userObj.avatarUrl}" class="${sizeClasses} object-cover rounded-xl shadow" alt="Avatar" loading="lazy">`;
       }
       const letter = (userObj && userObj.fullname) ? userObj.fullname.charAt(0).toUpperCase() : '?';
       const color = (userObj && userObj.color) ? userObj.color : 'bg-indigo-600';
@@ -985,6 +962,7 @@
       imgContainer.classList.toggle('hidden');
     }
 
+    // ======== POSTS ========
     function submitPost() {
       const input = document.getElementById('post-input');
       const imgUrlInput = document.getElementById('post-image-url');
@@ -1071,7 +1049,7 @@
 
       input.value = '';
       renderComments(postId);
-      renderFeed(); // <-- ANLIK GÜNCELLEME İÇİN EKLENDİ
+      renderFeed();
 
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_COMMENTS, JSON.stringify({
@@ -1125,7 +1103,7 @@
       }
       
       renderComments(postId);
-      renderFeed(); // <-- ANLIK GÜNCELLEME İÇİN EKLENDİ
+      renderFeed();
     }
 
     function toggleLike(postId) {
@@ -1227,7 +1205,7 @@
 
           ${post.imageUrl ? `
             <div class="rounded-xl overflow-hidden border border-slate-800 max-h-80 bg-slate-950">
-              <img src="${escapeHtml(post.imageUrl)}" onerror="this.style.display='none'" alt="Gönderi Görseli" class="w-full h-full object-cover">
+              <img src="${escapeHtml(post.imageUrl)}" onerror="this.style.display='none'" alt="Gönderi Görseli" class="w-full h-full object-cover" loading="lazy">
             </div>
           ` : ''}
 
@@ -1247,9 +1225,7 @@
           </div>
 
           <div id="comments-container-${post.id}" class="hidden space-y-3 pt-2 border-t border-slate-800/40">
-            <div id="comments-list-${post.id}" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-              <!-- Comments rendered here -->
-            </div>
+            <div id="comments-list-${post.id}" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar"></div>
             <div class="flex gap-2">
               <input id="comment-input-${post.id}" type="text" placeholder="Yorum yaz..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 min-h-[40px]">
               <button onclick="submitComment('${post.id}')" class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-semibold transition touch-target">
@@ -1261,6 +1237,7 @@
       `;
     }
 
+    // ======== USERS / LEADERBOARD ========
     function renderUsersLeaderboard() {
       const container = document.getElementById('users-leaderboard-container');
       const badge = document.getElementById('total-users-badge');
@@ -1366,6 +1343,7 @@
       }
     }
 
+    // ======== DIRECT MESSAGES ========
     function renderDmUserList() {
       const container = document.getElementById('dm-users-list');
       if (!container) return;
@@ -1515,6 +1493,7 @@
       }
     }
 
+    // ======== PROFILE ========
     function renderProfileTab() {
       if (!currentUser) return;
 
@@ -1540,6 +1519,7 @@
       }
     }
 
+    // ======== PUBLIC PROFILE ========
     function openPublicProfileModal(username) {
       if (username === currentUser.username) {
         switchTab('profile');
@@ -1599,6 +1579,7 @@
       }
     }
 
+    // ======== EDIT PROFILE ========
     function openEditProfileModal() {
       document.getElementById('edit-fullname').value = currentUser.fullname;
       document.getElementById('edit-bio').value = currentUser.bio;
@@ -1695,7 +1676,7 @@
       showToast('Profiliniz güncellendi.', 'success');
     }
 
-    // Helper Utilities
+    // ======== UI HELPERS ========
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
