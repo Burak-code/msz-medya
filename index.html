@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <link rel="icon" type="image/x-icon" href="favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MSZ MEDYA</title>
@@ -201,9 +200,6 @@
         }
         .btn-outline:hover { background: rgba(255,255,255,0.05); }
         .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
-        .btn-gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25); }
-        .btn-silver { background: linear-gradient(135deg, #9ca3af, #6b7280); box-shadow: 0 4px 12px rgba(156, 163, 175, 0.25); }
-        .btn-bronze { background: linear-gradient(135deg, #d97706, #b45309); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25); }
 
         input, textarea, select {
             width: 100%;
@@ -382,13 +378,6 @@
             animation: pulseGlow 2s infinite;
         }
         .assistant-btn:hover { transform: scale(1.1); }
-        .assistant-btn .msz-icon {
-            box-shadow: none;
-            background: transparent;
-            font-size: 22px;
-            width: auto;
-            height: auto;
-        }
 
         @keyframes pulseGlow {
             0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8), 0 0 15px rgba(99, 102, 241, 0.6); }
@@ -438,9 +427,6 @@
             justify-content: center;
             margin-bottom: 16px;
         }
-        .auth-card .brand-title {
-            font-size: 22px;
-        }
 
         .leaderboard-item {
             display: flex;
@@ -471,10 +457,11 @@
 
         .mqtt-status {
             font-size: 10px;
-            padding: 2px 8px;
+            padding: 3px 8px;
             border-radius: 10px;
             background: #1e293b;
             color: var(--text-muted);
+            font-weight: bold;
         }
         .mqtt-status.connected { color: #10b981; background: #064e3b; }
         .mqtt-status.disconnected { color: #ef4444; background: #7f1d1d; }
@@ -492,63 +479,18 @@
                 border-radius: 30px;
                 background: rgba(17, 24, 39, 0.92);
                 backdrop-filter: blur(12px);
-                border: 1px solid var(--border-color);
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
                 z-index: 900;
             }
-            .sidebar-link { padding: 6px 10px; font-size: 11px; gap: 4px; }
             .sidebar-link .label { display: none; }
-            .sidebar-link .icon { font-size: 18px; }
-            
             .tab-bar {
                 position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                margin-bottom: 0;
+                bottom: 0; left: 0; right: 0;
                 border-radius: 0;
-                border-top: 1px solid var(--border-color);
-                border-bottom: none;
-                border-left: none;
-                border-right: none;
                 z-index: 900;
-                background: rgba(17, 24, 39, 0.95);
-                backdrop-filter: blur(10px);
-                padding: 4px 6px;
                 top: auto;
             }
-            .tab-btn { padding: 6px 2px; font-size: 10px; }
-            .tab-btn .tab-icon { font-size: 20px; margin-bottom: 1px; }
-            .tab-btn .tab-label { font-size: 9px; }
-            
             .assistant-btn { bottom: 75px; left: 12px; width: 48px; height: 48px; }
-            .assistant-btn .msz-icon { font-size: 20px; }
-            .container { padding: 10px; padding-bottom: 75px; }
-            .app-header { padding: 8px 12px; margin-bottom: 12px; top: 4px; }
-            .brand-title { font-size: 15px; }
-            .msz-icon { width: 30px; height: 30px; font-size: 15px; }
-            #currentUserDisplay { font-size: 11px; }
-            .card { padding: 14px; margin-bottom: 12px; border-radius: 14px; }
-            .avatar { width: 56px; height: 56px; }
-            .avatar-sm { width: 36px; height: 36px; }
-            .post { padding: 12px; margin-bottom: 12px; border-radius: 14px; }
-            .post-text { font-size: 13px; }
-            .post-actions { font-size: 12px; gap: 12px; }
-            .modal-content { padding: 14px; max-height: 80vh; }
-            .message-item { font-size: 13px; padding: 8px 12px; max-width: 85%; }
-            input, textarea, select { padding: 8px 12px; font-size: 13px; }
-            .btn { padding: 7px 14px; font-size: 12px; }
-            .btn-sm { padding: 4px 10px; font-size: 11px; }
-            .sub-tab-btn { font-size: 11px; padding: 6px 4px; min-width: 60px; }
-        }
-
-        @media (max-width: 400px) {
-            .left-sidebar { padding: 6px 10px; gap: 4px; bottom: 72px; }
-            .sidebar-link { padding: 4px 8px; font-size: 10px; }
-            .sidebar-link .icon { font-size: 16px; }
-            .brand-title { font-size: 13px; }
-            .tab-btn .tab-icon { font-size: 17px; }
-            .tab-btn .tab-label { font-size: 8px; }
+            .container { padding-bottom: 75px; }
         }
     </style>
 </head>
@@ -644,7 +586,7 @@
 </div>
 
 <button class="assistant-btn" onclick="toggleAssistant()">
-    <div class="msz-icon">🤖</div>
+    🤖
 </button>
 
 <div class="container">
@@ -816,7 +758,7 @@
 
 <script>
     // ============================================================
-    // 1. GLOBAL STATE
+    // 1. GLOBAL STATE & MQTT AYARLARI
     // ============================================================
     let currentUser = null;
     let currentChat = null;
@@ -826,18 +768,18 @@
     let mqttClient = null;
     let notificationCount = 0;
 
-    // MQTT Ayarları - DOĞRU PORT VE PROTOKOL
+    // Broker Ayarları
     const MQTT_BROKER = "broker.emqx.io";
-    const MQTT_PORT = 8084;
-    const MQTT_TOPIC_PREFIX = "social/msz/";
+    const MQTT_PORT = 8084; // WebSocket WSS Portu
+    const MQTT_PATH = "/mqtt"; // Paho için zorunlu yol
+    const MQTT_GLOBAL_TOPIC = "social/msz/global";
+    const MQTT_USER_TOPIC_PREFIX = "social/msz/user/";
 
     // ============================================================
-    // 2. BAŞLANGIÇ - SESSION KONTROLÜ
+    // 2. BAŞLANGIÇ & SESSION
     // ============================================================
     window.addEventListener('DOMContentLoaded', () => {
-        // Demo kullanıcıları TEMİZLE (ilk çalıştırmada)
         cleanDemoUsers();
-
         const savedSession = localStorage.getItem('socialActiveSession');
         if (savedSession) {
             const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
@@ -848,7 +790,6 @@
         }
     });
 
-    // DEMO KULLANICILARI TEMİZLE
     function cleanDemoUsers() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const demoList = ['demo', 'admin', 'test', 'user1', 'user2'];
@@ -861,7 +802,6 @@
         });
         if (changed) {
             localStorage.setItem('socialUsers', JSON.stringify(users));
-            console.log('🧹 Demo kullanıcılar temizlendi.');
         }
     }
 
@@ -901,7 +841,7 @@
         let users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         if (users[username]) return alert('Bu kullanıcı adı zaten alınmış!');
 
-        users[username] = {
+        const newUserObj = {
             password: password,
             displayName: displayName,
             bio: bio,
@@ -911,7 +851,16 @@
             notifications: []
         };
 
+        users[username] = newUserObj;
         localStorage.setItem('socialUsers', JSON.stringify(users));
+
+        // MQTT Üzerinden Kullanıcı Sync Yayını
+        publishMQTTMessage(MQTT_GLOBAL_TOPIC, {
+            type: 'user_sync',
+            username: username,
+            userData: newUserObj
+        });
+
         alert('✅ Kayıt başarılı! Giriş yapabilirsiniz.');
         showLogin();
         document.getElementById('loginUsername').value = username;
@@ -964,40 +913,20 @@
         }
     }
 
-    // ============================================================
-    // 4. ŞİFRE DEĞİŞTİR - DÜZGÜN ÇALIŞIYOR
-    // ============================================================
     function changePassword() {
         const current = document.getElementById('currentPassword').value.trim();
         const newPass = document.getElementById('newPassword').value.trim();
         const confirmPass = document.getElementById('newPasswordConfirm').value.trim();
 
-        if (!current || !newPass || !confirmPass) {
-            return alert('Lütfen tüm alanları doldurun!');
-        }
-
-        if (newPass !== confirmPass) {
-            return alert('❌ Yeni şifreler eşleşmiyor!');
-        }
-
-        if (newPass.length < 4) {
-            return alert('❌ Şifre en az 4 karakter olmalı!');
-        }
+        if (!current || !newPass || !confirmPass) return alert('Lütfen tüm alanları doldurun!');
+        if (newPass !== confirmPass) return alert('❌ Yeni şifreler eşleşmiyor!');
+        if (newPass.length < 4) return alert('❌ Şifre en az 4 karakter olmalı!');
 
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
-        
-        // Mevcut şifre kontrolü
-        if (users[currentUser].password !== current) {
-            return alert('❌ Mevcut şifre hatalı!');
-        }
+        if (users[currentUser].password !== current) return alert('❌ Mevcut şifre hatalı!');
 
-        // Şifreyi güncelle
         users[currentUser].password = newPass;
         localStorage.setItem('socialUsers', JSON.stringify(users));
-        
-        // LocalStorage'daki session'ı da güncelle (şifre değişince session invalid olmasın)
-        // Ama session'da şifre yok zaten, sadece username var.
-        
         alert('✅ Şifre başarıyla güncellendi!');
         
         document.getElementById('currentPassword').value = '';
@@ -1006,7 +935,7 @@
     }
 
     // ============================================================
-    // 5. FORGOT PASSWORD
+    // 4. FORGOT PASSWORD
     // ============================================================
     function openForgotPassword() {
         document.getElementById('forgotPasswordModal').classList.remove('hidden');
@@ -1053,15 +982,12 @@
                 <p style="color:var(--text-muted); font-size:13px;">"<em>Şifremi unuttum: @${username}</em>" yaz.</p>
                 <br>
                 <a href="https://www.instagram.com/burak_msz/" target="_blank" class="btn btn-sm" style="display:inline-block;">📸 Instagram'a Git</a>
-                <br><br>
-                <button class="btn btn-outline btn-sm" onclick="closeForgotPassword()">Kapat</button>
             </div>
         `;
-        document.getElementById('forgotUsersList').innerHTML = '<p style="color:var(--text-muted); text-align:center;">✅ Hesap bulundu. Yukarıdaki adımları takip edin.</p>';
     }
 
     // ============================================================
-    // 6. MQTT - DÜZGÜN BAĞLANTI
+    // 5. MQTT MOTORU & REALTIME SYNC
     // ============================================================
     function updateMQTTStatus(connected) {
         const statusEl = document.getElementById('mqttStatus');
@@ -1076,44 +1002,43 @@
 
     function initMQTT() {
         try {
-            const clientId = "msz_" + currentUser + "_" + Math.random().toString(36).substr(2, 8);
-            mqttClient = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, clientId);
+            const clientId = "msz_web_" + currentUser + "_" + Math.floor(Math.random() * 100000);
             
+            // DÜZELTME: Path parametresi verildi
+            mqttClient = new Paho.MQTT.Client(MQTT_BROKER, Number(MQTT_PORT), MQTT_PATH, clientId);
+
+            mqttClient.onConnectionLost = (responseObject) => {
+                console.warn("⚠️ MQTT Bağlantısı koptu:", responseObject.errorMessage);
+                updateMQTTStatus(false);
+                setTimeout(initMQTT, 5000); // 5 sn sonra oto-tekrar
+            };
+
+            mqttClient.onMessageArrived = (message) => {
+                handleIncomingMQTTMessage(message.payloadString);
+            };
+
             const connectOptions = {
                 useSSL: true,
                 timeout: 10,
+                keepAliveInterval: 30,
                 onSuccess: () => {
-                    console.log("✅ MQTT bağlandı!");
+                    console.log("✅ MQTT Broker'a başarıyla bağlandı!");
                     updateMQTTStatus(true);
                     
-                    const topic = MQTT_TOPIC_PREFIX + currentUser;
-                    mqttClient.subscribe(topic);
-                    console.log("📡 Abone olundu:", topic);
-                    
-                    mqttClient.onMessageArrived = (message) => {
-                        try {
-                            const data = JSON.parse(message.payloadString);
-                            console.log("📨 MQTT mesajı:", data);
-                            
-                            if (data.type === 'dm') {
-                                addNotification(`📩 @${data.from} sana bir mesaj gönderdi.`);
-                                if (currentChat === data.from) renderChatMessages(data.from);
-                                renderMessagesList();
-                            }
-                        } catch(e) { 
-                            console.warn('MQTT mesaj ayrıştırma hatası:', e); 
-                        }
-                    };
+                    // Hem genel kanala hem kullanıcıya özel kanala abone ol
+                    mqttClient.subscribe(MQTT_GLOBAL_TOPIC);
+                    mqttClient.subscribe(MQTT_USER_TOPIC_PREFIX + currentUser);
                 },
                 onFailure: (err) => {
-                    console.warn("⚠️ MQTT bağlanamadı:", err);
+                    console.error("❌ MQTT Bağlantı Hatası:", err);
                     updateMQTTStatus(false);
+                    setTimeout(initMQTT, 5000);
                 }
             };
-            
+
             mqttClient.connect(connectOptions);
         } catch(e) {
-            console.warn("⚠️ MQTT başlatılamadı:", e);
+            console.error("⚠️ MQTT Başlatılamadı:", e);
             updateMQTTStatus(false);
         }
     }
@@ -1121,21 +1046,91 @@
     function publishMQTTMessage(topic, data) {
         if (mqttClient && mqttClient.isConnected()) {
             try {
-                const payload = new Paho.MQTT.Message(JSON.stringify(data));
-                payload.destinationName = topic;
-                mqttClient.send(payload);
+                const message = new Paho.MQTT.Message(JSON.stringify(data));
+                message.destinationName = topic;
+                mqttClient.send(message);
                 return true;
             } catch(e) {
-                console.warn('MQTT mesaj gönderilemedi:', e);
-                return false;
+                console.warn('MQTT Gönderim hatası:', e);
             }
         }
         return false;
     }
 
+    // MQTT Üzerinden Gelen Mesajların İşlenmesi
+    function handleIncomingMQTTMessage(payloadStr) {
+        try {
+            const data = JSON.parse(payloadStr);
+            
+            // 1. DM Mesajı
+            if (data.type === 'dm' && data.to === currentUser) {
+                const messages = JSON.parse(localStorage.getItem('socialMessages') || '{}');
+                const key = [data.from, data.to].sort().join('_');
+                if (!messages[key]) messages[key] = [];
+                
+                // Mükerrer eklemeyi önle
+                if (!messages[key].some(m => m.timestamp === data.timestamp)) {
+                    messages[key].push({ from: data.from, to: data.to, text: data.text, timestamp: data.timestamp });
+                    localStorage.setItem('socialMessages', JSON.stringify(messages));
+                }
+
+                addNotification(`📩 @${data.from} sana mesaj gönderdi.`);
+                if (currentChat === data.from) renderChatMessages(data.from);
+                renderMessagesList();
+            }
+
+            // 2. Yeni Post Yayını
+            else if (data.type === 'new_post' && data.post.username !== currentUser) {
+                let feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+                if (!feed.some(p => p.id === data.post.id)) {
+                    feed.unshift(data.post);
+                    localStorage.setItem('socialFeed', JSON.stringify(feed));
+                    loadFeed();
+                }
+            }
+
+            // 3. Beğeni Senkronizasyonu
+            else if (data.type === 'toggle_like') {
+                let feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+                const post = feed.find(p => p.id === data.postId);
+                if (post) {
+                    post.likes = data.likes;
+                    localStorage.setItem('socialFeed', JSON.stringify(feed));
+                    loadFeed();
+                }
+            }
+
+            // 4. Yorum Senkronizasyonu
+            else if (data.type === 'new_comment') {
+                let feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
+                const post = feed.find(p => p.id === data.postId);
+                if (post) {
+                    post.replies = data.replies;
+                    localStorage.setItem('socialFeed', JSON.stringify(feed));
+                    if (activeCommentPostId === data.postId) renderCommentsList();
+                    loadFeed();
+                }
+            }
+
+            // 5. Kullanıcı Bilgisi / Kayıt Sync
+            else if (data.type === 'user_sync' && data.username !== currentUser) {
+                let users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+                users[data.username] = data.userData;
+                localStorage.setItem('socialUsers', JSON.stringify(users));
+                renderUsersList();
+                renderLeaderboard();
+            }
+
+        } catch(e) {
+            console.warn("MQTT veri ayrıştırma hatası:", e);
+        }
+    }
+
     function addNotification(text) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        if (!users[currentUser]) return;
         if (!users[currentUser].notifications) users[currentUser].notifications = [];
+        
         users[currentUser].notifications.unshift({ text: text, time: Date.now(), read: false });
         localStorage.setItem('socialUsers', JSON.stringify(users));
         notificationCount++;
@@ -1164,7 +1159,6 @@
         notifs.forEach(n => n.read = true);
         users[currentUser].notifications = notifs;
         localStorage.setItem('socialUsers', JSON.stringify(users));
-        notificationCount = 0;
         updateNotificationBadge();
 
         if (notifs.length === 0) {
@@ -1186,7 +1180,7 @@
     }
 
     // ============================================================
-    // 7. ASSISTANT
+    // 6. ASSISTANT
     // ============================================================
     function toggleAssistant() {
         document.getElementById('assistantModal').classList.toggle('hidden');
@@ -1201,7 +1195,7 @@
             response = "Ben MSZ Asistan. Sana bu sitede yardımcı olacağım.";
         } else if (type === 'what') {
             question = "Ne yapacağız?";
-            response = "Yapacağın ilk şey profilini düzenlemek olmalı. X / Twitter gibi yeni bir sosyal medya olan MSZ Medya'ya hoş geldin.";
+            response = "Yapacağın ilk şey profilini düzenlemek olmalı. MSZ Medya'ya hoş geldin!";
         } else if (type === 'links') {
             question = "Sosyal Medya & Bağlantılar";
             response = `Resmi web sitemize <a href="https://burak-code.github.io/msz/" target="_blank" style="color:var(--primary);">buradan</a>, Instagram hesabımıza ise <a href="https://www.instagram.com/burak_msz/" target="_blank" style="color:var(--primary);">@burak_msz</a> adresinden ulaşabilirsin!`;
@@ -1211,11 +1205,11 @@
         setTimeout(() => {
             msgContainer.innerHTML += `<div class="chat-msg chat-bot">${response}</div>`;
             msgContainer.scrollTop = msgContainer.scrollHeight;
-        }, 250);
+        }, 200);
     }
 
     // ============================================================
-    // 8. POSTS
+    // 7. POSTS & AKIŞ
     // ============================================================
     function handlePostTypeChange() {
         const type = document.getElementById('postTypeSelect').value;
@@ -1240,7 +1234,7 @@
 
         const feed = JSON.parse(localStorage.getItem('socialFeed') || '[]');
         const newPost = {
-            id: 'post_' + Date.now(),
+            id: 'post_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
             username: currentUser,
             content: content,
             type: type,
@@ -1252,6 +1246,13 @@
 
         feed.unshift(newPost);
         localStorage.setItem('socialFeed', JSON.stringify(feed));
+
+        // MQTT Üzerinden Diğer Kullanıcılara Anlık Gönder
+        publishMQTTMessage(MQTT_GLOBAL_TOPIC, {
+            type: 'new_post',
+            post: newPost
+        });
+
         document.getElementById('postContent').value = '';
         document.getElementById('postExtraInput').value = '';
         loadFeed();
@@ -1313,21 +1314,17 @@
                 post.likes.splice(index, 1);
             } else {
                 post.likes.push(currentUser);
-                if (post.username !== currentUser) {
-                    addNotificationToUser(post.username, `❤️ @${currentUser} gönderini beğendi.`);
-                }
             }
             localStorage.setItem('socialFeed', JSON.stringify(feed));
-            loadFeed();
-        }
-    }
 
-    function addNotificationToUser(targetUser, text) {
-        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
-        if (users[targetUser]) {
-            if (!users[targetUser].notifications) users[targetUser].notifications = [];
-            users[targetUser].notifications.unshift({ text: text, time: Date.now(), read: false });
-            localStorage.setItem('socialUsers', JSON.stringify(users));
+            // Beğeniyi yayınla
+            publishMQTTMessage(MQTT_GLOBAL_TOPIC, {
+                type: 'toggle_like',
+                postId: postId,
+                likes: post.likes
+            });
+
+            loadFeed();
         }
     }
 
@@ -1340,7 +1337,7 @@
     }
 
     // ============================================================
-    // 9. USER PROFILE
+    // 8. USER PROFILE MODAL
     // ============================================================
     function openUserProfile(username) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
@@ -1382,7 +1379,7 @@
     }
 
     // ============================================================
-    // 10. COMMENTS
+    // 9. COMMENTS MODAL
     // ============================================================
     function openCommentsModal(postId) {
         activeCommentPostId = postId;
@@ -1429,9 +1426,13 @@
         if (post) {
             post.replies.push({ username: currentUser, text: text, timestamp: Date.now() });
             localStorage.setItem('socialFeed', JSON.stringify(feed));
-            if (post.username !== currentUser) {
-                addNotificationToUser(post.username, `💬 @${currentUser} gönderine yorum yaptı.`);
-            }
+
+            publishMQTTMessage(MQTT_GLOBAL_TOPIC, {
+                type: 'new_comment',
+                postId: activeCommentPostId,
+                replies: post.replies
+            });
+
             input.value = '';
             renderCommentsList();
             loadFeed();
@@ -1439,7 +1440,7 @@
     }
 
     // ============================================================
-    // 11. PROFILE
+    // 10. PROFILE TAB & EDIT
     // ============================================================
     function handleAvatarUpload(event) {
         const file = event.target.files[0];
@@ -1450,13 +1451,9 @@
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const maxWidth = 200;
-                    const maxHeight = 200;
-
-                    canvas.width = maxWidth;
-                    canvas.height = maxHeight;
-
-                    ctx.drawImage(img, 0, 0, maxWidth, maxHeight);
+                    canvas.width = 150;
+                    canvas.height = 150;
+                    ctx.drawImage(img, 0, 0, 150, 150);
                     uploadedAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8);
                     alert('✅ Resim yüklendi! "Güncelle" butonuna tıklayın.');
                 };
@@ -1493,13 +1490,17 @@
             user.avatar = uploadedAvatarBase64;
         }
 
-        try {
-            localStorage.setItem('socialUsers', JSON.stringify(users));
-            renderProfile();
-            alert("✅ Profil güncellendi!");
-        } catch (e) {
-            alert("❌ Hata: Resim boyutu çok büyük! Lütfen daha küçük bir resim seçin.");
-        }
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+
+        // MQTT ile Profil Güncellemesini Yayınla
+        publishMQTTMessage(MQTT_GLOBAL_TOPIC, {
+            type: 'user_sync',
+            username: currentUser,
+            userData: user
+        });
+
+        renderProfile();
+        alert("✅ Profil güncellendi!");
     }
 
     function switchProfileSubTab(event, tab) {
@@ -1507,14 +1508,6 @@
         document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
         if (event && event.target) {
             event.target.classList.add('active');
-        } else {
-            document.querySelectorAll('.sub-tab-btn').forEach((btn, i) => {
-                if ((tab === 'myPosts' && i === 0) || 
-                    (tab === 'myLikes' && i === 1) || 
-                    (tab === 'myComments' && i === 2)) {
-                    btn.classList.add('active');
-                }
-            });
         }
         renderProfileSubTab();
     }
@@ -1562,12 +1555,13 @@
     }
 
     // ============================================================
-    // 12. USERS & FOLLOW
+    // 11. USERS & FOLLOW
     // ============================================================
     function renderUsersList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
-        const search = document.getElementById('userSearch').value.toLowerCase();
+        const search = (document.getElementById('userSearch')?.value || '').toLowerCase();
         const container = document.getElementById('usersList');
+        if (!container) return;
         container.innerHTML = '';
 
         let found = false;
@@ -1618,21 +1612,26 @@
         } else {
             me.following.push(targetUsername);
             target.followers.push(currentUser);
-            addNotificationToUser(targetUsername, `👥 @${currentUser} seni takip etmeye başladı.`);
         }
 
         localStorage.setItem('socialUsers', JSON.stringify(users));
+
+        // Profil Değişikliklerini MQTT Üzerinden Bildir
+        publishMQTTMessage(MQTT_GLOBAL_TOPIC, { type: 'user_sync', username: currentUser, userData: me });
+        publishMQTTMessage(MQTT_GLOBAL_TOPIC, { type: 'user_sync', username: targetUsername, userData: target });
+
         renderUsersList();
         renderProfile();
         renderLeaderboard();
     }
 
     // ============================================================
-    // 13. LEADERBOARD
+    // 12. LEADERBOARD
     // ============================================================
     function renderLeaderboard() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const container = document.getElementById('leaderboardContainer');
+        if (!container) return;
         container.innerHTML = '';
 
         const sorted = Object.keys(users).sort((a, b) => {
@@ -1676,11 +1675,12 @@
     }
 
     // ============================================================
-    // 14. MESSAGING
+    // 13. MESSAGING (DM)
     // ============================================================
     function renderMessagesList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const container = document.getElementById('messageUsersList');
+        if (!container) return;
         container.innerHTML = '<p style="color:var(--text-muted); font-size:12px; margin-bottom:6px;">Mesajlaşmak için bir kullanıcı seçin:</p>';
 
         let hasUsers = false;
@@ -1737,30 +1737,30 @@
         const text = input.value.trim();
         if (!text || !currentChat) return;
 
+        const timestamp = Date.now();
         const messages = JSON.parse(localStorage.getItem('socialMessages') || '{}');
         const key = [currentUser, currentChat].sort().join('_');
         if (!messages[key]) messages[key] = [];
 
-        messages[key].push({ from: currentUser, to: currentChat, text: text, timestamp: Date.now() });
+        messages[key].push({ from: currentUser, to: currentChat, text: text, timestamp: timestamp });
         localStorage.setItem('socialMessages', JSON.stringify(messages));
 
-        // MQTT ile gerçek zamanlı gönder
-        const topic = MQTT_TOPIC_PREFIX + currentChat;
-        const data = {
+        // MQTT Üzerinden Hedef Kullanıcıya DM Gönder
+        const targetTopic = MQTT_USER_TOPIC_PREFIX + currentChat;
+        publishMQTTMessage(targetTopic, {
             type: 'dm',
             from: currentUser,
             to: currentChat,
             text: text,
-            timestamp: Date.now()
-        };
-        publishMQTTMessage(topic, data);
+            timestamp: timestamp
+        });
 
         input.value = '';
         renderChatMessages(currentChat);
     }
 
     // ============================================================
-    // 15. TABS
+    // 14. TAB SWITCHER
     // ============================================================
     function switchTab(tab) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
