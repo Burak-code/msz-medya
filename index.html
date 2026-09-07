@@ -2,7 +2,7 @@
 <html lang="tr" class="h-full bg-slate-950 text-slate-100">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSZ MEDYA - Gerçek Zamanlı Sosyal Ağ</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,68 +15,88 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    * { -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    
+    /* Mobile touch improvements */
+    .touch-target { min-height: 44px; min-width: 44px; }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    
+    /* Smooth transitions */
+    .smooth-transition { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Mobile drawer for nav */
+    @media (max-width: 640px) {
+      .nav-btn span { display: none; }
+      .nav-btn { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
+      .nav-btn i { font-size: 1rem; }
+    }
+    
+    @media (max-width: 480px) {
+      .header-title { font-size: 0.9rem; }
+      .post-card { padding: 0.75rem; }
+    }
   </style>
 </head>
 <body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
 
   <!-- Toast Container -->
-  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+  <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 max-w-sm mx-auto pointer-events-none sm:left-auto sm:right-4"></div>
 
   <!-- Custom Alert Modal -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center gap-3">
-        <div id="modal-icon-bg" class="w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500/10 text-cyan-400">
+        <div id="modal-icon-bg" class="w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500/10 text-cyan-400 shrink-0">
           <i id="modal-icon" class="fa-solid fa-circle-info text-lg"></i>
         </div>
         <h3 id="modal-title" class="text-lg font-bold text-white">Bildirim</h3>
       </div>
       <p id="modal-body" class="text-slate-300 text-sm leading-relaxed"></p>
       <div class="flex justify-end gap-3 pt-2">
-        <button id="modal-close-btn" onclick="closeModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition">Tamam</button>
+        <button id="modal-close-btn" onclick="closeModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition touch-target">Tamam</button>
       </div>
     </div>
   </div>
 
   <!-- Change Password Modal -->
   <div id="change-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white">Şifre Değiştir</h3>
-        <button onclick="closeChangePasswordModal()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeChangePasswordModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
       <form onsubmit="changePassword(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Mevcut Şifre</label>
-          <input type="password" id="current-password" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500">
+          <input type="password" id="current-password" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Yeni Şifre</label>
-          <input type="password" id="new-password" required minlength="4" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500">
+          <input type="password" id="new-password" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Yeni Şifre (Tekrar)</label>
-          <input type="password" id="new-password-confirm" required minlength="4" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500">
+          <input type="password" id="new-password-confirm" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700">İptal</button>
-          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow">Şifreyi Güncelle</button>
+          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Şifreyi Güncelle</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- AUTH SCREEN (Giriş / Kayıt) -->
+  <!-- AUTH SCREEN -->
   <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
     <div class="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-    <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-3xl p-8 shadow-2xl backdrop-blur-md relative z-10">
+    <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative z-10">
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
           <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
@@ -87,8 +107,8 @@
 
       <!-- Auth Tabs -->
       <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
-        <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow">Giriş Yap</button>
-        <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white">Kayıt Ol</button>
+        <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target">Giriş Yap</button>
+        <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target">Kayıt Ol</button>
       </div>
 
       <!-- Login Form -->
@@ -97,7 +117,7 @@
           <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-user text-xs"></i></span>
-            <input type="text" id="login-username" required placeholder="kullanici_adi" class="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+            <input type="text" id="login-username" required placeholder="kullanici_adi" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
           </div>
         </div>
 
@@ -105,17 +125,16 @@
           <label class="block text-xs font-medium text-slate-400 mb-1">Şifre</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-key text-xs"></i></span>
-            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
           </div>
         </div>
 
-        <!-- Remember Me Checkbox -->
         <div class="flex items-center gap-2">
           <input type="checkbox" id="remember-me" checked class="w-4 h-4 rounded bg-slate-950 border-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0">
           <label for="remember-me" class="text-xs text-slate-400">Beni Hatırla</label>
         </div>
 
-        <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-cyan-500/20 active:scale-[0.99] transition">
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition touch-target">
           Sisteme Giriş Yap
         </button>
       </form>
@@ -126,16 +145,16 @@
           <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-user text-xs"></i></span>
-            <input type="text" id="reg-username" required placeholder="kullanici_adi" pattern="^[a-zA-Z0-9_]{3,20}$" title="3-20 karakter arası harf, rakam ve alt çizgi" class="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+            <input type="text" id="reg-username" required placeholder="kullanici_adi" pattern="^[a-zA-Z0-9_]{3,20}$" title="3-20 karakter arası harf, rakam ve alt çizgi" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
           </div>
         </div>
 
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Şifre</label>
-          <input type="password" id="reg-password" required minlength="4" placeholder="••••••••" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+          <input type="password" id="reg-password" required minlength="4" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
         </div>
 
-        <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-400 hover:to-cyan-400 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 active:scale-[0.99] transition">
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-400 hover:to-cyan-400 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition touch-target">
           Hesap Oluştur ve Giriş Yap
         </button>
       </form>
@@ -145,64 +164,63 @@
   <!-- MAIN APP CONTAINER -->
   <div id="main-app" class="hidden min-h-screen flex flex-col">
     
-    <!-- Top Navigation Bar -->
-    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <!-- Logo & Connection Status -->
-        <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('feed')">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-cyan-500/20 overflow-hidden">
+    <!-- Top Navigation Bar - Mobile Optimized -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 safe-bottom">
+      <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <!-- Logo -->
+        <div class="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0" onclick="switchTab('feed')">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-cyan-500/20 overflow-hidden shrink-0">
             <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
           </div>
-          <div>
-            <span class="font-bold text-base text-white tracking-tight">MSZ MEDYA</span>
-            <div id="status-badge" class="flex items-center gap-1.5 text-[10px] text-amber-400 font-medium">
-              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <div class="hidden xs:block">
+            <span class="font-bold text-sm sm:text-base text-white tracking-tight header-title">MSZ MEDYA</span>
+            <div id="status-badge" class="flex items-center gap-1 text-[9px] sm:text-[10px] text-amber-400 font-medium">
+              <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-pulse"></span>
               <span id="status-text">Bağlanıyor...</span>
             </div>
           </div>
         </div>
 
-        <!-- Navigation Tabs -->
-        <nav class="flex items-center gap-1 sm:gap-2">
-          <button onclick="switchTab('feed')" id="nav-feed" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50">
-            <i class="fa-solid fa-house"></i>
+        <!-- Navigation Tabs - Mobile Friendly -->
+        <nav class="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar flex-1 justify-end">
+          <button onclick="switchTab('feed')" id="nav-feed" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50 touch-target whitespace-nowrap">
+            <i class="fa-solid fa-house text-sm sm:text-base"></i>
             <span class="hidden sm:inline">Akış</span>
           </button>
-          <button onclick="switchTab('messages')" id="nav-messages" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative">
-            <i class="fa-solid fa-paper-plane"></i>
+          <button onclick="switchTab('messages')" id="nav-messages" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative touch-target whitespace-nowrap">
+            <i class="fa-solid fa-paper-plane text-sm sm:text-base"></i>
             <span class="hidden sm:inline">Mesajlar</span>
-            <span id="unread-dm-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">0</span>
+            <span id="unread-dm-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span>
           </button>
-          <button onclick="switchTab('users')" id="nav-users" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-            <i class="fa-solid fa-users"></i>
+          <button onclick="switchTab('users')" id="nav-users" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
+            <i class="fa-solid fa-users text-sm sm:text-base"></i>
             <span class="hidden sm:inline">Kullanıcılar</span>
           </button>
-          <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-            <i class="fa-solid fa-user"></i>
+          <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
+            <i class="fa-solid fa-user text-sm sm:text-base"></i>
             <span class="hidden sm:inline">Profilim</span>
           </button>
         </nav>
 
-        <!-- Current User Profile Menu -->
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('profile')">
-            <div id="header-avatar" class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow overflow-hidden">
+        <!-- User Menu -->
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="flex items-center gap-1 sm:gap-2 cursor-pointer" onclick="switchTab('profile')">
+            <div id="header-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow overflow-hidden shrink-0">
               ?
             </div>
             <div class="hidden md:block text-left">
-              <div id="header-username-display" class="text-xs font-semibold text-white truncate max-w-[100px]">@...</div>
+              <div id="header-username-display" class="text-xs font-semibold text-white truncate max-w-[80px]">@...</div>
             </div>
           </div>
-          <!-- Settings Dropdown -->
           <div class="relative">
-            <button onclick="toggleSettingsDropdown()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition">
-              <i class="fa-solid fa-gear text-xs"></i>
+            <button onclick="toggleSettingsDropdown()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target">
+              <i class="fa-solid fa-gear text-xs sm:text-sm"></i>
             </button>
             <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
-              <button onclick="openChangePasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-2.5 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2">
+              <button onclick="openChangePasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 touch-target">
                 <i class="fa-solid fa-key text-cyan-400"></i> Şifre Değiştir
               </button>
-              <button onclick="logout(); toggleSettingsDropdown();" class="w-full px-4 py-2.5 text-left text-xs text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2 border-t border-slate-800">
+              <button onclick="logout(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target">
                 <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
               </button>
             </div>
@@ -211,19 +229,19 @@
       </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Main Content -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
       
-      <!-- Left Sidebar (Stats & Quick Info + Social Links) -->
+      <!-- Left Sidebar - Hidden on Mobile -->
       <aside class="hidden lg:block lg:col-span-3 space-y-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
           <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
-            <div id="sidebar-avatar" class="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center font-bold text-lg shadow overflow-hidden">?</div>
+            <div id="sidebar-avatar" class="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center font-bold text-lg shadow overflow-hidden shrink-0">?</div>
             <div class="overflow-hidden">
               <h4 id="sidebar-username-display" class="font-bold text-sm text-white truncate">@...</h4>
             </div>
           </div>
-          <p id="sidebar-bio" class="text-xs text-slate-300 leading-relaxed italic">...</p>
+          <p id="sidebar-bio" class="text-xs text-slate-300 leading-relaxed italic line-clamp-3">...</p>
           <div class="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
             <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
               <div id="sidebar-post-count" class="font-bold text-cyan-400 text-base">0</div>
@@ -240,20 +258,18 @@
           </div>
         </div>
 
-        <!-- Social Links -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
           <div class="text-xs font-semibold text-slate-400 mb-1">Sosyal Bağlantılar</div>
-          <a href="https://burak-code.github.io/msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white">
+          <a href="https://burak-code.github.io/msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white touch-target">
             <i class="fa-solid fa-globe text-cyan-400"></i>
             <span>Web Sitem</span>
           </a>
-          <a href="https://www.instagram.com/burak_msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white">
+          <a href="https://www.instagram.com/burak_msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white touch-target">
             <i class="fa-brands fa-instagram text-pink-400"></i>
             <span>Instagram</span>
           </a>
         </div>
 
-        <!-- Live Activity Card -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
           <div class="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
             <span><i class="fa-solid fa-wifi mr-1 text-cyan-400"></i> Sistem Akış Logu</span>
@@ -266,33 +282,31 @@
       </aside>
 
       <!-- Center Main Content -->
-      <section class="lg:col-span-9 space-y-6">
+      <section class="lg:col-span-9 space-y-4 sm:space-y-6">
         
         <!-- FEED TAB -->
-        <div id="tab-content-feed" class="space-y-6">
-          <!-- Post Composer -->
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+        <div id="tab-content-feed" class="space-y-4 sm:space-y-6">
+          <!-- Post Composer - Mobile Optimized -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
             <div class="flex gap-3">
               <div id="composer-avatar" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">?</div>
               <div class="flex-1 space-y-2">
-                <textarea id="post-input" rows="3" placeholder="Neler oluyor? Dünyayla paylaş..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition resize-none"></textarea>
-                
-                <!-- Optional Image URL Input -->
+                <textarea id="post-input" rows="3" placeholder="Neler oluyor? Dünyayla paylaş..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition resize-none min-h-[70px]"></textarea>
                 <div id="image-url-container" class="hidden">
-                  <input type="url" id="post-image-url" placeholder="Görsel Bağlantısı (https://...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+                  <input type="url" id="post-image-url" placeholder="Görsel Bağlantısı (https://...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500">
                 </div>
               </div>
             </div>
 
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-              <div class="flex items-center gap-2 text-slate-400">
-                <button type="button" onclick="toggleImageInput()" title="Görsel Bağlantısı Ekle" class="p-2 hover:bg-slate-800 hover:text-cyan-400 rounded-lg text-xs transition">
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800 gap-2 flex-wrap">
+              <div class="flex items-center gap-1 sm:gap-2 text-slate-400">
+                <button type="button" onclick="toggleImageInput()" title="Görsel Bağlantısı Ekle" class="p-2 hover:bg-slate-800 hover:text-cyan-400 rounded-lg text-xs transition touch-target">
                   <i class="fa-solid fa-image text-sm"></i>
                 </button>
                 <span class="text-[10px] text-slate-500 font-mono" id="char-counter">0 / 280</span>
               </div>
 
-              <button onclick="submitPost()" class="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2">
+              <button onclick="submitPost()" class="px-4 sm:px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2 touch-target">
                 <i class="fa-solid fa-paper-plane text-xs"></i>
                 <span>Paylaş</span>
               </button>
@@ -314,16 +328,16 @@
           </div>
         </div>
 
-        <!-- DIRECT MESSAGES TAB -->
+        <!-- DIRECT MESSAGES TAB - Mobile Optimized -->
         <div id="tab-content-messages" class="hidden space-y-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl min-h-[550px] flex flex-col md:flex-row">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl min-h-[500px] flex flex-col md:flex-row">
             
             <!-- Users List Side -->
             <div class="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 flex flex-col">
               <div class="p-3 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sohbetler</h3>
                 <div class="relative">
-                  <input type="text" id="dm-user-search" oninput="filterDmUsers()" placeholder="Kullanıcı ara..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+                  <input type="text" id="dm-user-search" oninput="filterDmUsers()" placeholder="Kullanıcı ara..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
                   <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
                 </div>
               </div>
@@ -333,95 +347,91 @@
             </div>
 
             <!-- Chat Window Side -->
-            <div class="flex-1 flex flex-col bg-slate-900">
-              <div id="chat-header" class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-                <div class="flex items-center gap-3">
-                  <div id="chat-target-avatar" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center font-bold overflow-hidden">?</div>
-                  <div>
-                    <h4 id="chat-target-name" class="font-bold text-sm text-white">Sohbet Seçin</h4>
-                    <p id="chat-target-handle" class="text-xs text-slate-500">Mesajlaşmak için soldan bir kullanıcı tıklayın</p>
+            <div class="flex-1 flex flex-col bg-slate-900 min-h-[300px]">
+              <div id="chat-header" class="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 gap-2 flex-wrap">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div id="chat-target-avatar" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center font-bold overflow-hidden shrink-0">?</div>
+                  <div class="min-w-0">
+                    <h4 id="chat-target-name" class="font-bold text-sm text-white truncate">Sohbet Seçin</h4>
+                    <p id="chat-target-handle" class="text-xs text-slate-500 truncate">Mesajlaşmak için soldan bir kullanıcı tıklayın</p>
                   </div>
                 </div>
-                <button id="chat-view-profile-btn" onclick="openSelectedUserProfile()" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl transition">
-                  <i class="fa-solid fa-user mr-1"></i> Profili Göster
+                <button id="chat-view-profile-btn" onclick="openSelectedUserProfile()" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl transition touch-target shrink-0">
+                  <i class="fa-solid fa-user mr-1"></i> Profil
                 </button>
               </div>
 
-              <div id="chat-messages-box" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar min-h-[300px] bg-slate-950/30">
-                <div class="h-full flex items-center justify-center text-slate-500 text-xs">
+              <div id="chat-messages-box" class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 custom-scrollbar min-h-[250px] bg-slate-950/30">
+                <div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">
                   Sohbet başlatmak için listeden bir kullanıcı seçin.
                 </div>
               </div>
 
               <div class="p-3 border-t border-slate-800 bg-slate-900">
                 <form id="dm-form" onsubmit="sendDirectMessage(event)" class="flex gap-2">
-                  <input type="text" id="dm-input-text" disabled placeholder="Mesajınızı yazın..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50">
-                  <button type="submit" id="dm-send-btn" disabled class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition">
+                  <input type="text" id="dm-input-text" disabled placeholder="Mesajınızı yazın..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50 min-h-[44px]">
+                  <button type="submit" id="dm-send-btn" disabled class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition touch-target min-w-[44px]">
                     <i class="fa-solid fa-paper-plane"></i>
                   </button>
                 </form>
               </div>
-
             </div>
           </div>
         </div>
 
-        <!-- USERS / LEADERBOARD TAB -->
-        <div id="tab-content-users" class="hidden space-y-6">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div class="flex items-center justify-between">
+        <!-- USERS TAB - Mobile Optimized -->
+        <div id="tab-content-users" class="hidden space-y-4 sm:space-y-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
               <div>
-                <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                  <i class="fa-solid fa-trophy text-amber-400"></i> Topluluk & Takipçi Sıralaması
+                <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-trophy text-amber-400"></i> Topluluk
                 </h2>
-                <p class="text-xs text-slate-400 mt-1">En çok takipçisi olan popüler kullanıcılar (Skor Tablosu)</p>
+                <p class="text-xs text-slate-400 mt-1 hidden sm:block">En çok takipçisi olan popüler kullanıcılar</p>
               </div>
-              <div class="text-xs text-slate-500 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800" id="total-users-badge">
+              <div class="text-xs text-slate-500 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 whitespace-nowrap" id="total-users-badge">
                 0 Kayıtlı Üye
               </div>
             </div>
 
-            <!-- Users Leaderboard List -->
             <div id="users-leaderboard-container" class="space-y-3 pt-2">
               <!-- Populated dynamically -->
             </div>
           </div>
         </div>
 
-        <!-- MY PROFILE TAB -->
-        <div id="tab-content-profile" class="hidden space-y-6">
+        <!-- MY PROFILE TAB - Mobile Optimized -->
+        <div id="tab-content-profile" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <!-- Cover Header -->
-            <div class="h-32 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative"></div>
+            <div class="h-24 sm:h-32 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative"></div>
             
-            <div class="px-6 pb-6 pt-0 relative space-y-4">
-              <div class="flex items-end justify-between -mt-12">
-                <div id="profile-main-avatar" class="w-24 h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-3xl shadow-xl overflow-hidden">
+            <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 relative space-y-4">
+              <div class="flex items-end justify-between -mt-12 gap-2">
+                <div id="profile-main-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">
                   ?
                 </div>
-                <button onclick="openEditProfileModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-2">
+                <button onclick="openEditProfileModal()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1 sm:gap-2 touch-target">
                   <i class="fa-solid fa-pen-to-square"></i>
-                  <span>Profili Düzenle</span>
+                  <span class="hidden xs:inline">Profili Düzenle</span>
                 </button>
               </div>
 
               <div>
-                <h2 id="profile-fullname" class="text-xl font-bold text-white">...</h2>
+                <h2 id="profile-fullname" class="text-lg sm:text-xl font-bold text-white">...</h2>
                 <p id="profile-username-display" class="text-xs text-cyan-400 font-mono">@...</p>
               </div>
 
               <p id="profile-bio" class="text-sm text-slate-300 leading-relaxed">...</p>
 
-              <div class="flex items-center gap-6 pt-2 border-t border-slate-800 text-xs text-slate-400">
+              <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800 text-xs text-slate-400 flex-wrap">
                 <div><strong id="profile-stat-posts" class="text-white font-bold text-sm">0</strong> Gönderi</div>
                 <div><strong id="profile-stat-followers" class="text-white font-bold text-sm">0</strong> Takipçi</div>
-                <div><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> Takip Edilen</div>
-                <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Aktif Hesap</div>
+                <div><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> Takip</div>
+                <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Aktif</div>
               </div>
             </div>
           </div>
 
-          <!-- My Posts Feed -->
           <div class="space-y-4">
             <h3 class="text-sm font-bold text-slate-300">Gönderilerim</h3>
             <div id="profile-posts-container" class="space-y-4">
@@ -431,43 +441,41 @@
         </div>
 
       </section>
-
     </main>
   </div>
 
-  <!-- PUBLIC USER PROFILE MODAL (Diğer Kullanıcıların Profilini İnceleme) -->
-  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-0 max-h-[90vh] flex flex-col">
-      <!-- Cover -->
-      <div class="h-28 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
-        <button onclick="closePublicProfileModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition">
+  <!-- PUBLIC USER PROFILE MODAL - Mobile Optimized -->
+  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-0 max-h-[90vh] flex flex-col mx-auto">
+      <div class="h-24 sm:h-28 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
+        <button onclick="closePublicProfileModal()" class="absolute top-3 right-3 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition touch-target">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <div class="px-6 pb-6 pt-0 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-        <div class="flex items-end justify-between -mt-10">
-          <div id="pub-profile-avatar" class="w-20 h-20 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl shadow-xl overflow-hidden">
+      <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+        <div class="flex items-end justify-between -mt-10 gap-2 flex-wrap">
+          <div id="pub-profile-avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-xl overflow-hidden shrink-0">
             ?
           </div>
-          <div class="flex items-center gap-2">
-            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">
               Takip Et
             </button>
-            <button id="pub-profile-dm-btn" onclick="messagePublicUser()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition">
-              <i class="fa-solid fa-paper-plane mr-1"></i> Mesaj At
+            <button id="pub-profile-dm-btn" onclick="messagePublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target">
+              <i class="fa-solid fa-paper-plane mr-1"></i> Mesaj
             </button>
           </div>
         </div>
 
         <div>
-          <h3 id="pub-profile-fullname" class="text-lg font-bold text-white">...</h3>
+          <h3 id="pub-profile-fullname" class="text-base sm:text-lg font-bold text-white">...</h3>
           <p id="pub-profile-username" class="text-xs text-cyan-400 font-mono">@...</p>
         </div>
 
         <p id="pub-profile-bio" class="text-xs text-slate-300 leading-relaxed italic">...</p>
 
-        <div class="flex items-center gap-6 py-2 border-y border-slate-800 text-xs text-slate-400">
+        <div class="flex items-center gap-4 sm:gap-6 py-2 border-y border-slate-800 text-xs text-slate-400 flex-wrap">
           <div><strong id="pub-profile-posts-count" class="text-white font-bold text-sm">0</strong> Gönderi</div>
           <div><strong id="pub-profile-followers-count" class="text-white font-bold text-sm">0</strong> Takipçi</div>
           <div><strong id="pub-profile-following-count" class="text-white font-bold text-sm">0</strong> Takip</div>
@@ -483,45 +491,44 @@
     </div>
   </div>
 
-  <!-- EDIT PROFILE MODAL (Profil Fotoğrafı Yükleme Dahil) -->
-  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+  <!-- EDIT PROFILE MODAL - Mobile Optimized -->
+  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 mx-auto">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white">Profili Düzenle</h3>
-        <button onclick="closeEditProfileModal()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <h3 class="text-base sm:text-lg font-bold text-white">Profili Düzenle</h3>
+        <button onclick="closeEditProfileModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
       
       <form onsubmit="saveProfileChanges(event)" class="space-y-4">
-        <!-- Profile Photo Upload -->
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-2">Profil Fotoğrafı Yükle</label>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 flex-wrap">
             <div id="edit-avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 text-white flex items-center justify-center font-bold text-xl overflow-hidden border border-slate-700 shrink-0">
               ?
             </div>
-            <div class="flex-1 space-y-1">
+            <div class="flex-1 space-y-1 min-w-[120px]">
               <input type="file" id="edit-avatar-input" accept="image/*" onchange="handleAvatarSelect(event)" class="hidden">
-              <button type="button" onclick="document.getElementById('edit-avatar-input').click()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition">
-                <i class="fa-solid fa-upload mr-1"></i> Cihazdan Fotoğraf Seç
+              <button type="button" onclick="document.getElementById('edit-avatar-input').click()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition touch-target">
+                <i class="fa-solid fa-upload mr-1"></i> Fotoğraf Seç
               </button>
-              <p class="text-[10px] text-slate-500">Boyut otomatik optimizasyon ile sıkıştırılır.</p>
+              <p class="text-[10px] text-slate-500">Otomatik sıkıştırılır.</p>
             </div>
           </div>
         </div>
 
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Ad Soyad</label>
-          <input type="text" id="edit-fullname" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500">
+          <input type="text" id="edit-fullname" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
         </div>
 
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Biyografi</label>
-          <textarea id="edit-bio" rows="3" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
+          <textarea id="edit-bio" rows="3" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeEditProfileModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700">İptal</button>
-          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow">Kaydet</button>
+        <div class="flex justify-end gap-2 pt-2 flex-wrap">
+          <button type="button" onclick="closeEditProfileModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Kaydet</button>
         </div>
       </form>
     </div>
@@ -563,7 +570,7 @@
         });
       }
 
-      // Session Verification with auto-login
+      // Session Verification
       const savedSession = localStorage.getItem('sp_social_active_user');
       const savedUsername = localStorage.getItem('sp_social_username');
       const savedPassword = localStorage.getItem('sp_social_password');
@@ -574,7 +581,6 @@
         if (!currentUser.following) currentUser.following = [];
         launchMainApp();
       } else if (savedUsername && savedPassword && usersDb[savedUsername] && usersDb[savedUsername].password === savedPassword) {
-        // Auto-login with remembered credentials
         currentUser = usersDb[savedUsername];
         if (!currentUser.followers) currentUser.followers = [];
         if (!currentUser.following) currentUser.following = [];
@@ -592,13 +598,13 @@
       if (tab === 'login') {
         loginForm.classList.remove('hidden');
         regForm.classList.add('hidden');
-        tabLoginBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow';
-        tabRegBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
+        tabLoginBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow';
+        tabRegBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
       } else {
         loginForm.classList.add('hidden');
         regForm.classList.remove('hidden');
-        tabRegBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition bg-indigo-500 text-white shadow';
-        tabLoginBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
+        tabRegBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-indigo-500 text-white shadow';
+        tabLoginBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
       }
     }
 
@@ -632,8 +638,6 @@
 
       currentUser = newUser;
       localStorage.setItem('sp_social_active_user', username);
-
-      // Save credentials for auto-login
       localStorage.setItem('sp_social_username', username);
       localStorage.setItem('sp_social_password', password);
 
@@ -690,7 +694,6 @@
       renderUsersLeaderboard();
     }
 
-    // Change Password Functions
     function openChangePasswordModal() {
       document.getElementById('change-password-modal').classList.remove('hidden');
       document.getElementById('current-password').value = '';
@@ -727,7 +730,6 @@
       usersDb[currentUser.username] = currentUser;
       localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
       
-      // Update remembered password
       if (localStorage.getItem('sp_social_username') === currentUser.username) {
         localStorage.setItem('sp_social_password', newPass);
       }
@@ -736,13 +738,11 @@
       showToast('Şifreniz başarıyla güncellendi!', 'success');
     }
 
-    // Settings Dropdown
     function toggleSettingsDropdown() {
       const dropdown = document.getElementById('settings-dropdown');
       dropdown.classList.toggle('hidden');
     }
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
       const dropdown = document.getElementById('settings-dropdown');
       const btn = e.target.closest('.relative');
@@ -772,7 +772,6 @@
           statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium';
           statusText.innerText = 'Canlı Bağlantı';
 
-          // Subscribe to channels
           mqttClient.subscribe(TOPIC_POSTS);
           mqttClient.subscribe(TOPIC_LIKES);
           mqttClient.subscribe(TOPIC_USERS);
@@ -780,7 +779,6 @@
           mqttClient.subscribe(TOPIC_DM + currentUser.username);
           mqttClient.subscribe(TOPIC_COMMENTS);
 
-          // Broadcast user online presence
           mqttClient.publish(TOPIC_USERS, JSON.stringify({
             type: 'PRESENCE',
             user: sanitizeUserObj(currentUser)
@@ -791,7 +789,6 @@
           try {
             const data = JSON.parse(payload.toString());
             logSystem(`Veri Paketi Alındı [${topic.replace(TOPIC_PREFIX, '')}]`);
-
             handleIncomingNetworkData(topic, data);
           } catch (err) {
             console.error('Data Parsing Error:', err);
@@ -933,25 +930,25 @@
 
       [feedTab, msgTab, usersTab, profileTab].forEach(el => el.classList.add('hidden'));
       [navFeed, navMsg, navUsers, navProf].forEach(el => {
-        el.className = 'nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
+        el.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
       });
 
       if (tab === 'feed') {
         feedTab.classList.remove('hidden');
-        navFeed.className = 'nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+        navFeed.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
         renderFeed();
       } else if (tab === 'messages') {
         msgTab.classList.remove('hidden');
-        navMsg.className = 'nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50 relative';
+        navMsg.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50 relative';
         document.getElementById('unread-dm-badge').classList.add('hidden');
         renderDmUserList();
       } else if (tab === 'users') {
         usersTab.classList.remove('hidden');
-        navUsers.className = 'nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+        navUsers.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
         renderUsersLeaderboard();
       } else if (tab === 'profile') {
         profileTab.classList.remove('hidden');
-        navProf.className = 'nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+        navProf.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
         renderProfileTab();
       }
     }
@@ -977,7 +974,6 @@
 
       document.getElementById('composer-avatar').innerHTML = renderAvatarElement(currentUser, "w-full h-full text-sm");
 
-      // Sidebar Stats
       const myPosts = postsDb.filter(p => p.author.username === currentUser.username);
       document.getElementById('sidebar-post-count').innerText = myPosts.length;
       document.getElementById('sidebar-followers-count').innerText = (currentUser.followers || []).length;
@@ -1020,7 +1016,6 @@
       renderFeed();
       updateUserUI();
 
-      // Broadcast network post
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_POSTS, JSON.stringify({
           type: 'NEW_POST',
@@ -1028,7 +1023,6 @@
         }));
       }
 
-      // Reset
       input.value = '';
       if (imgUrlInput) imgUrlInput.value = '';
       document.getElementById('image-url-container').classList.add('hidden');
@@ -1037,7 +1031,6 @@
       showToast('Gönderiniz yayınlandı!', 'success');
     }
 
-    // Comment Functions
     function toggleComments(postId) {
       const commentsContainer = document.getElementById('comments-container-' + postId);
       if (commentsContainer) {
@@ -1069,7 +1062,6 @@
       commentsDb.push(comment);
       localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
 
-      // Add comment ID to post's comments array
       const post = postsDb.find(p => p.id === postId);
       if (post) {
         if (!post.comments) post.comments = [];
@@ -1079,8 +1071,8 @@
 
       input.value = '';
       renderComments(postId);
+      renderFeed(); // <-- ANLIK GÜNCELLEME İÇİN EKLENDİ
 
-      // Broadcast comment
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_COMMENTS, JSON.stringify({
           type: 'NEW_COMMENT',
@@ -1105,8 +1097,8 @@
           <div class="w-6 h-6 shrink-0">
             ${renderAvatarElement(c.author, "w-6 h-6 text-xs")}
           </div>
-          <div class="flex-1">
-            <div class="flex items-center gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="font-bold text-xs text-white">${escapeHtml(c.author.fullname)}</span>
               <span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span>
               <span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span>
@@ -1114,7 +1106,7 @@
             <p class="text-xs text-slate-300 break-words">${escapeHtml(c.text)}</p>
           </div>
           ${c.author.username === currentUser.username ? `
-            <button onclick="deleteComment('${c.id}', '${postId}')" class="text-slate-600 hover:text-rose-400 text-xs transition">
+            <button onclick="deleteComment('${c.id}', '${postId}')" class="text-slate-600 hover:text-rose-400 text-xs transition touch-target p-1">
               <i class="fa-solid fa-times"></i>
             </button>
           ` : ''}
@@ -1133,6 +1125,7 @@
       }
       
       renderComments(postId);
+      renderFeed(); // <-- ANLIK GÜNCELLEME İÇİN EKLENDİ
     }
 
     function toggleLike(postId) {
@@ -1159,7 +1152,6 @@
     }
 
     function deletePost(postId) {
-      // Delete associated comments
       commentsDb = commentsDb.filter(c => c.postId !== postId);
       localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
       
@@ -1176,6 +1168,8 @@
 
     function renderFeed() {
       const container = document.getElementById('posts-container');
+      if (!container) return;
+      
       document.getElementById('post-feed-count').innerText = `${postsDb.length} Gönderi`;
 
       if (postsDb.length === 0) {
@@ -1197,40 +1191,39 @@
       const timeAgo = formatTimeAgo(post.createdAt);
       const commentCount = commentsDb.filter(c => c.postId === post.id).length;
 
-      // Latest author details from usersDb if available
       const latestAuthor = usersDb[post.author.username] || post.author;
 
       return `
-        <div class="bg-slate-900 border border-slate-800/80 hover:border-slate-700/80 rounded-2xl p-4 shadow-lg transition space-y-3">
+        <div class="bg-slate-900 border border-slate-800/80 hover:border-slate-700/80 rounded-2xl p-3 sm:p-4 shadow-lg transition space-y-3 post-card">
           <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(latestAuthor.username)}')">
+            <div class="flex items-center gap-3 cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(latestAuthor.username)}')">
               <div class="w-10 h-10 shrink-0">
                 ${renderAvatarElement(latestAuthor, "w-10 h-10 text-sm")}
               </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm text-white hover:text-cyan-400 transition">${escapeHtml(latestAuthor.fullname)}</span>
-                  <span class="text-xs text-slate-500">@${escapeHtml(latestAuthor.username)}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-sm text-white hover:text-cyan-400 transition truncate">${escapeHtml(latestAuthor.fullname)}</span>
+                  <span class="text-xs text-slate-500 truncate">@${escapeHtml(latestAuthor.username)}</span>
                 </div>
                 <span class="text-[10px] text-slate-500 font-mono">${timeAgo}</span>
               </div>
             </div>
 
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1 shrink-0">
               ${!isOwner ? `
-                <button onclick="startDirectMessageWith('${escapeHtml(latestAuthor.username)}')" title="DM Gönder" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 rounded-lg transition text-xs">
+                <button onclick="startDirectMessageWith('${escapeHtml(latestAuthor.username)}')" title="DM Gönder" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 rounded-lg transition text-xs touch-target">
                   <i class="fa-solid fa-paper-plane"></i>
                 </button>
               ` : ''}
               ${isOwner ? `
-                <button onclick="deletePost('${post.id}')" title="Gönderiyi Sil" class="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition text-xs">
+                <button onclick="deletePost('${post.id}')" title="Gönderiyi Sil" class="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition text-xs touch-target">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               ` : ''}
             </div>
           </div>
 
-          <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line">${escapeHtml(post.text)}</p>
+          <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line break-words">${escapeHtml(post.text)}</p>
 
           ${post.imageUrl ? `
             <div class="rounded-xl overflow-hidden border border-slate-800 max-h-80 bg-slate-950">
@@ -1238,29 +1231,28 @@
             </div>
           ` : ''}
 
-          <div class="flex items-center gap-6 pt-2 border-t border-slate-800/60 text-xs text-slate-400">
-            <button onclick="toggleLike('${post.id}')" class="flex items-center gap-1.5 hover:text-rose-400 transition ${isLiked ? 'text-rose-500 font-bold' : ''}">
+          <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800/60 text-xs text-slate-400 flex-wrap">
+            <button onclick="toggleLike('${post.id}')" class="flex items-center gap-1.5 hover:text-rose-400 transition touch-target ${isLiked ? 'text-rose-500 font-bold' : ''}">
               <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
               <span>${post.likes.length}</span>
             </button>
-            <button onclick="toggleComments('${post.id}')" class="flex items-center gap-1.5 hover:text-cyan-400 transition">
+            <button onclick="toggleComments('${post.id}')" class="flex items-center gap-1.5 hover:text-cyan-400 transition touch-target">
               <i class="fa-regular fa-comment"></i>
               <span>${commentCount} Yorum</span>
             </button>
-            <button onclick="startDirectMessageWith('${escapeHtml(latestAuthor.username)}')" class="flex items-center gap-1.5 hover:text-cyan-400 transition">
+            <button onclick="startDirectMessageWith('${escapeHtml(latestAuthor.username)}')" class="flex items-center gap-1.5 hover:text-cyan-400 transition touch-target">
               <i class="fa-regular fa-paper-plane"></i>
               <span>Mesaj At</span>
             </button>
           </div>
 
-          <!-- Comments Section -->
           <div id="comments-container-${post.id}" class="hidden space-y-3 pt-2 border-t border-slate-800/40">
             <div id="comments-list-${post.id}" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
               <!-- Comments rendered here -->
             </div>
             <div class="flex gap-2">
-              <input id="comment-input-${post.id}" type="text" placeholder="Yorum yaz..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-              <button onclick="submitComment('${post.id}')" class="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-semibold transition">
+              <input id="comment-input-${post.id}" type="text" placeholder="Yorum yaz..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 min-h-[40px]">
+              <button onclick="submitComment('${post.id}')" class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-semibold transition touch-target">
                 <i class="fa-solid fa-paper-plane"></i>
               </button>
             </div>
@@ -1277,7 +1269,6 @@
       const allUsers = Object.values(usersDb);
       if (badge) badge.innerText = `${allUsers.length} Kayıtlı Üye`;
 
-      // Sort users by follower count descending
       allUsers.sort((a, b) => {
         const fA = a.followers ? a.followers.length : 0;
         const fB = b.followers ? b.followers.length : 0;
@@ -1294,23 +1285,22 @@
         const isMe = u.username === currentUser.username;
         const isFollowing = currentUser.following && currentUser.following.includes(u.username);
 
-        // Rank Badge
-        let rankBadge = `<span class="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center">${index + 1}</span>`;
-        if (index === 0) rankBadge = `<span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 font-extrabold text-sm flex items-center justify-center">🥇 1</span>`;
-        if (index === 1) rankBadge = `<span class="w-8 h-8 rounded-xl bg-slate-400/20 text-slate-300 border border-slate-400/40 font-extrabold text-sm flex items-center justify-center">🥈 2</span>`;
-        if (index === 2) rankBadge = `<span class="w-8 h-8 rounded-xl bg-amber-700/20 text-amber-600 border border-amber-700/40 font-extrabold text-sm flex items-center justify-center">🥉 3</span>`;
+        let rankBadge = `<span class="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center shrink-0">${index + 1}</span>`;
+        if (index === 0) rankBadge = `<span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥇</span>`;
+        if (index === 1) rankBadge = `<span class="w-8 h-8 rounded-xl bg-slate-400/20 text-slate-300 border border-slate-400/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥈</span>`;
+        if (index === 2) rankBadge = `<span class="w-8 h-8 rounded-xl bg-amber-700/20 text-amber-600 border border-amber-700/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥉</span>`;
 
         return `
-          <div class="bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition">
-            <div class="flex items-center gap-3 overflow-hidden">
+          <div class="bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-3 flex items-center justify-between gap-3 transition">
+            <div class="flex items-center gap-3 overflow-hidden min-w-0">
               ${rankBadge}
               <div class="w-10 h-10 shrink-0 cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">
                 ${renderAvatarElement(u, "w-10 h-10 text-sm")}
               </div>
-              <div class="overflow-hidden cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">
-                <div class="flex items-center gap-2">
+              <div class="overflow-hidden cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">
+                <div class="flex items-center gap-2 flex-wrap">
                   <h4 class="font-bold text-sm text-white hover:text-cyan-400 transition truncate">${escapeHtml(u.fullname)}</h4>
-                  ${isMe ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold">Sen</span>` : ''}
+                  ${isMe ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold shrink-0">Sen</span>` : ''}
                 </div>
                 <p class="text-xs text-slate-500 truncate">@${escapeHtml(u.username)} • <span class="text-indigo-400 font-semibold">${followerCount} Takipçi</span></p>
               </div>
@@ -1318,14 +1308,14 @@
 
             <div class="flex items-center gap-2 shrink-0">
               ${!isMe ? `
-                <button onclick="toggleFollowUser('${escapeHtml(u.username)}')" class="px-3 py-1.5 text-xs font-semibold rounded-xl transition ${isFollowing ? 'bg-slate-800 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400' : 'bg-cyan-500 hover:bg-cyan-400 text-white shadow'}">
+                <button onclick="toggleFollowUser('${escapeHtml(u.username)}')" class="px-2 sm:px-3 py-1.5 text-xs font-semibold rounded-xl transition touch-target ${isFollowing ? 'bg-slate-800 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400' : 'bg-cyan-500 hover:bg-cyan-400 text-white shadow'}">
                   ${isFollowing ? 'Takiptesin' : 'Takip Et'}
                 </button>
-                <button onclick="startDirectMessageWith('${escapeHtml(u.username)}')" title="Mesaj Gönder" class="w-8 h-8 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl flex items-center justify-center text-xs transition">
+                <button onclick="startDirectMessageWith('${escapeHtml(u.username)}')" title="Mesaj Gönder" class="w-8 h-8 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl flex items-center justify-center text-xs transition touch-target">
                   <i class="fa-solid fa-paper-plane"></i>
                 </button>
               ` : `
-                <button onclick="switchTab('profile')" class="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl">Profilim</button>
+                <button onclick="switchTab('profile')" class="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl touch-target">Profilim</button>
               `}
             </div>
           </div>
@@ -1333,7 +1323,6 @@
       }).join('');
     }
 
-    // Follow / Unfollow System Logic
     function toggleFollowUser(targetUsername) {
       if (targetUsername === currentUser.username) return;
 
@@ -1360,7 +1349,6 @@
       usersDb[currentUser.username] = currentUser;
       localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
 
-      // Broadcast follow update
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_FOLLOWS, JSON.stringify({
           type: 'FOLLOW_UPDATE',
@@ -1392,11 +1380,11 @@
       container.innerHTML = otherUsers.map(u => {
         const isSelected = selectedDmUser === u.username;
         return `
-          <div onclick="selectChatUser('${u.username}')" class="p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition ${isSelected ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-slate-900'}">
+          <div onclick="selectChatUser('${u.username}')" class="p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition touch-target ${isSelected ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-slate-900'}">
             <div class="w-8 h-8 shrink-0">
               ${renderAvatarElement(u, "w-8 h-8 text-xs")}
             </div>
-            <div class="overflow-hidden flex-1">
+            <div class="overflow-hidden min-w-0">
               <div class="font-bold text-xs text-white truncate">${escapeHtml(u.fullname)}</div>
               <div class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)}</div>
             </div>
@@ -1478,7 +1466,14 @@
 
     function renderChatMessages() {
       const container = document.getElementById('chat-messages-box');
-      if (!selectedDmUser) return;
+      if (!selectedDmUser) {
+        container.innerHTML = `
+          <div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">
+            Sohbet başlatmak için listeden bir kullanıcı seçin.
+          </div>
+        `;
+        return;
+      }
 
       const conversation = dmsDb.filter(m => 
         (m.sender === currentUser.username && m.recipient === selectedDmUser) ||
@@ -1487,7 +1482,7 @@
 
       if (conversation.length === 0) {
         container.innerHTML = `
-          <div class="h-full flex items-center justify-center text-slate-500 text-xs">
+          <div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">
             @${selectedDmUser} ile henüz hiç mesajınız yok. Selam verin!
           </div>
         `;
@@ -1500,7 +1495,7 @@
 
         return `
           <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-            <div class="max-w-[80%] rounded-2xl px-4 py-2.5 text-xs ${isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow">
+            <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow break-words">
               ${escapeHtml(m.text)}
             </div>
             <span class="text-[9px] text-slate-500 font-mono mt-1 px-1">${time}</span>
@@ -1523,7 +1518,7 @@
     function renderProfileTab() {
       if (!currentUser) return;
 
-      document.getElementById('profile-main-avatar').innerHTML = renderAvatarElement(currentUser, "w-24 h-24 text-3xl");
+      document.getElementById('profile-main-avatar').innerHTML = renderAvatarElement(currentUser, "w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl");
       document.getElementById('profile-fullname').innerText = currentUser.fullname;
       document.getElementById('profile-username-display').innerText = '@' + currentUser.username;
       document.getElementById('profile-bio').innerText = currentUser.bio;
@@ -1545,7 +1540,6 @@
       }
     }
 
-    // Public Profile Modal Handling
     function openPublicProfileModal(username) {
       if (username === currentUser.username) {
         switchTab('profile');
@@ -1565,7 +1559,7 @@
       const u = usersDb[username];
       if (!u) return;
 
-      document.getElementById('pub-profile-avatar').innerHTML = renderAvatarElement(u, "w-20 h-20 text-2xl");
+      document.getElementById('pub-profile-avatar').innerHTML = renderAvatarElement(u, "w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl");
       document.getElementById('pub-profile-fullname').innerText = u.fullname;
       document.getElementById('pub-profile-username').innerText = '@' + u.username;
       document.getElementById('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
@@ -1582,7 +1576,7 @@
       const followBtn = document.getElementById('pub-profile-follow-btn');
       if (followBtn) {
         followBtn.innerText = isFollowing ? 'Takiptesin' : 'Takip Et';
-        followBtn.className = isFollowing ? 'px-4 py-2 bg-slate-800 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 text-xs font-semibold rounded-xl border border-slate-700 transition' : 'px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition';
+        followBtn.className = isFollowing ? 'px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target' : 'px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target';
       }
 
       const postsList = document.getElementById('pub-profile-posts-list');
@@ -1605,7 +1599,6 @@
       }
     }
 
-    // Profile Edit & Local Photo Upload Logic
     function openEditProfileModal() {
       document.getElementById('edit-fullname').value = currentUser.fullname;
       document.getElementById('edit-bio').value = currentUser.bio;
@@ -1619,7 +1612,6 @@
       document.getElementById('edit-profile-modal').classList.add('hidden');
     }
 
-    // Compress & Load local image from device using Canvas
     function handleAvatarSelect(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1628,7 +1620,6 @@
       reader.onload = function (event) {
         const img = new Image();
         img.onload = function () {
-          // Resize image to max 250x250 for storage optimization
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           const maxDim = 250;
@@ -1652,7 +1643,7 @@
           ctx.drawImage(img, 0, 0, width, height);
 
           tempAvatarBase64 = canvas.toDataURL('image/jpeg', 0.85);
-          document.getElementById('edit-avatar-preview').innerHTML = `<img src="${tempAvatarBase64}" class="w-full h-full object-cover">`;
+          document.getElementById('edit-avatar-preview').innerHTML = `<img src="${tempAvatarBase64}" class="w-full h-full object-cover rounded-2xl">`;
         };
         img.src = event.target.result;
       };
@@ -1673,7 +1664,6 @@
       usersDb[currentUser.username] = currentUser;
       localStorage.setItem('sp_social_users', JSON.stringify(usersDb));
 
-      // Update author details on my local posts
       postsDb.forEach(p => {
         if (p.author.username === currentUser.username) {
           p.author.fullname = newFullname;
@@ -1682,7 +1672,6 @@
       });
       savePostsLocally();
 
-      // Update comments author details
       commentsDb.forEach(c => {
         if (c.author.username === currentUser.username) {
           c.author.fullname = newFullname;
@@ -1691,7 +1680,6 @@
       });
       localStorage.setItem('sp_social_comments', JSON.stringify(commentsDb));
 
-      // Broadcast profile presence update
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_USERS, JSON.stringify({
           type: 'PRESENCE',
@@ -1707,7 +1695,7 @@
       showToast('Profiliniz güncellendi.', 'success');
     }
 
-    // Helper Dialog Utilities
+    // Helper Utilities
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
