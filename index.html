@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr" class="h-full bg-slate-950 text-slate-100">
 <head>
-  <link rel="icon" type="image/png" href="/favicon.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSZ MEDYA - Gerçek Zamanlı Sosyal Ağ</title>
@@ -18,28 +17,6 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
     .touch-target { min-height: 44px; min-width: 44px; }
     .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-    .notification-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      min-width: 18px;
-      height: 18px;
-      background: #ef4444;
-      color: white;
-      font-size: 10px;
-      font-weight: 700;
-      border-radius: 9999px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 5px;
-      border: 2px solid #0f172a;
-      animation: pulse-badge 1.5s infinite;
-    }
-    @keyframes pulse-badge {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-    }
     @media (max-width: 640px) {
       .nav-btn span { display: none; }
       .nav-btn { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
@@ -55,30 +32,6 @@
 
   <!-- TOAST -->
   <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 max-w-sm mx-auto pointer-events-none sm:left-auto sm:right-4"></div>
-
-  <!-- BILDIRIM MODALI -->
-  <div id="notifications-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl mx-auto">
-      <div class="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <i class="fa-regular fa-bell text-cyan-400"></i>
-          Bildirimler
-          <span id="notif-count-badge" class="ml-1 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
-        </h3>
-        <button onclick="closeNotificationsModal()" class="text-slate-500 hover:text-white p-2 touch-target">
-          <i class="fa-solid fa-xmark text-xl"></i>
-        </button>
-      </div>
-      <div id="notifications-list" class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-        <div class="text-center text-xs text-slate-500 py-8">Henüz bildirim yok.</div>
-      </div>
-      <div class="p-3 border-t border-slate-800 shrink-0">
-        <button onclick="clearAllNotifications()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition touch-target">
-          Tüm Bildirimleri Temizle
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -249,15 +202,6 @@
               <div id="header-username-display" class="text-xs font-semibold text-white truncate max-w-[80px]">@...</div>
             </div>
           </div>
-          
-          <!-- BİLDİRİM ÇANI -->
-          <div class="relative">
-            <button onclick="toggleNotifications()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target relative">
-              <i class="fa-regular fa-bell text-sm sm:text-base"></i>
-              <span id="notification-badge" class="notification-badge hidden">0</span>
-            </button>
-          </div>
-
           <div class="relative">
             <button onclick="toggleSettingsDropdown()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target">
               <i class="fa-solid fa-gear text-xs sm:text-sm"></i>
@@ -534,7 +478,6 @@
     const TOPIC_FOLLOWS = TOPIC_PREFIX + 'follows';
     const TOPIC_DM = TOPIC_PREFIX + 'dm/';
     const TOPIC_COMMENTS = TOPIC_PREFIX + 'comments';
-    const TOPIC_NOTIFICATIONS = TOPIC_PREFIX + 'notifications/';
 
     // ============================================================
     // STATE
@@ -547,10 +490,6 @@
     let tempAvatarBase64 = null;
     let isMqttConnected = false;
     let isDBReady = false;
-    let notifications = [];
-    let unreadNotificationCount = 0;
-    let originalTitle = 'MSZ MEDYA - Gerçek Zamanlı Sosyal Ağ';
-    let notificationSound = null;
 
     // ============================================================
     // INDEXEDDB
@@ -582,11 +521,6 @@
             msgStore.createIndex('sender', 'sender', { unique: false });
             msgStore.createIndex('recipient', 'recipient', { unique: false });
             msgStore.createIndex('timestamp', 'timestamp', { unique: false });
-          }
-          if (!db.objectStoreNames.contains('notifications')) {
-            const notifStore = db.createObjectStore('notifications', { keyPath: 'id' });
-            notifStore.createIndex('createdAt', 'createdAt', { unique: false });
-            notifStore.createIndex('read', 'read', { unique: false });
           }
         };
       });
@@ -667,10 +601,9 @@
         const posts = await getAllFromDB('posts');
         const comments = await getAllFromDB('comments');
         const messages = await getAllFromDB('messages');
-        const notifs = await getAllFromDB('notifications');
         const usersObj = {};
         users.forEach(u => { usersObj[u.username] = u; });
-        return { users: usersObj, posts, comments, messages, notifications: notifs };
+        return { users: usersObj, posts, comments, messages };
       } catch (err) { console.error('❌ Veri yükleme hatası:', err); return null; }
     }
 
@@ -688,9 +621,6 @@
     }
     async function saveUsersToDB() {
       try { await clearDB('users'); for (const [key, value] of Object.entries(usersDb)) await saveToDB('users', value); } catch (err) { console.error('Kullanıcı kaydetme hatası:', err); }
-    }
-    async function saveNotificationsToDB() {
-      try { await clearDB('notifications'); for (const notif of notifications) await saveToDB('notifications', notif); } catch (err) { console.error('Bildirim kaydetme hatası:', err); }
     }
 
     // ============================================================
@@ -718,22 +648,15 @@
           postsDb = data.posts || [];
           commentsDb = data.comments || [];
           dmsDb = data.messages || [];
-          notifications = data.notifications || [];
-          console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj, ${notifications.length} bildirim yüklendi`);
+          console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj yüklendi`);
         }
-        
-        // Bildirim sayısını güncelle
-        updateNotificationBadge();
-
       } catch (err) {
         console.error('❌ IndexedDB hatası:', err);
         usersDb = JSON.parse(localStorage.getItem('sp_social_users') || '{}');
         postsDb = JSON.parse(localStorage.getItem('sp_social_posts') || '[]');
         dmsDb = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
         commentsDb = JSON.parse(localStorage.getItem('sp_social_comments') || '[]');
-        notifications = JSON.parse(localStorage.getItem('sp_social_notifications') || '[]');
         showToast('⚠️ IndexedDB kullanılamıyor, localStorage kullanılıyor.', 'warning');
-        updateNotificationBadge();
       }
 
       const postInput = document.getElementById('post-input');
@@ -869,7 +792,6 @@
       renderFeed();
       renderDmUserList();
       renderUsersLeaderboard();
-      updateNotificationBadge();
     }
 
     // ============================================================
@@ -891,30 +813,37 @@
       const password = document.getElementById('delete-password').value;
       const confirmText = document.getElementById('delete-confirm-text').value.trim().toLowerCase();
 
+      // Şifre kontrolü
       if (currentUser.password !== password) {
         showModal('Hata', 'Şifreniz yanlış!', 'error');
         return;
       }
 
+      // Onay kontrolü
       if (confirmText !== 'hesabımı sil') {
         showModal('Hata', 'Lütfen onaylamak için "hesabımı sil" yazın.', 'error');
         return;
       }
 
+      // Kullanıcının tüm gönderilerini sil
       const userPosts = postsDb.filter(p => p.author.username === currentUser.username);
       for (const post of userPosts) {
         postsDb = postsDb.filter(p => p.id !== post.id);
+        // Bu gönderiye ait yorumları sil
         commentsDb = commentsDb.filter(c => c.postId !== post.id);
       }
       await savePostsToDB();
       await saveCommentsToDB();
 
+      // Kullanıcının tüm mesajlarını sil (gönderen veya alıcı olarak)
       dmsDb = dmsDb.filter(m => m.sender !== currentUser.username && m.recipient !== currentUser.username);
       await saveMessagesToDB();
 
+      // Kullanıcıyı usersDb'den sil
       delete usersDb[currentUser.username];
       await saveUsersToDB();
 
+      // Takip ilişkilerini temizle (diğer kullanıcıların following/followers listelerinden çıkar)
       for (const [username, user] of Object.entries(usersDb)) {
         let changed = false;
         if (user.following && user.following.includes(currentUser.username)) {
@@ -931,6 +860,7 @@
       }
       await saveUsersToDB();
 
+      // localStorage'dan temizle
       localStorage.removeItem('sp_social_active_user');
       localStorage.removeItem('sp_social_username');
       localStorage.removeItem('sp_social_password');
@@ -938,6 +868,7 @@
       closeDeleteAccountModal();
       showToast('✅ Hesabınız başarıyla silindi.', 'success');
 
+      // MQTT bağlantısını kapat ve çıkış yap
       if (mqttClient) mqttClient.end();
       setTimeout(() => {
         location.reload();
@@ -1035,7 +966,6 @@
           mqttClient.subscribe(TOPIC_FOLLOWS);
           mqttClient.subscribe(TOPIC_DM + currentUser.username);
           mqttClient.subscribe(TOPIC_COMMENTS);
-          mqttClient.subscribe(TOPIC_NOTIFICATIONS + currentUser.username);
           mqttClient.publish(TOPIC_USERS, JSON.stringify({ type: 'PRESENCE', user: sanitizeUserObj(currentUser) }));
         });
 
@@ -1071,30 +1001,14 @@
     // ============================================================
     async function handleIncomingNetworkData(topic, data) {
       if (topic === TOPIC_POSTS && data.type === 'NEW_POST') {
-        if (!postsDb.some(p => p.id === data.post.id)) { 
-          postsDb.unshift(data.post); 
-          await savePostsToDB(); 
-          // Bildirim oluştur (kendi gönderin değilse)
-          if (data.post.author.username !== currentUser.username) {
-            addNotification({
-              type: 'new_post',
-              title: `${data.post.author.fullname} yeni gönderi paylaştı`,
-              body: data.post.text.substring(0, 60) + (data.post.text.length > 60 ? '...' : ''),
-              link: null,
-              icon: data.post.author.avatarUrl || null,
-              username: data.post.author.username
-            });
-          }
-        }
+        if (!postsDb.some(p => p.id === data.post.id)) { postsDb.unshift(data.post); await savePostsToDB(); }
         renderFeed();
+        if (data.post.author.username !== currentUser.username) showToast(`@${data.post.author.username} yeni bir gönderi paylaştı.`, 'info');
         return;
       }
       if (topic === TOPIC_LIKES && data.type === 'TOGGLE_LIKE') {
         const targetPost = postsDb.find(p => p.id === data.postId);
-        if (targetPost) { 
-          targetPost.likes = data.likes; 
-          await savePostsToDB(); 
-        }
+        if (targetPost) { targetPost.likes = data.likes; await savePostsToDB(); }
         renderFeed();
         return;
       }
@@ -1122,178 +1036,14 @@
         dmsDb.push(data.message);
         await saveMessagesToDB();
         if (activeTab === 'messages' && selectedDmUser === data.message.sender) renderChatMessages();
-        else { 
-          updateUnreadBadge();
-          showToast(`@${data.message.sender} kullanıcısından mesajınız var!`, 'info');
-          // Bildirim ekle
-          const sender = usersDb[data.message.sender] || { fullname: data.message.sender, username: data.message.sender };
-          addNotification({
-            type: 'direct_message',
-            title: `${sender.fullname} sana mesaj gönderdi`,
-            body: data.message.text.substring(0, 60) + (data.message.text.length > 60 ? '...' : ''),
-            link: null,
-            icon: sender.avatarUrl || null,
-            username: data.message.sender
-          });
-        }
+        else { updateUnreadBadge(); showToast(`@${data.message.sender} kullanıcısından mesajınız var!`, 'info'); }
         return;
       }
       if (topic === TOPIC_COMMENTS && data.type === 'NEW_COMMENT') {
-        if (!commentsDb.some(c => c.id === data.comment.id)) { 
-          commentsDb.push(data.comment); 
-          await saveCommentsToDB(); 
-          // Bildirim oluştur (kendi yorumun değilse)
-          if (data.comment.author.username !== currentUser.username) {
-            const post = postsDb.find(p => p.id === data.comment.postId);
-            if (post && post.author.username !== currentUser.username) {
-              addNotification({
-                type: 'comment',
-                title: `${data.comment.author.fullname} gönderine yorum yaptı`,
-                body: data.comment.text.substring(0, 60) + (data.comment.text.length > 60 ? '...' : ''),
-                link: null,
-                icon: data.comment.author.avatarUrl || null,
-                username: data.comment.author.username,
-                postId: data.comment.postId
-              });
-            }
-          }
-        }
+        if (!commentsDb.some(c => c.id === data.comment.id)) { commentsDb.push(data.comment); await saveCommentsToDB(); }
         renderFeed();
+        if (data.comment.author.username !== currentUser.username) showToast(`@${data.comment.author.username} bir gönderiye yorum yaptı.`, 'info');
         return;
-      }
-      if (topic === TOPIC_NOTIFICATIONS + currentUser.username) {
-        if (data.type === 'NEW_NOTIFICATION') {
-          addNotification(data.notification);
-        }
-        return;
-      }
-    }
-
-    // ============================================================
-    // BİLDİRİM FONKSİYONLARI
-    // ============================================================
-    function addNotification(notif) {
-      const newNotif = {
-        id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        ...notif,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-      notifications.unshift(newNotif);
-      saveNotificationsToDB();
-      updateNotificationBadge();
-      playNotificationSound();
-      updateTitleWithCount();
-      
-      // Eğer bildirim modalı açık değilse ve bildirim sayısı 1'den fazlaysa toast göster
-      if (document.getElementById('notifications-modal').classList.contains('hidden')) {
-        showToast(`🔔 ${notif.title}`, 'info');
-      }
-    }
-
-    function updateNotificationBadge() {
-      const unread = notifications.filter(n => !n.read).length;
-      unreadNotificationCount = unread;
-      const badge = document.getElementById('notification-badge');
-      const countBadge = document.getElementById('notif-count-badge');
-      if (badge) {
-        if (unread > 0) {
-          badge.textContent = unread > 99 ? '99+' : unread;
-          badge.classList.remove('hidden');
-        } else {
-          badge.classList.add('hidden');
-        }
-      }
-      if (countBadge) {
-        countBadge.textContent = unread;
-      }
-      updateTitleWithCount();
-    }
-
-    function updateTitleWithCount() {
-      const unread = notifications.filter(n => !n.read).length;
-      if (unread > 0) {
-        document.title = `(${unread}) MSZ MEDYA - Gerçek Zamanlı Sosyal Ağ`;
-      } else {
-        document.title = originalTitle;
-      }
-    }
-
-    function toggleNotifications() {
-      const modal = document.getElementById('notifications-modal');
-      if (modal.classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        renderNotifications();
-        // Tüm bildirimleri okundu olarak işaretle
-        markAllNotificationsAsRead();
-      } else {
-        modal.classList.add('hidden');
-      }
-    }
-
-    function closeNotificationsModal() {
-      document.getElementById('notifications-modal').classList.add('hidden');
-    }
-
-    function renderNotifications() {
-      const container = document.getElementById('notifications-list');
-      if (notifications.length === 0) {
-        container.innerHTML = `<div class="text-center text-xs text-slate-500 py-8">Henüz bildirim yok.</div>`;
-        return;
-      }
-      container.innerHTML = notifications.map(n => `
-        <div class="flex items-start gap-3 p-3 rounded-xl ${n.read ? 'bg-slate-950/50' : 'bg-cyan-500/10 border border-cyan-500/20'} transition">
-          <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 shrink-0 overflow-hidden">
-            ${n.icon ? `<img src="${n.icon}" class="w-full h-full object-cover">` : `<i class="fa-regular fa-bell text-lg"></i>`}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-white">${escapeHtml(n.title)}</p>
-            <p class="text-xs text-slate-400 mt-0.5">${escapeHtml(n.body || '')}</p>
-            <p class="text-[10px] text-slate-500 mt-1">${formatTimeAgo(n.createdAt)}</p>
-          </div>
-          ${!n.read ? `<span class="w-2 h-2 rounded-full bg-cyan-400 shrink-0 mt-1.5"></span>` : ''}
-        </div>
-      `).join('');
-    }
-
-    async function markAllNotificationsAsRead() {
-      let changed = false;
-      notifications.forEach(n => {
-        if (!n.read) {
-          n.read = true;
-          changed = true;
-        }
-      });
-      if (changed) {
-        await saveNotificationsToDB();
-        updateNotificationBadge();
-        renderNotifications();
-      }
-    }
-
-    function clearAllNotifications() {
-      notifications = [];
-      saveNotificationsToDB();
-      updateNotificationBadge();
-      renderNotifications();
-      showToast('Tüm bildirimler temizlendi.', 'info');
-    }
-
-    function playNotificationSound() {
-      try {
-        // Basit bir bildirim sesi oluştur
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.15);
-      } catch (e) {
-        // Ses çalınamazsa sessiz geç
       }
     }
 
@@ -1631,27 +1381,6 @@
         targetUser.followers.push(currentUser.username);
         currentUser.following.push(targetUsername);
         showToast(`@${targetUsername} takip edilmeye başlandı.`, 'info');
-        // Bildirim oluştur
-        addNotification({
-          type: 'follow',
-          title: `${currentUser.fullname} seni takip etmeye başladı`,
-          body: `@${currentUser.username} artık seni takip ediyor.`,
-          link: null,
-          icon: currentUser.avatarUrl || null,
-          username: currentUser.username
-        });
-        if (mqttClient && mqttClient.connected) {
-          mqttClient.publish(TOPIC_NOTIFICATIONS + targetUsername, JSON.stringify({
-            type: 'NEW_NOTIFICATION',
-            notification: {
-              type: 'follow',
-              title: `${currentUser.fullname} seni takip etmeye başladı`,
-              body: `@${currentUser.username} artık seni takip ediyor.`,
-              icon: currentUser.avatarUrl || null,
-              username: currentUser.username
-            }
-          }));
-        }
       } else {
         targetUser.followers.splice(followerIndex, 1);
         if (followingIndex !== -1) currentUser.following.splice(followingIndex, 1);
@@ -1725,20 +1454,7 @@
       const message = { id: 'dm_' + Date.now(), sender: currentUser.username, recipient: selectedDmUser, text, timestamp: new Date().toISOString() };
       dmsDb.push(message);
       await saveMessagesToDB();
-      if (mqttClient && mqttClient.connected) {
-        mqttClient.publish(TOPIC_DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message }));
-        // Bildirim gönder
-        mqttClient.publish(TOPIC_NOTIFICATIONS + selectedDmUser, JSON.stringify({
-          type: 'NEW_NOTIFICATION',
-          notification: {
-            type: 'direct_message',
-            title: `${currentUser.fullname} sana mesaj gönderdi`,
-            body: text.substring(0, 60) + (text.length > 60 ? '...' : ''),
-            icon: currentUser.avatarUrl || null,
-            username: currentUser.username
-          }
-        }));
-      }
+      if (mqttClient && mqttClient.connected) mqttClient.publish(TOPIC_DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message }));
       input.value = '';
       renderChatMessages();
     }
