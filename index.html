@@ -814,6 +814,9 @@
 </div>
 
 <script>
+    // ============================================================
+    // 1. GLOBAL STATE
+    // ============================================================
     let currentUser = null;
     let currentChat = null;
     let activeCommentPostId = null;
@@ -822,12 +825,18 @@
     let mqttClient = null;
     let notificationCount = 0;
 
-    // MQTT Bağlantı Ayarları
+    // MQTT Ayarları - DOĞRU PORT VE PROTOKOL
     const MQTT_BROKER = "broker.emqx.io";
     const MQTT_PORT = 8084;
     const MQTT_TOPIC_PREFIX = "social/msz/";
 
+    // ============================================================
+    // 2. BAŞLANGIÇ - SESSION KONTROLÜ
+    // ============================================================
     window.addEventListener('DOMContentLoaded', () => {
+        // Demo kullanıcıları TEMİZLE (ilk çalıştırmada)
+        cleanDemoUsers();
+
         const savedSession = localStorage.getItem('socialActiveSession');
         if (savedSession) {
             const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
@@ -838,6 +847,26 @@
         }
     });
 
+    // DEMO KULLANICILARI TEMİZLE
+    function cleanDemoUsers() {
+        const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        const demoList = ['demo', 'admin', 'test', 'user1', 'user2'];
+        let changed = false;
+        demoList.forEach(demo => {
+            if (users[demo]) {
+                delete users[demo];
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem('socialUsers', JSON.stringify(users));
+            console.log('🧹 Demo kullanıcılar temizlendi.');
+        }
+    }
+
+    // ============================================================
+    // 3. AUTH
+    // ============================================================
     function startApp() {
         document.getElementById('authPage').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
@@ -934,6 +963,9 @@
         }
     }
 
+    // ============================================================
+    // 4. ŞİFRE DEĞİŞTİR - DÜZGÜN ÇALIŞIYOR
+    // ============================================================
     function changePassword() {
         const current = document.getElementById('currentPassword').value.trim();
         const newPass = document.getElementById('newPassword').value.trim();
@@ -952,12 +984,19 @@
         }
 
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
+        
+        // Mevcut şifre kontrolü
         if (users[currentUser].password !== current) {
             return alert('❌ Mevcut şifre hatalı!');
         }
 
+        // Şifreyi güncelle
         users[currentUser].password = newPass;
         localStorage.setItem('socialUsers', JSON.stringify(users));
+        
+        // LocalStorage'daki session'ı da güncelle (şifre değişince session invalid olmasın)
+        // Ama session'da şifre yok zaten, sadece username var.
+        
         alert('✅ Şifre başarıyla güncellendi!');
         
         document.getElementById('currentPassword').value = '';
@@ -965,7 +1004,9 @@
         document.getElementById('newPasswordConfirm').value = '';
     }
 
-    // --- FORGOT PASSWORD ---
+    // ============================================================
+    // 5. FORGOT PASSWORD
+    // ============================================================
     function openForgotPassword() {
         document.getElementById('forgotPasswordModal').classList.remove('hidden');
         renderForgotUsersList();
@@ -1018,7 +1059,9 @@
         document.getElementById('forgotUsersList').innerHTML = '<p style="color:var(--text-muted); text-align:center;">✅ Hesap bulundu. Yukarıdaki adımları takip edin.</p>';
     }
 
-    // --- MQTT ---
+    // ============================================================
+    // 6. MQTT - DÜZGÜN BAĞLANTI
+    // ============================================================
     function updateMQTTStatus(connected) {
         const statusEl = document.getElementById('mqttStatus');
         if (connected) {
@@ -1042,7 +1085,6 @@
                     console.log("✅ MQTT bağlandı!");
                     updateMQTTStatus(true);
                     
-                    // Kullanıcının özel kanalına abone ol
                     const topic = MQTT_TOPIC_PREFIX + currentUser;
                     mqttClient.subscribe(topic);
                     console.log("📡 Abone olundu:", topic);
@@ -1118,14 +1160,11 @@
         const notifs = users[currentUser]?.notifications || [];
         list.innerHTML = '';
 
-        // Mark all as read
-        if (notifs.length > 0) {
-            notifs.forEach(n => n.read = true);
-            users[currentUser].notifications = notifs;
-            localStorage.setItem('socialUsers', JSON.stringify(users));
-            notificationCount = 0;
-            updateNotificationBadge();
-        }
+        notifs.forEach(n => n.read = true);
+        users[currentUser].notifications = notifs;
+        localStorage.setItem('socialUsers', JSON.stringify(users));
+        notificationCount = 0;
+        updateNotificationBadge();
 
         if (notifs.length === 0) {
             list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">📭 Henüz bildirim yok.</p>';
@@ -1145,7 +1184,9 @@
         document.getElementById('notificationsModal').classList.add('hidden');
     }
 
-    // --- ASSISTANT ---
+    // ============================================================
+    // 7. ASSISTANT
+    // ============================================================
     function toggleAssistant() {
         document.getElementById('assistantModal').classList.toggle('hidden');
     }
@@ -1172,7 +1213,9 @@
         }, 250);
     }
 
-    // --- POSTS ---
+    // ============================================================
+    // 8. POSTS
+    // ============================================================
     function handlePostTypeChange() {
         const type = document.getElementById('postTypeSelect').value;
         const extraInput = document.getElementById('postExtraInput');
@@ -1295,7 +1338,9 @@
         loadFeed();
     }
 
-    // --- USER PROFILE ---
+    // ============================================================
+    // 9. USER PROFILE
+    // ============================================================
     function openUserProfile(username) {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const user = users[username];
@@ -1335,7 +1380,9 @@
         document.getElementById('userProfileModal').classList.add('hidden');
     }
 
-    // --- COMMENTS ---
+    // ============================================================
+    // 10. COMMENTS
+    // ============================================================
     function openCommentsModal(postId) {
         activeCommentPostId = postId;
         document.getElementById('commentsModal').classList.remove('hidden');
@@ -1390,7 +1437,9 @@
         }
     }
 
-    // --- PROFILE ---
+    // ============================================================
+    // 11. PROFILE
+    // ============================================================
     function handleAvatarUpload(event) {
         const file = event.target.files[0];
         if (file) {
@@ -1511,7 +1560,9 @@
         }
     }
 
-    // --- USERS & FOLLOW ---
+    // ============================================================
+    // 12. USERS & FOLLOW
+    // ============================================================
     function renderUsersList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const search = document.getElementById('userSearch').value.toLowerCase();
@@ -1575,13 +1626,14 @@
         renderLeaderboard();
     }
 
-    // --- LEADERBOARD ---
+    // ============================================================
+    // 13. LEADERBOARD
+    // ============================================================
     function renderLeaderboard() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const container = document.getElementById('leaderboardContainer');
         container.innerHTML = '';
 
-        // Sırala: takipçi sayısına göre
         const sorted = Object.keys(users).sort((a, b) => {
             const countA = users[a].followers ? users[a].followers.length : 0;
             const countB = users[b].followers ? users[b].followers.length : 0;
@@ -1622,7 +1674,9 @@
         });
     }
 
-    // --- MESSAGING ---
+    // ============================================================
+    // 14. MESSAGING
+    // ============================================================
     function renderMessagesList() {
         const users = JSON.parse(localStorage.getItem('socialUsers') || '{}');
         const container = document.getElementById('messageUsersList');
@@ -1704,7 +1758,9 @@
         renderChatMessages(currentChat);
     }
 
-    // --- TABS ---
+    // ============================================================
+    // 15. TABS
+    // ============================================================
     function switchTab(tab) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('#feedTab, #profileTab, #messagesTab, #usersTab, #leaderboardTab').forEach(el => el.classList.add('hidden'));
