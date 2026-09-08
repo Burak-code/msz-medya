@@ -77,8 +77,8 @@
     
     .tik-rozet {
       display: inline-block;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       margin-left: 4px;
       vertical-align: middle;
       object-fit: contain;
@@ -161,6 +161,29 @@
     .attachment-btn:hover {
       color: #22d3ee;
     }
+    .group-card {
+      transition: all 0.2s;
+    }
+    .group-card:hover {
+      border-color: rgba(6, 182, 212, 0.4);
+    }
+    .chat-header-clickable {
+      cursor: pointer;
+    }
+    .chat-header-clickable:hover {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+    .group-emoji-badge {
+      font-size: 14px;
+      margin-right: 4px;
+    }
+    .tik-purple {
+      filter: hue-rotate(280deg) saturate(1.5);
+    }
+    .tik-blue {
+      filter: hue-rotate(210deg) saturate(1.5);
+    }
   </style>
 </head>
 <body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
@@ -228,7 +251,7 @@
     </div>
   </div>
 
-  <!-- ŞİFREMİ UNUTTUM MODALI - SADECE KENDİ HESABI, KULLANICI ADI SABİT -->
+  <!-- ŞİFREMİ UNUTTUM MODALI -->
   <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -321,6 +344,170 @@
     </div>
   </div>
 
+  <!-- GRUP OLUŞTURMA MODALI -->
+  <div id="create-group-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-users text-cyan-400"></i>
+          <span id="create-group-title">Grup Oluştur</span>
+        </h3>
+        <button onclick="closeCreateGroupModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <form onsubmit="createGroup(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-name-label">Grup Adı *</label>
+            <input type="text" id="group-name" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-desc-label">Açıklama *</label>
+            <textarea id="group-desc" rows="2" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-type-label">Katılım Tipi *</label>
+            <select id="group-type" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+              <option value="public">Herkese Açık</option>
+              <option value="request">İstek Gönder</option>
+              <option value="followers">Sadece Takipçiler</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-password-label">Grup Şifresi (isteğe bağlı)</label>
+            <input type="text" id="group-password" placeholder="Şifre belirle" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-emoji-label">Grup Emojisi (isteğe bağlı)</label>
+            <input type="text" id="group-emoji" placeholder="🎮" maxlength="2" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-tag-label">Tag (isteğe bağlı)</label>
+            <input type="text" id="group-tag" placeholder="#grup" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-photo-label">Grup Fotoğrafı (isteğe bağlı)</label>
+            <input type="file" id="group-photo" accept="image/*" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white file:text-xs hover:file:bg-cyan-400">
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="closeCreateGroupModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
+            <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Grubu Oluştur</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUP DETAY MODALI -->
+  <div id="group-detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2" id="group-detail-title">
+          <span id="group-detail-emoji">🎮</span>
+          <span id="group-detail-name">Grup Adı</span>
+        </h3>
+        <button onclick="closeGroupDetailModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+        <div class="flex items-center gap-3">
+          <div id="group-detail-photo" class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden">📁</div>
+          <div>
+            <p id="group-detail-desc" class="text-xs text-slate-300">Açıklama</p>
+            <p id="group-detail-owner" class="text-[10px] text-slate-500">Kurucu: @...</p>
+            <p id="group-detail-type" class="text-[10px] text-cyan-400">Herkese Açık</p>
+          </div>
+        </div>
+        <div id="group-detail-password-container" class="hidden">
+          <label class="block text-xs font-medium text-slate-400 mb-1">Grup Şifresi</label>
+          <input type="text" id="group-detail-password-input" placeholder="Şifreyi gir..." class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+        </div>
+        <button id="group-detail-join-btn" onclick="joinGroup()" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition touch-target">Gruba Katıl</button>
+        <button id="group-detail-leave-btn" onclick="leaveGroup()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold rounded-xl transition touch-target hidden">Gruptan Ayrıl</button>
+        <button id="group-detail-delete-btn" onclick="deleteGroup()" class="w-full py-2.5 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded-xl transition touch-target hidden">Grubu Sil</button>
+        <div class="pt-2 border-t border-slate-800">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Katılımcılar (<span id="group-detail-member-count">0</span>)</h4>
+          <div id="group-detail-members" class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+            <div class="text-xs text-slate-500 text-center py-4">Henüz katılımcı yok.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TİK ŞARTLARI MODALI -->
+  <div id="tik-terms-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-certificate"></i>
+          <span>Tik Alma Şartları</span>
+        </h3>
+        <button onclick="closeTikTermsModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 text-sm text-slate-300">
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">1.</span>
+            <span>Instagram adresini <span class="text-cyan-400 font-bold">@burak_msz</span>'ye vermek zorundasın. Yoksa tik alamazsın.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">2.</span>
+            <span>Tiki kötüye kullanmayacağına, can sıkacak troll yapmayacağına ve platforma ne gibi katkı sağlayacağına bakmam gerek.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">3.</span>
+            <span>İSTEĞE BAĞLI: Bağışla veya bağışsız tik alabilirsin.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">4.</span>
+            <span>Tik istedikten sonra bir kaç gün seni izleyeceğiz. Ne kadar aktifsin, platforma ne katıyorsun.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-amber-800/50">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">5.</span>
+            <span>Şartlar sağlanınca tikin verilir.</span>
+          </p>
+        </div>
+      </div>
+      <button onclick="closeTikTermsAndContinue()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-xl transition touch-target">Şartları Kabul Et ve Devam Et</button>
+    </div>
+  </div>
+
+  <!-- TİK MODAL -->
+  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white" id="tik-modal-title">Tik Al</h3>
+        <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-slate-300" id="tik-modal-desc">Kodunu girmek için aşağıdaki alanı kullan:</p>
+      <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+      <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
+      <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition" id="tik-confirm-btn">Onayla</button>
+    </div>
+  </div>
+
+  <!-- TİK GÖSTER MODAL -->
+  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
+      <img src="tick-p.png" id="tik-goster-img" alt="Tik" class="w-24 h-24 mx-auto object-contain">
+      <h3 class="text-xl font-bold text-white" id="tik-congrats-title">Tebrikler!</h3>
+      <p class="text-sm text-slate-300" id="tik-congrats-desc">Tik başarıyla alındı!</p>
+      <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition" id="tik-close-btn">Kapat</button>
+    </div>
+  </div>
+
+  <!-- TİK AL BUTONU -->
+  <button onclick="openTikModal()" class="fixed bottom-4 right-4 z-40 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition">
+    <i class="fa-solid fa-certificate mr-1"></i> <span id="tik-get-btn">Tik Al</span>
+  </button>
+
   <!-- AUTH SCREEN -->
   <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
     <div class="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -408,6 +595,10 @@
             <i class="fa-solid fa-paper-plane text-sm sm:text-base"></i>
             <span class="hidden sm:inline" id="nav-messages-label">Mesajlar</span>
             <span id="unread-dm-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span>
+          </button>
+          <button onclick="switchTab('groups')" id="nav-groups" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
+            <i class="fa-solid fa-users text-emerald-400 text-sm sm:text-base"></i>
+            <span class="hidden sm:inline" id="nav-groups-label">Gruplar</span>
           </button>
           <button onclick="switchTab('users')" id="nav-users" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
             <i class="fa-solid fa-trophy text-amber-400 text-sm sm:text-base"></i>
@@ -554,14 +745,14 @@
             </div>
             <div class="flex-1 flex flex-col bg-slate-900 min-h-[300px]">
               <div id="chat-header" class="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 gap-2 flex-wrap">
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-center gap-3 min-w-0 chat-header-clickable" onclick="openChatUserProfile()">
                   <div id="chat-target-avatar" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center font-bold overflow-hidden shrink-0">?</div>
                   <div class="min-w-0">
                     <h4 id="chat-target-name" class="font-bold text-sm text-white truncate">Sohbet Seçin</h4>
                     <p id="chat-target-handle" class="text-xs text-slate-500 truncate">Mesajlaşmak için soldan bir kullanıcı tıklayın</p>
                   </div>
                 </div>
-                <button id="chat-view-profile-btn" onclick="openSelectedUserProfile()" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl transition touch-target shrink-0">
+                <button id="chat-view-profile-btn" onclick="openChatUserProfile()" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl transition touch-target shrink-0">
                   <i class="fa-solid fa-user mr-1"></i> <span id="chat-profile-btn-text">Profil</span>
                 </button>
               </div>
@@ -585,6 +776,21 @@
                 </form>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div id="tab-content-groups" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+              <i class="fa-solid fa-users text-emerald-400"></i>
+              <span id="groups-title">Gruplar</span>
+            </h2>
+            <button onclick="openCreateGroupModal()" id="create-group-btn" class="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">
+              <i class="fa-solid fa-plus mr-1"></i> <span id="create-group-btn-text">Grup Oluştur</span>
+            </button>
+          </div>
+          <div id="groups-container" class="space-y-3">
+            <div class="text-center text-slate-500 text-sm py-8">Henüz hiç grup oluşturulmamış.</div>
           </div>
         </div>
 
@@ -658,17 +864,17 @@
     </main>
   </div>
 
-  <!-- PUBLIC PROFILE MODAL -->
+  <!-- PUBLIC PROFILE MODAL (BÜYÜK) -->
   <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-0 max-h-[90vh] flex flex-col mx-auto">
-      <div class="h-24 sm:h-28 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl space-y-0 max-h-[90vh] flex flex-col mx-auto">
+      <div class="h-32 sm:h-40 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
         <button onclick="closePublicProfileModal()" class="absolute top-3 right-3 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition touch-target">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-        <div class="flex items-end justify-between -mt-10 gap-2 flex-wrap">
-          <div id="pub-profile-avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-xl overflow-hidden shrink-0">?</div>
+        <div class="flex items-end justify-between -mt-12 gap-2 flex-wrap">
+          <div id="pub-profile-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">?</div>
           <div class="flex items-center gap-2 flex-wrap">
             <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">Takip Et</button>
             <button id="pub-profile-dm-btn" onclick="messagePublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target">
@@ -677,18 +883,19 @@
           </div>
         </div>
         <div>
-          <h3 id="pub-profile-fullname" class="text-base sm:text-lg font-bold text-white">...</h3>
-          <p id="pub-profile-username" class="text-xs text-cyan-400 font-mono">@...</p>
+          <h3 id="pub-profile-fullname" class="text-xl sm:text-2xl font-bold text-white">...</h3>
+          <p id="pub-profile-username" class="text-sm text-cyan-400 font-mono">@...</p>
         </div>
-        <p id="pub-profile-bio" class="text-xs text-slate-300 leading-relaxed italic">...</p>
-        <div class="flex items-center gap-4 sm:gap-6 py-2 border-y border-slate-800 text-xs text-slate-400 flex-wrap">
-          <div><strong id="pub-profile-posts-count" class="text-white font-bold text-sm">0</strong> <span id="pub-posts-label">Gönderi</span></div>
-          <div class="clickable-stat" onclick="openFollowersModalFromPublic()"><strong id="pub-profile-followers-count" class="text-white font-bold text-sm">0</strong> <span id="pub-followers-label">Takipçi</span></div>
-          <div class="clickable-stat" onclick="openFollowingModalFromPublic()"><strong id="pub-profile-following-count" class="text-white font-bold text-sm">0</strong> <span id="pub-following-label">Takip</span></div>
+        <p id="pub-profile-bio" class="text-sm text-slate-300 leading-relaxed">...</p>
+        <div class="flex items-center gap-6 py-3 border-y border-slate-800 text-sm text-slate-400 flex-wrap">
+          <div><strong id="pub-profile-posts-count" class="text-white font-bold text-lg">0</strong> <span id="pub-posts-label">Gönderi</span></div>
+          <div class="clickable-stat" onclick="openFollowersModalFromPublic()"><strong id="pub-profile-followers-count" class="text-white font-bold text-lg">0</strong> <span id="pub-followers-label">Takipçi</span></div>
+          <div class="clickable-stat" onclick="openFollowingModalFromPublic()"><strong id="pub-profile-following-count" class="text-white font-bold text-lg">0</strong> <span id="pub-following-label">Takip</span></div>
+          <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span id="pub-active-label">Aktif</span></div>
         </div>
         <div class="space-y-3 pt-2">
           <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider" id="pub-posts-title">Gönderileri</h4>
-          <div id="pub-profile-posts-list" class="space-y-3"></div>
+          <div id="pub-profile-posts-list" class="space-y-4"></div>
         </div>
       </div>
     </div>
@@ -731,36 +938,13 @@
     </div>
   </div>
 
-  <!-- TİK MODAL -->
-  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white" id="tik-modal-title">Tik Al</h3>
-        <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <p class="text-sm text-slate-300" id="tik-modal-desc">Kodunu girmek için aşağıdaki alanı kullan:</p>
-      <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-      <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
-      <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition" id="tik-confirm-btn">Onayla</button>
-    </div>
-  </div>
-
-  <!-- TİK GÖSTER MODAL -->
-  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
-      <img src="tick.png" alt="Tik" class="w-24 h-24 mx-auto object-contain">
-      <h3 class="text-xl font-bold text-white" id="tik-congrats-title">Tebrikler!</h3>
-      <p class="text-sm text-slate-300" id="tik-congrats-desc">Tik başarıyla alındı!</p>
-      <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition" id="tik-close-btn">Kapat</button>
-    </div>
-  </div>
-
-  <!-- TİK AL BUTONU -->
-  <button onclick="openTikModal()" class="fixed bottom-4 right-4 z-40 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-cyan-500/30 transition">
-    <i class="fa-solid fa-certificate mr-1"></i> <span id="tik-get-btn">Tik Al</span>
-  </button>
-
   <script>
+    // ============================================================
+    // TİK KONFIGURASYONU - BURADAN DEĞİŞTİR !!!
+    // ============================================================
+    const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
+    const tikRengi = "blue"; // "purple" veya "blue" - BURADAN DEĞİŞTİR!
+
     // ============================================================
     // DİL DESTEĞİ
     // ============================================================
@@ -778,6 +962,7 @@
         "reg-submit-btn": "Hesap Oluştur ve Giriş Yap",
         "nav-feed-label": "Akış",
         "nav-messages-label": "Mesajlar",
+        "nav-groups-label": "Gruplar",
         "nav-users-label": "Topluluk",
         "nav-profile-label": "Profilim",
         "settings-change-pass": "Şifre Değiştir",
@@ -795,6 +980,8 @@
         "submit-post-text": "Paylaş",
         "dm-chats-title": "Sohbetler",
         "chat-profile-btn-text": "Profil",
+        "groups-title": "Gruplar",
+        "create-group-btn-text": "Grup Oluştur",
         "users-title": "Topluluk",
         "users-subtitle": "En çok takipçisi olan popüler kullanıcılar",
         "rewards-title": "Ödüller",
@@ -812,6 +999,7 @@
         "pub-followers-label": "Takipçi",
         "pub-following-label": "Takip",
         "pub-posts-title": "Gönderileri",
+        "pub-active-label": "Aktif",
         "edit-profile-title": "Profili Düzenle",
         "edit-avatar-label": "Profil Fotoğrafı Yükle",
         "edit-avatar-btn-text": "Fotoğraf Seç",
@@ -848,7 +1036,15 @@
         "forgot-cancel-btn": "İptal",
         "forgot-reset-btn": "Şifreyi Sıfırla",
         "followers-modal-title": "Takipçiler",
-        "following-modal-title": "Takip Edilenler"
+        "following-modal-title": "Takip Edilenler",
+        "create-group-title": "Grup Oluştur",
+        "group-name-label": "Grup Adı *",
+        "group-desc-label": "Açıklama *",
+        "group-type-label": "Katılım Tipi *",
+        "group-password-label": "Grup Şifresi (isteğe bağlı)",
+        "group-emoji-label": "Grup Emojisi (isteğe bağlı)",
+        "group-tag-label": "Tag (isteğe bağlı)",
+        "group-photo-label": "Grup Fotoğrafı (isteğe bağlı)"
       },
       en: {
         "auth-subtitle": "Real-Time Social Network",
@@ -863,6 +1059,7 @@
         "reg-submit-btn": "Create Account & Login",
         "nav-feed-label": "Feed",
         "nav-messages-label": "Messages",
+        "nav-groups-label": "Groups",
         "nav-users-label": "Community",
         "nav-profile-label": "Profile",
         "settings-change-pass": "Change Password",
@@ -880,6 +1077,8 @@
         "submit-post-text": "Share",
         "dm-chats-title": "Chats",
         "chat-profile-btn-text": "Profile",
+        "groups-title": "Groups",
+        "create-group-btn-text": "Create Group",
         "users-title": "Community",
         "users-subtitle": "Most followed users",
         "rewards-title": "Rewards",
@@ -897,6 +1096,7 @@
         "pub-followers-label": "Followers",
         "pub-following-label": "Following",
         "pub-posts-title": "Posts",
+        "pub-active-label": "Active",
         "edit-profile-title": "Edit Profile",
         "edit-avatar-label": "Upload Profile Photo",
         "edit-avatar-btn-text": "Choose Photo",
@@ -933,7 +1133,15 @@
         "forgot-cancel-btn": "Cancel",
         "forgot-reset-btn": "Reset Password",
         "followers-modal-title": "Followers",
-        "following-modal-title": "Following"
+        "following-modal-title": "Following",
+        "create-group-title": "Create Group",
+        "group-name-label": "Group Name *",
+        "group-desc-label": "Description *",
+        "group-type-label": "Join Type *",
+        "group-password-label": "Group Password (optional)",
+        "group-emoji-label": "Group Emoji (optional)",
+        "group-tag-label": "Tag (optional)",
+        "group-photo-label": "Group Photo (optional)"
       }
     };
     let currentLang = 'tr';
@@ -945,6 +1153,7 @@
       document.getElementById('auth-subtitle').innerText = data['auth-subtitle'] || 'Real-Time Social Network';
       document.getElementById('nav-feed-label').innerText = data['nav-feed-label'] || 'Feed';
       document.getElementById('nav-messages-label').innerText = data['nav-messages-label'] || 'Messages';
+      document.getElementById('nav-groups-label').innerText = data['nav-groups-label'] || 'Groups';
       document.getElementById('nav-users-label').innerText = data['nav-users-label'] || 'Community';
       document.getElementById('nav-profile-label').innerText = data['nav-profile-label'] || 'Profile';
       document.getElementById('submit-post-text').innerText = data['submit-post-text'] || 'Share';
@@ -958,6 +1167,8 @@
       document.getElementById('feed-title').innerText = data['feed-title'] || 'Live Post Feed';
       document.getElementById('dm-chats-title').innerText = data['dm-chats-title'] || 'Chats';
       document.getElementById('chat-profile-btn-text').innerText = data['chat-profile-btn-text'] || 'Profile';
+      document.getElementById('groups-title').innerText = data['groups-title'] || 'Groups';
+      document.getElementById('create-group-btn-text').innerText = data['create-group-btn-text'] || 'Create Group';
       document.getElementById('users-title').innerText = data['users-title'] || 'Community';
       document.getElementById('users-subtitle').innerText = data['users-subtitle'] || 'Most followed users';
       document.getElementById('rewards-title').innerText = data['rewards-title'] || 'Rewards';
@@ -975,6 +1186,7 @@
       document.getElementById('pub-followers-label').innerText = data['pub-followers-label'] || 'Followers';
       document.getElementById('pub-following-label').innerText = data['pub-following-label'] || 'Following';
       document.getElementById('pub-posts-title').innerText = data['pub-posts-title'] || 'Posts';
+      document.getElementById('pub-active-label').innerText = data['pub-active-label'] || 'Active';
       document.getElementById('edit-profile-title').innerText = data['edit-profile-title'] || 'Edit Profile';
       document.getElementById('edit-avatar-label').innerText = data['edit-avatar-label'] || 'Upload Profile Photo';
       document.getElementById('edit-avatar-btn-text').innerText = data['edit-avatar-btn-text'] || 'Choose Photo';
@@ -1025,6 +1237,14 @@
       document.getElementById('forgot-reset-btn').innerText = data['forgot-reset-btn'] || 'Reset Password';
       document.getElementById('followers-modal-title').innerText = data['followers-modal-title'] || 'Followers';
       document.getElementById('following-modal-title').innerText = data['following-modal-title'] || 'Following';
+      document.getElementById('create-group-title').innerText = data['create-group-title'] || 'Create Group';
+      document.getElementById('group-name-label').innerText = data['group-name-label'] || 'Group Name *';
+      document.getElementById('group-desc-label').innerText = data['group-desc-label'] || 'Description *';
+      document.getElementById('group-type-label').innerText = data['group-type-label'] || 'Join Type *';
+      document.getElementById('group-password-label').innerText = data['group-password-label'] || 'Group Password (optional)';
+      document.getElementById('group-emoji-label').innerText = data['group-emoji-label'] || 'Group Emoji (optional)';
+      document.getElementById('group-tag-label').innerText = data['group-tag-label'] || 'Tag (optional)';
+      document.getElementById('group-photo-label').innerText = data['group-photo-label'] || 'Group Photo (optional)';
     }
 
     // ============================================================
@@ -1038,6 +1258,7 @@
     const TOPIC_FOLLOWS = TOPIC_PREFIX + 'follows';
     const TOPIC_DM = TOPIC_PREFIX + 'dm/';
     const TOPIC_COMMENTS = TOPIC_PREFIX + 'comments';
+    const TOPIC_GROUPS = TOPIC_PREFIX + 'groups';
 
     let dmUnreadCounts = {};
 
@@ -1058,14 +1279,17 @@
 
     let notifications = [];
     let notificationCount = 0;
-    const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
     let dmLastMessageTime = {};
+
+    // Grup sistemi
+    let groupsDb = [];
+    let selectedGroupId = null;
 
     // ============================================================
     // INDEXEDDB
     // ============================================================
     const DB_NAME = 'MSZMedyaDB';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     let db = null;
 
     function openDatabase() {
@@ -1095,6 +1319,11 @@
             msgStore.createIndex('sender', 'sender', { unique: false });
             msgStore.createIndex('recipient', 'recipient', { unique: false });
             msgStore.createIndex('timestamp', 'timestamp', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('groups')) {
+            const groupStore = db.createObjectStore('groups', { keyPath: 'id' });
+            groupStore.createIndex('createdAt', 'createdAt', { unique: false });
+            groupStore.createIndex('owner', 'owner', { unique: false });
           }
         };
       });
@@ -1165,6 +1394,8 @@
         for (const comment of comments) await saveToDB('comments', comment);
         const messages = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
         for (const msg of messages) await saveToDB('messages', msg);
+        const groups = JSON.parse(localStorage.getItem('sp_social_groups') || '[]');
+        for (const group of groups) await saveToDB('groups', group);
         return true;
       } catch (err) { console.error('❌ Veri taşıma hatası:', err); return false; }
     }
@@ -1175,9 +1406,10 @@
         const posts = await getAllFromDB('posts');
         const comments = await getAllFromDB('comments');
         const messages = await getAllFromDB('messages');
+        const groups = await getAllFromDB('groups');
         const usersObj = {};
         users.forEach(u => { usersObj[u.username] = u; });
-        return { users: usersObj, posts, comments, messages };
+        return { users: usersObj, posts, comments, messages, groups };
       } catch (err) { console.error('❌ Veri yükleme hatası:', err); return null; }
     }
 
@@ -1199,6 +1431,10 @@
     async function saveUsersToDB() {
       try { await clearDB('users'); for (const [key, value] of Object.entries(usersDb)) await saveToDB('users', value); } catch (
       err) { console.error('Kullanıcı kaydetme hatası:', err); }
+    }
+    async function saveGroupsToDB() {
+      try { await clearDB('groups'); for (const group of groupsDb) await saveToDB('groups', group); } catch (err) { console.error(
+          'Grup kaydetme hatası:', err); }
     }
 
     // ============================================================
@@ -1226,7 +1462,8 @@
           postsDb = data.posts || [];
           commentsDb = data.comments || [];
           dmsDb = data.messages || [];
-          console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj yüklendi`);
+          groupsDb = data.groups || [];
+          console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj, ${groupsDb.length} grup yüklendi`);
         }
       } catch (err) {
         console.error('❌ IndexedDB hatası:', err);
@@ -1234,6 +1471,7 @@
         postsDb = JSON.parse(localStorage.getItem('sp_social_posts') || '[]');
         dmsDb = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
         commentsDb = JSON.parse(localStorage.getItem('sp_social_comments') || '[]');
+        groupsDb = JSON.parse(localStorage.getItem('sp_social_groups') || '[]');
         showToast('⚠️ IndexedDB kullanılamıyor, localStorage kullanılıyor.', 'warning');
       }
 
@@ -1334,6 +1572,7 @@
         following: [],
         neonColor: null,
         hasTik: false,
+        tikRengi: null,
         joinedAt: new Date().toISOString()
       };
 
@@ -1394,11 +1633,13 @@
       renderFeed();
       renderDmUserList();
       renderUsersLeaderboard();
+      renderGroups();
       updateNotificationBadge();
+      updateGroupCreateButton();
     }
 
     // ============================================================
-    // FORGOT PASSWORD - SADECE KENDİ HESABI, KULLANICI ADI SABİT
+    // FORGOT PASSWORD
     // ============================================================
     function openForgotPasswordModal() {
       if (!currentUser) {
@@ -1406,7 +1647,6 @@
         return;
       }
       document.getElementById('forgot-password-modal').classList.remove('hidden');
-      // Kullanıcı adını otomatik doldur ve disabled yap
       document.getElementById('forgot-username').value = currentUser.username;
       document.getElementById('forgot-username').disabled = true;
       document.getElementById('forgot-new-password').value = '';
@@ -1472,12 +1712,13 @@
         list.innerHTML = followers.map(f => {
           const followerUser = usersDb[f];
           if (!followerUser) return '';
+          const groupEmoji = getGroupEmojiForUser(followerUser.username);
           return `
             <div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition">
               <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${followerUser.username}'); closeFollowersModal();">
                 <div class="w-8 h-8 shrink-0">${renderAvatarElement(followerUser, "w-8 h-8 text-xs")}</div>
                 <div>
-                  <div class="font-bold text-xs text-white">${getUserDisplayName(followerUser)}</div>
+                  <div class="font-bold text-xs text-white">${groupEmoji}${getUserDisplayName(followerUser)}</div>
                   <div class="text-[10px] text-slate-500">@${followerUser.username}</div>
                 </div>
               </div>
@@ -1511,12 +1752,13 @@
         list.innerHTML = following.map(f => {
           const followingUser = usersDb[f];
           if (!followingUser) return '';
+          const groupEmoji = getGroupEmojiForUser(followingUser.username);
           return `
             <div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition">
               <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${followingUser.username}'); closeFollowingModal();">
                 <div class="w-8 h-8 shrink-0">${renderAvatarElement(followingUser, "w-8 h-8 text-xs")}</div>
                 <div>
-                  <div class="font-bold text-xs text-white">${getUserDisplayName(followingUser)}</div>
+                  <div class="font-bold text-xs text-white">${groupEmoji}${getUserDisplayName(followingUser)}</div>
                   <div class="text-[10px] text-slate-500">@${followingUser.username}</div>
                 </div>
               </div>
@@ -1539,6 +1781,319 @@
 
     function openFollowingModalFromPublic() {
       if (viewingPublicUsername) openFollowingModal(viewingPublicUsername);
+    }
+
+    // ============================================================
+    // GRUP SİSTEMİ
+    // ============================================================
+    function getGroupEmojiForUser(username) {
+      for (const group of groupsDb) {
+        if (group.members && group.members.includes(username) && group.emoji) {
+          return group.emoji + ' ';
+        }
+      }
+      return '';
+    }
+
+    function updateGroupCreateButton() {
+      const btn = document.getElementById('create-group-btn');
+      if (!currentUser || !currentUser.hasTik) {
+        btn.disabled = true;
+        btn.className = 'px-3 py-1.5 bg-slate-700 text-slate-400 text-xs font-semibold rounded-xl cursor-not-allowed touch-target';
+        btn.innerHTML = `<i class="fa-solid fa-lock mr-1"></i> <span id="create-group-btn-text">Tik Gerekli</span>`;
+      } else {
+        btn.disabled = false;
+        btn.className = 'px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target';
+        btn.innerHTML = `<i class="fa-solid fa-plus mr-1"></i> <span id="create-group-btn-text">Grup Oluştur</span>`;
+      }
+    }
+
+    function openCreateGroupModal() {
+      if (!currentUser || !currentUser.hasTik) {
+        showModal('Tik Gerekli', 'Grup oluşturmak için Tik sahibi olmalısın!', 'warning');
+        return;
+      }
+      document.getElementById('create-group-modal').classList.remove('hidden');
+      document.getElementById('group-name').value = '';
+      document.getElementById('group-desc').value = '';
+      document.getElementById('group-type').value = 'public';
+      document.getElementById('group-password').value = '';
+      document.getElementById('group-emoji').value = '';
+      document.getElementById('group-tag').value = '';
+      document.getElementById('group-photo').value = '';
+    }
+
+    function closeCreateGroupModal() {
+      document.getElementById('create-group-modal').classList.add('hidden');
+    }
+
+    async function createGroup(e) {
+      e.preventDefault();
+      const name = document.getElementById('group-name').value.trim();
+      const desc = document.getElementById('group-desc').value.trim();
+      const type = document.getElementById('group-type').value;
+      const password = document.getElementById('group-password').value.trim();
+      const emoji = document.getElementById('group-emoji').value.trim() || '📁';
+      const tag = document.getElementById('group-tag').value.trim();
+      const photoInput = document.getElementById('group-photo');
+
+      if (!name || !desc) {
+        showModal('Hata', 'Grup adı ve açıklama zorunlu!', 'error');
+        return;
+      }
+
+      let photoData = null;
+      if (photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        photoData = await new Promise((resolve) => {
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(photoInput.files[0]);
+        });
+      }
+
+      const newGroup = {
+        id: 'group_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        name,
+        description: desc,
+        type,
+        password: password || null,
+        emoji,
+        tag: tag || null,
+        photo: photoData || null,
+        owner: currentUser.username,
+        members: [currentUser.username],
+        joinRequests: [],
+        createdAt: new Date().toISOString()
+      };
+
+      groupsDb.push(newGroup);
+      await saveGroupsToDB();
+      closeCreateGroupModal();
+      renderGroups();
+      showToast('✅ Grup başarıyla oluşturuldu!', 'success');
+      
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(TOPIC_GROUPS, JSON.stringify({ type: 'NEW_GROUP', group: newGroup }));
+      }
+    }
+
+    function renderGroups() {
+      const container = document.getElementById('groups-container');
+      if (!container) return;
+
+      if (groupsDb.length === 0) {
+        container.innerHTML = `<div class="text-center text-slate-500 text-sm py-8">Henüz hiç grup oluşturulmamış.</div>`;
+        return;
+      }
+
+      const sortedGroups = [...groupsDb].sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      container.innerHTML = sortedGroups.map(group => {
+        const isMember = group.members && group.members.includes(currentUser.username);
+        const isOwner = group.owner === currentUser.username;
+        const memberCount = group.members ? group.members.length : 0;
+        const emoji = group.emoji || '📁';
+        
+        return `
+          <div class="group-card bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg cursor-pointer" onclick="openGroupDetail('${group.id}')">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden flex-shrink-0">
+                ${group.photo ? `<img src="${group.photo}" class="w-full h-full object-cover">` : emoji}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="font-bold text-white text-sm truncate">${escapeHtml(group.name)}</h3>
+                  ${isOwner ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold">Kurucu</span>` : ''}
+                  ${isMember ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Üye</span>` : ''}
+                </div>
+                <p class="text-xs text-slate-400 truncate">${escapeHtml(group.description)}</p>
+                <div class="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
+                  <span>👥 ${memberCount} üye</span>
+                  <span>🏷️ ${group.type === 'public' ? 'Herkese Açık' : group.type === 'request' ? 'İstek Gerekli' : 'Sadece Takipçiler'}</span>
+                  ${group.tag ? `<span class="text-cyan-400">${escapeHtml(group.tag)}</span>` : ''}
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                ${isOwner ? `<button onclick="event.stopPropagation(); deleteGroup('${group.id}')" class="p-2 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition text-xs"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+                <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openGroupDetail(groupId) {
+      selectedGroupId = groupId;
+      const group = groupsDb.find(g => g.id === groupId);
+      if (!group) { showToast('Grup bulunamadı.', 'error'); return; }
+
+      document.getElementById('group-detail-name').innerText = group.name;
+      document.getElementById('group-detail-emoji').innerText = group.emoji || '📁';
+      document.getElementById('group-detail-desc').innerText = group.description;
+      document.getElementById('group-detail-owner').innerText = `Kurucu: @${group.owner}`;
+      
+      const typeLabels = { public: 'Herkese Açık', request: 'İstek Gönder', followers: 'Sadece Takipçiler' };
+      document.getElementById('group-detail-type').innerText = typeLabels[group.type] || 'Herkese Açık';
+      
+      if (group.photo) {
+        document.getElementById('group-detail-photo').innerHTML = `<img src="${group.photo}" class="w-full h-full object-cover rounded-2xl">`;
+      } else {
+        document.getElementById('group-detail-photo').innerHTML = group.emoji || '📁';
+        document.getElementById('group-detail-photo').className = 'w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden';
+      }
+
+      const isMember = group.members && group.members.includes(currentUser.username);
+      const isOwner = group.owner === currentUser.username;
+      const hasPassword = group.password && group.password.length > 0;
+
+      const passContainer = document.getElementById('group-detail-password-container');
+      if (hasPassword && !isMember) {
+        passContainer.classList.remove('hidden');
+      } else {
+        passContainer.classList.add('hidden');
+      }
+
+      const joinBtn = document.getElementById('group-detail-join-btn');
+      const leaveBtn = document.getElementById('group-detail-leave-btn');
+      const deleteBtn = document.getElementById('group-detail-delete-btn');
+
+      if (isMember) {
+        joinBtn.classList.add('hidden');
+        leaveBtn.classList.remove('hidden');
+        deleteBtn.classList.add('hidden');
+        if (isOwner) {
+          deleteBtn.classList.remove('hidden');
+        }
+      } else {
+        joinBtn.classList.remove('hidden');
+        leaveBtn.classList.add('hidden');
+        deleteBtn.classList.add('hidden');
+        if (group.type === 'request') {
+          joinBtn.innerText = 'Katılmak İste';
+        } else if (group.type === 'followers') {
+          joinBtn.innerText = 'Takip Et ve Katıl';
+        } else {
+          joinBtn.innerText = 'Gruba Katıl';
+        }
+      }
+
+      const membersContainer = document.getElementById('group-detail-members');
+      const members = group.members || [];
+      document.getElementById('group-detail-member-count').innerText = members.length;
+
+      if (members.length === 0) {
+        membersContainer.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">Henüz katılımcı yok.</div>`;
+      } else {
+        membersContainer.innerHTML = members.map(username => {
+          const user = usersDb[username];
+          if (!user) return '';
+          const groupEmoji = getGroupEmojiForUser(username);
+          const isOwnerBadge = username === group.owner ? ' 👑' : '';
+          return `
+            <div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${username}'); closeGroupDetailModal();">
+              <div class="w-6 h-6 shrink-0">${renderAvatarElement(user, "w-6 h-6 text-xs")}</div>
+              <span class="text-xs text-slate-200">${groupEmoji}${escapeHtml(user.fullname)}${isOwnerBadge}</span>
+              <span class="text-[9px] text-slate-500">@${escapeHtml(username)}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('group-detail-modal').classList.remove('hidden');
+    }
+
+    function closeGroupDetailModal() {
+      document.getElementById('group-detail-modal').classList.add('hidden');
+      selectedGroupId = null;
+    }
+
+    async function joinGroup() {
+      if (!selectedGroupId) return;
+      const group = groupsDb.find(g => g.id === selectedGroupId);
+      if (!group) { showToast('Grup bulunamadı.', 'error'); return; }
+
+      const passwordInput = document.getElementById('group-detail-password-input');
+      if (group.password && group.password.length > 0) {
+        const enteredPass = passwordInput.value.trim();
+        if (enteredPass !== group.password) {
+          showToast('❌ Grup şifresi yanlış!', 'error');
+          return;
+        }
+      }
+
+      if (group.type === 'followers') {
+        if (!currentUser.followers || !currentUser.followers.includes(group.owner)) {
+          showToast('❌ Bu gruba katılmak için kurucuyu takip etmelisin!', 'warning');
+          return;
+        }
+      }
+
+      if (group.type === 'request') {
+        if (!group.joinRequests) group.joinRequests = [];
+        if (!group.joinRequests.includes(currentUser.username)) {
+          group.joinRequests.push(currentUser.username);
+          await saveGroupsToDB();
+          showToast('✅ Katılma isteğin gönderildi! Kurucu onaylayacak.', 'success');
+          renderGroups();
+          openGroupDetail(selectedGroupId);
+        } else {
+          showToast('Zaten istek gönderdin.', 'info');
+        }
+        return;
+      }
+
+      if (!group.members) group.members = [];
+      if (!group.members.includes(currentUser.username)) {
+        group.members.push(currentUser.username);
+        await saveGroupsToDB();
+        showToast('✅ Gruba katıldın!', 'success');
+        renderGroups();
+        openGroupDetail(selectedGroupId);
+        updateUserUI();
+      }
+    }
+
+    async function leaveGroup() {
+      if (!selectedGroupId) return;
+      const group = groupsDb.find(g => g.id === selectedGroupId);
+      if (!group) { showToast('Grup bulunamadı.', 'error'); return; }
+
+      if (group.owner === currentUser.username) {
+        showModal('Uyarı', 'Kurucusu olduğun gruptan ayrılamazsın. Grubu silmen gerekir.', 'warning');
+        return;
+      }
+
+      group.members = group.members.filter(u => u !== currentUser.username);
+      await saveGroupsToDB();
+      showToast('Gruptan ayrıldın.', 'info');
+      renderGroups();
+      closeGroupDetailModal();
+      updateUserUI();
+    }
+
+    async function deleteGroup(groupId) {
+      if (!groupId) {
+        if (!selectedGroupId) return;
+        groupId = selectedGroupId;
+      }
+      const group = groupsDb.find(g => g.id === groupId);
+      if (!group) { showToast('Grup bulunamadı.', 'error'); return; }
+
+      if (group.owner !== currentUser.username) {
+        showModal('Yetkisiz', 'Sadece kurucu grubu silebilir.', 'error');
+        return;
+      }
+
+      if (!confirm(`"${group.name}" grubunu silmek istediğine emin misin?`)) return;
+
+      groupsDb = groupsDb.filter(g => g.id !== groupId);
+      await saveGroupsToDB();
+      showToast('✅ Grup silindi.', 'success');
+      renderGroups();
+      closeGroupDetailModal();
     }
 
     // ============================================================
@@ -1580,6 +2135,16 @@
 
       dmsDb = dmsDb.filter(m => m.sender !== currentUser.username && m.recipient !== currentUser.username);
       await saveMessagesToDB();
+
+      const ownedGroups = groupsDb.filter(g => g.owner === currentUser.username);
+      for (const group of ownedGroups) {
+        groupsDb = groupsDb.filter(g => g.id !== group.id);
+      }
+      groupsDb.forEach(g => {
+        if (g.members) g.members = g.members.filter(u => u !== currentUser.username);
+        if (g.joinRequests) g.joinRequests = g.joinRequests.filter(u => u !== currentUser.username);
+      });
+      await saveGroupsToDB();
 
       delete usersDb[currentUser.username];
       await saveUsersToDB();
@@ -1704,6 +2269,7 @@
           mqttClient.subscribe(TOPIC_FOLLOWS);
           mqttClient.subscribe(TOPIC_DM + currentUser.username);
           mqttClient.subscribe(TOPIC_COMMENTS);
+          mqttClient.subscribe(TOPIC_GROUPS);
           mqttClient.publish(TOPIC_USERS, JSON.stringify({ type: 'PRESENCE', user: sanitizeUserObj(currentUser) }));
         });
 
@@ -1827,6 +2393,14 @@
         }
         return;
       }
+      if (topic === TOPIC_GROUPS && data.type === 'NEW_GROUP') {
+        if (!groupsDb.some(g => g.id === data.group.id)) {
+          groupsDb.push(data.group);
+          await saveGroupsToDB();
+          renderGroups();
+        }
+        return;
+      }
     }
 
     // ============================================================
@@ -1892,7 +2466,7 @@
     // ============================================================
     function sanitizeUserObj(u) {
       return { username: u.username, fullname: u.fullname, bio: u.bio, color: u.color, avatarUrl: u.avatarUrl,
-      followers: u.followers || [], following: u.following || [], neonColor: u.neonColor || null, hasTik: u.hasTik || false };
+      followers: u.followers || [], following: u.following || [], neonColor: u.neonColor || null, hasTik: u.hasTik || false, tikRengi: u.tikRengi || null };
     }
 
     function logSystem(msg) {
@@ -1913,16 +2487,18 @@
       activeTab = tab;
       const feedTab = document.getElementById('tab-content-feed');
       const msgTab = document.getElementById('tab-content-messages');
+      const groupsTab = document.getElementById('tab-content-groups');
       const usersTab = document.getElementById('tab-content-users');
       const profileTab = document.getElementById('tab-content-profile');
 
       const navFeed = document.getElementById('nav-feed');
       const navMsg = document.getElementById('nav-messages');
+      const navGroups = document.getElementById('nav-groups');
       const navUsers = document.getElementById('nav-users');
       const navProf = document.getElementById('nav-profile');
 
-      [feedTab, msgTab, usersTab, profileTab].forEach(el => el.classList.add('hidden'));
-      [navFeed, navMsg, navUsers, navProf].forEach(el => {
+      [feedTab, msgTab, groupsTab, usersTab, profileTab].forEach(el => el.classList.add('hidden'));
+      [navFeed, navMsg, navGroups, navUsers, navProf].forEach(el => {
         el.className =
           'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
       });
@@ -1939,6 +2515,11 @@
         document.getElementById('unread-dm-badge').classList.add('hidden');
         renderDmUserList();
         if (selectedDmUser) renderChatMessages();
+      } else if (tab === 'groups') {
+        groupsTab.classList.remove('hidden');
+        navGroups.className =
+          'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+        renderGroups();
       } else if (tab === 'users') {
         usersTab.classList.remove('hidden');
         navUsers.className =
@@ -1966,7 +2547,9 @@
 
     function showTikBadge(userObj) {
       if (userObj && userObj.hasTik) {
-        return `<img src="tick.png" class="tik-rozet" alt="Tik">`;
+        // Kullanıcının tik rengine göre dosya seç
+        const tikDosya = userObj.tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+        return `<img src="${tikDosya}" class="tik-rozet" alt="Tik">`;
       }
       return '';
     }
@@ -1997,6 +2580,7 @@
       document.getElementById('sidebar-post-count').innerText = myPosts.length;
       document.getElementById('sidebar-followers-count').innerText = (currentUser.followers || []).length;
       document.getElementById('sidebar-user-count').innerText = (currentUser.following || []).length;
+      updateGroupCreateButton();
     }
 
     function toggleImageInput() {
@@ -2082,7 +2666,7 @@
         likes: [],
         comments: [],
         author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600',
-          avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false }
+          avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false, tikRengi: currentUser.tikRengi || null }
       };
 
       postsDb.unshift(newPost);
@@ -2128,7 +2712,7 @@
         id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
         postId, text,
         author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600',
-          avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false },
+          avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false, tikRengi: currentUser.tikRengi || null },
         createdAt: new Date().toISOString()
       };
 
@@ -2215,6 +2799,7 @@
       const timeAgo = formatTimeAgo(post.createdAt);
       const commentCount = commentsDb.filter(c => c.postId === post.id).length;
       const latestAuthor = usersDb[post.author.username] || post.author;
+      const groupEmoji = getGroupEmojiForUser(latestAuthor.username);
 
       const authorDisplay = getUserDisplayName(latestAuthor);
 
@@ -2225,7 +2810,7 @@
               <div class="w-10 h-10 shrink-0">${renderAvatarElement(latestAuthor, "w-10 h-10 text-sm")}</div>
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-bold text-sm text-white hover:text-cyan-400 transition truncate">${authorDisplay}</span>
+                  <span class="font-bold text-sm text-white hover:text-cyan-400 transition truncate">${groupEmoji}${authorDisplay}</span>
                   <span class="text-xs text-slate-500 truncate">@${escapeHtml(latestAuthor.username)}</span>
                 </div>
                 <span class="text-[10px] text-slate-500 font-mono">${timeAgo}</span>
@@ -2299,6 +2884,7 @@
         const followerCount = u.followers ? u.followers.length : 0;
         const isMe = u.username === currentUser.username;
         const isFollowing = currentUser.following && currentUser.following.includes(u.username);
+        const groupEmoji = getGroupEmojiForUser(u.username);
         let rankBadge =
           `<span class="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center shrink-0">${index + 1}</span>`;
         if (index === 0) rankBadge =
@@ -2317,7 +2903,7 @@
               <div class="w-10 h-10 shrink-0 cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">${renderAvatarElement(u, "w-10 h-10 text-sm")}</div>
               <div class="overflow-hidden cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h4 class="font-bold text-sm text-white hover:text-cyan-400 transition truncate">${nameDisplay}</h4>
+                  <h4 class="font-bold text-sm text-white hover:text-cyan-400 transition truncate">${groupEmoji}${nameDisplay}</h4>
                   ${isMe ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold shrink-0">Sen</span>` : ''}
                   ${followerCount >= 10 && u.neonColor ? `<span class="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-semibold shrink-0">✨ Neon</span>` : ''}
                 </div>
@@ -2418,11 +3004,12 @@
         const isSelected = selectedDmUser === u.username;
         const nameDisplay = getUserDisplayName(u);
         const unreadCount = dmUnreadCounts[u.username] || 0;
+        const groupEmoji = getGroupEmojiForUser(u.username);
         
         return `<div onclick="selectChatUser('${u.username}')" class="dm-item p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition ${isSelected ? 'dm-item-selected' : 'hover:bg-slate-900'}">
           <div class="w-8 h-8 shrink-0">${renderAvatarElement(u, "w-8 h-8 text-xs")}</div>
           <div class="overflow-hidden min-w-0 flex-1">
-            <div class="font-bold text-xs text-white truncate">${nameDisplay}</div>
+            <div class="font-bold text-xs text-white truncate">${groupEmoji}${nameDisplay}</div>
             <div class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)}</div>
           </div>
           ${unreadCount > 0 ? `<span class="dm-unread-badge">${unreadCount}</span>` : ''}
@@ -2460,6 +3047,10 @@
       document.getElementById('dm-send-btn').disabled = false;
       renderDmUserList();
       renderChatMessages();
+    }
+
+    function openChatUserProfile() {
+      if (selectedDmUser) openPublicProfileModal(selectedDmUser);
     }
 
     function openSelectedUserProfile() { if (selectedDmUser) openPublicProfileModal(selectedDmUser); }
@@ -2628,7 +3219,7 @@
     }
 
     // ============================================================
-    // PUBLIC PROFILE
+    // PUBLIC PROFILE (BÜYÜK)
     // ============================================================
     function openPublicProfileModal(username) {
       if (username === currentUser.username) { switchTab('profile'); return; }
@@ -2645,9 +3236,11 @@
     function renderPublicProfileModal(username) {
       const u = usersDb[username];
       if (!u) return;
+      const groupEmoji = getGroupEmojiForUser(username);
+      
       document.getElementById('pub-profile-avatar').innerHTML = renderAvatarElement(u,
-        "w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl");
-      document.getElementById('pub-profile-fullname').innerHTML = getUserDisplayName(u);
+        "w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl");
+      document.getElementById('pub-profile-fullname').innerHTML = groupEmoji + getUserDisplayName(u);
       document.getElementById('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u);
       document.getElementById('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
       const followers = u.followers || [];
@@ -2752,6 +3345,77 @@
     }
 
     // ============================================================
+    // TİK ŞARTLARI
+    // ============================================================
+    function openTikModal() {
+      // Önce şartları göster
+      document.getElementById('tik-terms-modal').classList.remove('hidden');
+    }
+
+    function closeTikTermsModal() {
+      document.getElementById('tik-terms-modal').classList.add('hidden');
+    }
+
+    function closeTikTermsAndContinue() {
+      document.getElementById('tik-terms-modal').classList.add('hidden');
+      // Tik kod modalını aç
+      document.getElementById('tik-modal').classList.remove('hidden');
+      document.getElementById('tik-input').value = '';
+      document.getElementById('tik-sonuc').innerText = '';
+    }
+
+    function closeTikModal() {
+      document.getElementById('tik-modal').classList.add('hidden');
+    }
+
+    function tikKontrolEt() {
+      const girilenKod = document.getElementById('tik-input').value.trim();
+      const sonuc = document.getElementById('tik-sonuc');
+
+      if (girilenKod === gecerliKod) {
+        currentUser.hasTik = true;
+        currentUser.tikRengi = tikRengi;
+        usersDb[currentUser.username] = currentUser;
+        saveUsersToDB();
+        
+        postsDb.forEach(p => { 
+          if (p.author.username === currentUser.username) {
+            p.author.hasTik = true;
+            p.author.tikRengi = tikRengi;
+          }
+        });
+        savePostsToDB();
+        
+        commentsDb.forEach(c => { 
+          if (c.author.username === currentUser.username) {
+            c.author.hasTik = true;
+            c.author.tikRengi = tikRengi;
+          }
+        });
+        saveCommentsToDB();
+
+        document.getElementById('tik-modal').classList.add('hidden');
+        // Tik göster modalında doğru resmi göster
+        const tikImg = document.getElementById('tik-goster-img');
+        tikImg.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+        document.getElementById('tik-goster').classList.remove('hidden');
+        sonuc.style.color = "green";
+        sonuc.innerText = "Tik başarıyla alındı!";
+        
+        updateUserUI();
+        renderFeed();
+        renderUsersLeaderboard();
+        renderDmUserList();
+        renderProfileTab();
+        renderGroups();
+        updateGroupCreateButton();
+      } else {
+        sonuc.style.color = "red";
+        sonuc.innerText = "❌ Kod hatalı! Kod almak için @burak_msz instagram adresine DM at.";
+      }
+    }
+
+    // ============================================================
     // UI HELPERS
     // ============================================================
     function showToast(message, type = 'info') {
@@ -2791,49 +3455,6 @@
       if (!str) return '';
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g,
         "&#039;");
-    }
-
-    // ============================================================
-    // TİK SİSTEMİ
-    // ============================================================
-    function openTikModal() {
-      document.getElementById('tik-modal').classList.remove('hidden');
-      document.getElementById('tik-input').value = '';
-      document.getElementById('tik-sonuc').innerText = '';
-    }
-
-    function closeTikModal() {
-      document.getElementById('tik-modal').classList.add('hidden');
-    }
-
-    function tikKontrolEt() {
-      const girilenKod = document.getElementById('tik-input').value.trim();
-      const sonuc = document.getElementById('tik-sonuc');
-
-      if (girilenKod === gecerliKod) {
-        currentUser.hasTik = true;
-        usersDb[currentUser.username] = currentUser;
-        saveUsersToDB();
-        
-        postsDb.forEach(p => { if (p.author.username === currentUser.username) p.author.hasTik = true; });
-        savePostsToDB();
-        commentsDb.forEach(c => { if (c.author.username === currentUser.username) c.author.hasTik = true; });
-        saveCommentsToDB();
-
-        document.getElementById('tik-modal').classList.add('hidden');
-        document.getElementById('tik-goster').classList.remove('hidden');
-        sonuc.style.color = "green";
-        sonuc.innerText = "Tik başarıyla alındı!";
-        
-        updateUserUI();
-        renderFeed();
-        renderUsersLeaderboard();
-        renderDmUserList();
-        renderProfileTab();
-      } else {
-        sonuc.style.color = "red";
-        sonuc.innerText = "Kod hatalı! Kod almak için @burak_msz instagram adresine DM at.";
-      }
     }
 
     setLanguage('tr');
