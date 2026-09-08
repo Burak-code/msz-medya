@@ -228,7 +228,7 @@
     </div>
   </div>
 
-  <!-- ŞİFREMİ UNUTTUM MODALI (SADECE KENDİ HESABI İÇİN) -->
+  <!-- ŞİFREMİ UNUTTUM MODALI - SADECE KENDİ HESABI, KULLANICI ADI SABİT -->
   <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -241,16 +241,16 @@
       <p class="text-xs text-slate-400" id="forgot-pass-desc">Yeni şifreni belirle.</p>
       <form onsubmit="resetPassword(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-current-pass-label">Mevcut Şifre</label>
-          <input type="password" id="forgot-current-password" required placeholder="••••••••" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500">
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-username-label">Kullanıcı Adı</label>
+          <input type="text" id="forgot-username" disabled class="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-sm text-slate-400 cursor-not-allowed">
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-new-pass-label">Yeni Şifre</label>
-          <input type="password" id="forgot-new-password" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500">
+          <input type="password" id="forgot-new-password" required minlength="4" placeholder="Yeni şifreni gir..." class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-new-pass-confirm-label">Yeni Şifre (Tekrar)</label>
-          <input type="password" id="forgot-new-password-confirm" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500">
+          <input type="password" id="forgot-new-password-confirm" required minlength="4" placeholder="Yeni şifreni tekrar gir..." class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeForgotPasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target" id="forgot-cancel-btn">İptal</button>
@@ -738,13 +738,8 @@
         <h3 class="text-lg font-bold text-white" id="tik-modal-title">Tik Al</h3>
         <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
-      <strong> Şartlar nelerdir; </strong> <br>
-      <h2> *İnstagram adresini almam gerek, <br>
-      *Troll olup olmadığını öğrenmem gerek,
-      *Bana bağış yapmak istersen ücretli, bağış yapmak istemezsen doğrulama ile sana tik veririm.
-      </h2>
-      <p class="text-sm text-slate-300" id="tik-modal-desc">Tek seferlik kodunu aşağıda gir:</p>
-      <input type="text" id="tik-input" placeholder="only_codes" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+      <p class="text-sm text-slate-300" id="tik-modal-desc">Kodunu girmek için aşağıdaki alanı kullan:</p>
+      <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
       <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
       <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition" id="tik-confirm-btn">Onayla</button>
     </div>
@@ -847,7 +842,7 @@
         "confirm-delete-btn": "Hesabı Sil",
         "forgot-pass-title": "Şifremi Unuttum",
         "forgot-pass-desc": "Yeni şifreni belirle.",
-        "forgot-current-pass-label": "Mevcut Şifre",
+        "forgot-username-label": "Kullanıcı Adı",
         "forgot-new-pass-label": "Yeni Şifre",
         "forgot-new-pass-confirm-label": "Yeni Şifre (Tekrar)",
         "forgot-cancel-btn": "İptal",
@@ -932,7 +927,7 @@
         "confirm-delete-btn": "Delete Account",
         "forgot-pass-title": "Forgot Password",
         "forgot-pass-desc": "Set your new password.",
-        "forgot-current-pass-label": "Current Password",
+        "forgot-username-label": "Username",
         "forgot-new-pass-label": "New Password",
         "forgot-new-pass-confirm-label": "New Password (Again)",
         "forgot-cancel-btn": "Cancel",
@@ -1023,7 +1018,7 @@
       document.getElementById('settings-forgot-pass').innerText = data['settings-forgot-pass'] || 'Forgot Password';
       document.getElementById('forgot-pass-title').innerText = data['forgot-pass-title'] || 'Forgot Password';
       document.getElementById('forgot-pass-desc').innerText = data['forgot-pass-desc'] || 'Set your new password.';
-      document.getElementById('forgot-current-pass-label').innerText = data['forgot-current-pass-label'] || 'Current Password';
+      document.getElementById('forgot-username-label').innerText = data['forgot-username-label'] || 'Username';
       document.getElementById('forgot-new-pass-label').innerText = data['forgot-new-pass-label'] || 'New Password';
       document.getElementById('forgot-new-pass-confirm-label').innerText = data['forgot-new-pass-confirm-label'] || 'New Password (Again)';
       document.getElementById('forgot-cancel-btn').innerText = data['forgot-cancel-btn'] || 'Cancel';
@@ -1044,7 +1039,6 @@
     const TOPIC_DM = TOPIC_PREFIX + 'dm/';
     const TOPIC_COMMENTS = TOPIC_PREFIX + 'comments';
 
-    // DM okunmamış mesaj sayıları
     let dmUnreadCounts = {};
 
     // ============================================================
@@ -1059,17 +1053,12 @@
     let isMqttConnected = false;
     let isDBReady = false;
     let lastPostTime = 0;
-    const POST_COOLDOWN_MS = 3 * 60 * 1000; // 3 dakika
+    const POST_COOLDOWN_MS = 3 * 60 * 1000;
     const MAX_POSTS = 100;
 
-    // Bildirim sistemi
     let notifications = [];
     let notificationCount = 0;
-
-    // Tik sistemi
     const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
-
-    // DM mesajları için DM listesi sıralama
     let dmLastMessageTime = {};
 
     // ============================================================
@@ -1268,7 +1257,6 @@
         });
       }
 
-      // Yorum inputları için enter tuşu - dinamik olarak eklendiği için event delegation
       document.addEventListener('keydown', function(e) {
         if (e.target && e.target.id && e.target.id.startsWith('comment-input-')) {
           if (e.key === 'Enter' && !e.shiftKey) {
@@ -1410,11 +1398,17 @@
     }
 
     // ============================================================
-    // FORGOT PASSWORD - SADECE KENDİ HESABI İÇİN
+    // FORGOT PASSWORD - SADECE KENDİ HESABI, KULLANICI ADI SABİT
     // ============================================================
     function openForgotPasswordModal() {
+      if (!currentUser) {
+        showModal('Hata', 'Önce giriş yapmalısınız!', 'error');
+        return;
+      }
       document.getElementById('forgot-password-modal').classList.remove('hidden');
-      document.getElementById('forgot-current-password').value = '';
+      // Kullanıcı adını otomatik doldur ve disabled yap
+      document.getElementById('forgot-username').value = currentUser.username;
+      document.getElementById('forgot-username').disabled = true;
       document.getElementById('forgot-new-password').value = '';
       document.getElementById('forgot-new-password-confirm').value = '';
     }
@@ -1425,18 +1419,11 @@
 
     async function resetPassword(e) {
       e.preventDefault();
-      const currentPass = document.getElementById('forgot-current-password').value;
       const newPass = document.getElementById('forgot-new-password').value;
       const confirmPass = document.getElementById('forgot-new-password-confirm').value;
 
-      // Sadece giriş yapmış kullanıcının şifresini değiştirebilir
       if (!currentUser) {
         showModal('Hata', 'Oturum açmış bir kullanıcı bulunamadı!', 'error');
-        return;
-      }
-
-      if (currentUser.password !== currentPass) {
-        showModal('Hata', 'Mevcut şifreniz yanlış!', 'error');
         return;
       }
 
@@ -2017,7 +2004,7 @@
     }
 
     // ============================================================
-    // LINK DÖNÜŞTÜRÜCÜ (mavi, tıklanabilir, yeni sekmede aç)
+    // LINK DÖNÜŞTÜRÜCÜ
     // ============================================================
     function convertLinksToAnchors(text) {
       const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
@@ -2460,7 +2447,6 @@
 
     function selectChatUser(username) {
       selectedDmUser = username;
-      // Okunmamış sayacı sıfırla
       if (dmUnreadCounts[username]) {
         dmUnreadCounts[username] = 0;
         renderDmUserList();
@@ -2478,12 +2464,10 @@
 
     function openSelectedUserProfile() { if (selectedDmUser) openPublicProfileModal(selectedDmUser); }
 
-    // Dosya gönderme
     function sendFileAttachment(event) {
       const file = event.target.files[0];
       if (!file) return;
       
-      // Dosya boyutu kontrolü (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         showToast('Dosya boyutu 10MB\'dan büyük olamaz!', 'error');
         event.target.value = '';
@@ -2505,7 +2489,6 @@
           messageText = `📎 Dosya: ${fileName}`;
         }
         
-        // Mesajı gönder
         const message = {
           id: 'dm_' + Date.now(),
           sender: currentUser.username,
@@ -2576,7 +2559,6 @@
         const time = formatTimeAgo(m.timestamp);
         let content = renderTextWithLinks(m.text);
         
-        // Ek dosya varsa göster
         if (m.attachment) {
           if (m.attachment.type && m.attachment.type.startsWith('image/')) {
             content += `<div class="mt-2 max-w-[200px] rounded-lg overflow-hidden border border-slate-700">
@@ -2854,7 +2836,6 @@
       }
     }
 
-    // Başlangıçta dil Türkçe
     setLanguage('tr');
   </script>
 </body>
