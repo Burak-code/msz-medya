@@ -83,6 +83,7 @@
       vertical-align: middle;
       object-fit: contain;
     }
+    /* chat messages scroll fix */
     #chat-messages-box {
       display: flex;
       flex-direction: column;
@@ -100,83 +101,6 @@
       border-radius: 2px;
       display: inline-block;
       cursor: pointer;
-    }
-    .post-image-thumb {
-      max-width: 100%;
-      max-height: 200px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.2s;
-      border: 1px solid #1e293b;
-    }
-    .post-image-thumb:hover {
-      opacity: 0.9;
-    }
-    .image-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .image-modal img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-      object-fit: contain;
-      border: 1px solid #334155;
-    }
-    .image-modal.show {
-      display: flex;
-    }
-    .game-btn {
-      background: #1e293b;
-      padding: 6px 12px;
-      border-radius: 10px;
-      font-size: 11px;
-      color: #94a3b8;
-      transition: 0.2s;
-      border: 1px solid #334155;
-    }
-    .game-btn:hover {
-      background: #2d3a4f;
-      color: white;
-    }
-    .game-score {
-      font-size: 11px;
-      color: #fbbf24;
-      font-weight: bold;
-    }
-    /* oyunlar için ek */
-    .game-container-inner {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    .chess-board .cell {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: 0.15s;
-    }
-    .chess-board .cell:hover {
-      filter: brightness(1.2);
-    }
-    @media (max-width: 480px) {
-      .chess-board .cell {
-        width: 32px;
-        height: 32px;
-        font-size: 22px;
-      }
     }
   </style>
 </head>
@@ -363,10 +287,6 @@
             <i class="fa-solid fa-trophy text-amber-400 text-sm sm:text-base"></i>
             <span class="hidden sm:inline" id="nav-users-label">Topluluk</span>
           </button>
-          <button onclick="switchTab('games')" id="nav-games" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
-            <i class="fa-solid fa-gamepad text-emerald-400 text-sm sm:text-base"></i>
-            <span class="hidden sm:inline" id="nav-games-label">Oyunlar</span>
-          </button>
           <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
             <i class="fa-solid fa-user text-sm sm:text-base"></i>
             <span class="hidden sm:inline" id="nav-profile-label">Profilim</span>
@@ -431,12 +351,6 @@
               <div class="text-[10px] text-slate-500" id="sidebar-user-label">Üye</div>
             </div>
           </div>
-          <div class="pt-2 border-t border-slate-800">
-            <div class="text-[10px] text-slate-500 flex items-center justify-between">
-              <span><i class="fa-solid fa-star text-amber-400 mr-1"></i> Oyun Skoru</span>
-              <span id="sidebar-game-score" class="text-amber-400 font-bold">0</span>
-            </div>
-          </div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
           <div class="text-xs font-semibold text-slate-400 mb-1" id="sidebar-social-title">Sosyal Bağlantılar</div>
@@ -461,7 +375,6 @@
       </aside>
 
       <section class="lg:col-span-9 space-y-4 sm:space-y-6">
-        <!-- FEED -->
         <div id="tab-content-feed" class="space-y-4 sm:space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
             <div class="flex gap-3">
@@ -498,7 +411,6 @@
           </div>
         </div>
 
-        <!-- MESSAGES -->
         <div id="tab-content-messages" class="hidden space-y-4">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl min-h-[500px] flex flex-col md:flex-row">
             <div class="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 flex flex-col">
@@ -539,7 +451,6 @@
           </div>
         </div>
 
-        <!-- USERS -->
         <div id="tab-content-users" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -577,41 +488,6 @@
           </div>
         </div>
 
-        <!-- GAMES -->
-        <div id="tab-content-games" class="hidden space-y-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
-            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 mb-4">
-              <i class="fa-solid fa-gamepad text-emerald-400"></i>
-              <span id="games-title">Oyunlar</span>
-              <span class="text-xs text-slate-400 ml-2">Skorun: <span id="game-score-display" class="text-amber-400 font-bold">0</span></span>
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-              <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800 text-center">
-                <h3 class="font-bold text-sm text-white">💣 Mayın Tarlası</h3>
-                <p class="text-xs text-slate-400 mt-1">9x9, 10 mayın</p>
-                <button onclick="startMinesweeper()" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">Oyna</button>
-                <div id="minesweeper-score" class="text-xs text-amber-400 mt-2">Skor: 0</div>
-              </div>
-              <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800 text-center">
-                <h3 class="font-bold text-sm text-white">🧩 Sudoku</h3>
-                <p class="text-xs text-slate-400 mt-1">4x4 kolay</p>
-                <button onclick="startSudoku()" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">Oyna</button>
-                <div id="sudoku-score" class="text-xs text-amber-400 mt-2">Skor: 0</div>
-              </div>
-              <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800 text-center">
-                <h3 class="font-bold text-sm text-white">♟️ Satranç</h3>
-                <p class="text-xs text-slate-400 mt-1">Bot ile oyna</p>
-                <button onclick="startChess()" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">Oyna</button>
-                <div id="chess-score" class="text-xs text-amber-400 mt-2">Skor: 0</div>
-              </div>
-            </div>
-            <div id="game-container" class="bg-slate-950 rounded-2xl p-4 border border-slate-800 min-h-[200px] flex items-center justify-center text-slate-500 text-sm">
-              Bir oyun seçin.
-            </div>
-          </div>
-        </div>
-
-        <!-- PROFILE -->
         <div id="tab-content-profile" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="h-24 sm:h-32 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative"></div>
@@ -633,9 +509,6 @@
                 <div><strong id="profile-stat-followers" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-followers-label">Takipçi</span></div>
                 <div><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-following-label">Takip</span></div>
                 <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span id="profile-active-label">Aktif</span></div>
-              </div>
-              <div class="flex items-center gap-4 text-xs text-slate-400 border-t border-slate-800 pt-3">
-                <span><i class="fa-solid fa-star text-amber-400 mr-1"></i> Oyun Skoru: <strong id="profile-game-score" class="text-amber-400">0</strong></span>
               </div>
             </div>
           </div>
@@ -721,11 +594,6 @@
     </div>
   </div>
 
-  <!-- GÖRSEL BÜYÜTME MODALI -->
-  <div id="image-modal" class="image-modal" onclick="closeImageModal()">
-    <img id="image-modal-img" src="" alt="Büyütülmüş görsel">
-  </div>
-
   <!-- TİK MODAL -->
   <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
@@ -774,7 +642,6 @@
         "nav-feed-label": "Akış",
         "nav-messages-label": "Mesajlar",
         "nav-users-label": "Topluluk",
-        "nav-games-label": "Oyunlar",
         "nav-profile-label": "Profilim",
         "settings-change-pass": "Şifre Değiştir",
         "settings-delete-account": "Hesabı Sil",
@@ -834,8 +701,7 @@
         "delete-pass-label": "Şifreniz",
         "delete-confirm-label": "Onaylamak için yazın: ",
         "cancel-delete-btn": "İptal",
-        "confirm-delete-btn": "Hesabı Sil",
-        "games-title": "Oyunlar"
+        "confirm-delete-btn": "Hesabı Sil"
       },
       en: {
         "auth-subtitle": "Real-Time Social Network",
@@ -851,7 +717,6 @@
         "nav-feed-label": "Feed",
         "nav-messages-label": "Messages",
         "nav-users-label": "Community",
-        "nav-games-label": "Games",
         "nav-profile-label": "Profile",
         "settings-change-pass": "Change Password",
         "settings-delete-account": "Delete Account",
@@ -911,8 +776,7 @@
         "delete-pass-label": "Your Password",
         "delete-confirm-label": "Type to confirm: ",
         "cancel-delete-btn": "Cancel",
-        "confirm-delete-btn": "Delete Account",
-        "games-title": "Games"
+        "confirm-delete-btn": "Delete Account"
       }
     };
     let currentLang = 'tr';
@@ -921,14 +785,41 @@
       if (!langData[lang]) return;
       currentLang = lang;
       const data = langData[lang];
-      document.getElementById('nav-games-label').innerText = data['nav-games-label'] || 'Games';
-      document.getElementById('games-title').innerText = data['games-title'] || 'Games';
+      document.querySelectorAll('[id]').forEach(el => {
+        const key = el.id;
+        if (data[key] !== undefined && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'SELECT') {
+          if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.tagName === 'DIV' || el.tagName === 'SPAN' || el
+            .tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName ===
+            'H4' || el.tagName === 'LABEL)') {
+            // handle innerText for specific elements
+          }
+          // special cases for placeholders or values
+        }
+      });
+      // manual updates for labels and buttons
+      document.querySelectorAll('[id]').forEach(el => {
+        const key = el.id;
+        if (data[key] !== undefined) {
+          if (el.tagName === 'INPUT' && el.type !== 'text' && el.type !== 'password' && el.type !== 'url') {
+            // skip
+          } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            if (el.placeholder && data[key]) el.placeholder = data[key];
+          } else if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.tagName === 'DIV' || el.tagName === 'SPAN' ||
+            el.tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName ===
+            'H4' || el.tagName === 'LABEL') {
+            el.innerText = data[key];
+          }
+        }
+      });
+      // extra manual
       document.getElementById('auth-subtitle').innerText = data['auth-subtitle'] || 'Real-Time Social Network';
       document.getElementById('nav-feed-label').innerText = data['nav-feed-label'] || 'Feed';
       document.getElementById('nav-messages-label').innerText = data['nav-messages-label'] || 'Messages';
       document.getElementById('nav-users-label').innerText = data['nav-users-label'] || 'Community';
       document.getElementById('nav-profile-label').innerText = data['nav-profile-label'] || 'Profile';
+      // update post button
       document.getElementById('submit-post-text').innerText = data['submit-post-text'] || 'Share';
+      // update sidebar
       document.getElementById('sidebar-post-label').innerText = data['sidebar-post-label'] || 'Posts';
       document.getElementById('sidebar-followers-label').innerText = data['sidebar-followers-label'] || 'Followers';
       document.getElementById('sidebar-user-label').innerText = data['sidebar-user-label'] || 'Members';
@@ -987,6 +878,7 @@
       document.getElementById('cancel-delete-btn').innerText = data['cancel-delete-btn'] || 'Cancel';
       document.getElementById('confirm-delete-btn').innerHTML =
         `<i class="fa-solid fa-trash-can mr-1"></i> ${data['confirm-delete-btn'] || 'Delete Account'}`;
+      // update login/register tabs
       document.getElementById('auth-login-tab').innerText = data['auth-login-tab'] || 'Login';
       document.getElementById('auth-register-tab').innerText = data['auth-register-tab'] || 'Register';
       document.getElementById('login-username-label').innerText = data['login-username-label'] || 'Username';
@@ -1022,12 +914,14 @@
     let isMqttConnected = false;
     let isDBReady = false;
     let lastPostTime = 0;
-    const POST_COOLDOWN_MS = 5 * 60 * 1000;
+    const POST_COOLDOWN_MS = 5 * 60 * 1000; // 5 dakika
     const MAX_POSTS = 100;
-    let gameScores = {};
 
+    // Bildirim sistemi
     let notifications = [];
     let notificationCount = 0;
+
+    // Tik sistemi
     const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
 
     // ============================================================
@@ -1065,9 +959,6 @@
             msgStore.createIndex('recipient', 'recipient', { unique: false });
             msgStore.createIndex('timestamp', 'timestamp', { unique: false });
           }
-          if (!db.objectStoreNames.contains('gamescores')) {
-            db.createObjectStore('gamescores', { keyPath: 'username' });
-          }
         };
       });
     }
@@ -1098,6 +989,19 @@
       });
     }
 
+    function deleteFromDB(storeName, key) {
+      return new Promise((resolve, reject) => {
+        if (!db) { reject(new Error('Veritabanı açık değil')); return; }
+        try {
+          const transaction = db.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+          const request = store.delete(key);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        } catch (err) { reject(err); }
+      });
+    }
+
     function clearDB(storeName) {
       return new Promise((resolve, reject) => {
         if (!db) { reject(new Error('Veritabanı açık değil')); return; }
@@ -1111,6 +1015,9 @@
       });
     }
 
+    // ============================================================
+    // VERİ TAŞIMA
+    // ============================================================
     async function migrateFromLocalStorage() {
       try {
         const users = JSON.parse(localStorage.getItem('sp_social_users') || '{}');
@@ -1121,8 +1028,6 @@
         for (const comment of comments) await saveToDB('comments', comment);
         const messages = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
         for (const msg of messages) await saveToDB('messages', msg);
-        const scores = JSON.parse(localStorage.getItem('sp_social_gamescores') || '{}');
-        for (const [key, value] of Object.entries(scores)) await saveToDB('gamescores', { username: key, ...value });
         return true;
       } catch (err) { console.error('❌ Veri taşıma hatası:', err); return false; }
     }
@@ -1133,15 +1038,15 @@
         const posts = await getAllFromDB('posts');
         const comments = await getAllFromDB('comments');
         const messages = await getAllFromDB('messages');
-        const scores = await getAllFromDB('gamescores');
         const usersObj = {};
         users.forEach(u => { usersObj[u.username] = u; });
-        const scoresObj = {};
-        scores.forEach(s => { scoresObj[s.username] = s; });
-        return { users: usersObj, posts, comments, messages, scores: scoresObj };
+        return { users: usersObj, posts, comments, messages };
       } catch (err) { console.error('❌ Veri yükleme hatası:', err); return null; }
     }
 
+    // ============================================================
+    // YENİ SAVE FONKSİYONLARI
+    // ============================================================
     async function savePostsToDB() {
       try { await clearDB('posts'); for (const post of postsDb) await saveToDB('posts', post); } catch (err) { console.error(
           'Gönderi kaydetme hatası:', err); }
@@ -1158,11 +1063,10 @@
       try { await clearDB('users'); for (const [key, value] of Object.entries(usersDb)) await saveToDB('users', value); } catch (
       err) { console.error('Kullanıcı kaydetme hatası:', err); }
     }
-    async function saveGameScoresToDB() {
-      try { await clearDB('gamescores'); for (const [key, value] of Object.entries(gameScores)) await saveToDB('gamescores', {
-          username: key, ...value }); } catch (err) { console.error('Skor kaydetme hatası:', err); }
-    }
 
+    // ============================================================
+    // LOCAL DATABASE
+    // ============================================================
     let usersDb = {};
     let postsDb = [];
     let dmsDb = [];
@@ -1185,8 +1089,7 @@
           postsDb = data.posts || [];
           commentsDb = data.comments || [];
           dmsDb = data.messages || [];
-          gameScores = data.scores || {};
-          console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj, ${Object.keys(gameScores).length} skor yüklendi`);
+          console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj yüklendi`);
         }
       } catch (err) {
         console.error('❌ IndexedDB hatası:', err);
@@ -1194,7 +1097,6 @@
         postsDb = JSON.parse(localStorage.getItem('sp_social_posts') || '[]');
         dmsDb = JSON.parse(localStorage.getItem('sp_social_dms') || '[]');
         commentsDb = JSON.parse(localStorage.getItem('sp_social_comments') || '[]');
-        gameScores = JSON.parse(localStorage.getItem('sp_social_gamescores') || '{}');
         showToast('⚠️ IndexedDB kullanılamıyor, localStorage kullanılıyor.', 'warning');
       }
 
@@ -1329,14 +1231,12 @@
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('main-app').classList.remove('hidden');
       console.log('🚀 MSZ MEDYA başlatıldı! Kullanıcı:', currentUser.username);
-      if (!gameScores[currentUser.username]) gameScores[currentUser.username] = { minesweeper: 0, sudoku: 0, chess: 0 };
       updateUserUI();
       initNetworkConnection();
       renderFeed();
       renderDmUserList();
       renderUsersLeaderboard();
       updateNotificationBadge();
-      updateGameScoresUI();
     }
 
     // ============================================================
@@ -1381,8 +1281,6 @@
 
       delete usersDb[currentUser.username];
       await saveUsersToDB();
-      delete gameScores[currentUser.username];
-      await saveGameScoresToDB();
 
       for (const [username, user] of Object.entries(usersDb)) {
         let changed = false;
@@ -1542,6 +1440,7 @@
       if (topic === TOPIC_POSTS && data.type === 'NEW_POST') {
         if (!postsDb.some(p => p.id === data.post.id)) {
           postsDb.unshift(data.post);
+          // Maksimum gönderi kontrolü (100)
           if (postsDb.length > MAX_POSTS) {
             postsDb = postsDb.slice(0, MAX_POSTS);
           }
@@ -1592,12 +1491,8 @@
         dmsDb.push(data.message);
         await saveMessagesToDB();
         addNotification(`@${data.message.sender} kullanıcısından yeni mesajınız var! 💬`);
-        if (activeTab === 'messages') {
-          renderDmUserList();
-          if (selectedDmUser === data.message.sender) renderChatMessages();
-        } else {
-          updateUnreadBadge();
-        }
+        if (activeTab === 'messages' && selectedDmUser === data.message.sender) renderChatMessages();
+        else { updateUnreadBadge(); }
         return;
       }
       if (topic === TOPIC_COMMENTS && data.type === 'NEW_COMMENT') {
@@ -1703,17 +1598,15 @@
       const feedTab = document.getElementById('tab-content-feed');
       const msgTab = document.getElementById('tab-content-messages');
       const usersTab = document.getElementById('tab-content-users');
-      const gamesTab = document.getElementById('tab-content-games');
       const profileTab = document.getElementById('tab-content-profile');
 
       const navFeed = document.getElementById('nav-feed');
       const navMsg = document.getElementById('nav-messages');
       const navUsers = document.getElementById('nav-users');
-      const navGames = document.getElementById('nav-games');
       const navProf = document.getElementById('nav-profile');
 
-      [feedTab, msgTab, usersTab, gamesTab, profileTab].forEach(el => el.classList.add('hidden'));
-      [navFeed, navMsg, navUsers, navGames, navProf].forEach(el => {
+      [feedTab, msgTab, usersTab, profileTab].forEach(el => el.classList.add('hidden'));
+      [navFeed, navMsg, navUsers, navProf].forEach(el => {
         el.className =
           'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
       });
@@ -1734,10 +1627,6 @@
         navUsers.className =
           'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
         renderUsersLeaderboard();
-      } else if (tab === 'games') {
-        gamesTab.classList.remove('hidden');
-        navGames.className =
-          'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-emerald-400 border border-slate-700/50';
       } else if (tab === 'profile') {
         profileTab.classList.remove('hidden');
         navProf.className =
@@ -1791,23 +1680,6 @@
       document.getElementById('sidebar-post-count').innerText = myPosts.length;
       document.getElementById('sidebar-followers-count').innerText = (currentUser.followers || []).length;
       document.getElementById('sidebar-user-count').innerText = Object.keys(usersDb).length;
-      const score = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-      const total = score.minesweeper + score.sudoku + score.chess;
-      document.getElementById('sidebar-game-score').innerText = total;
-      document.getElementById('game-score-display').innerText = total;
-      document.getElementById('profile-game-score').innerText = total;
-    }
-
-    function updateGameScoresUI() {
-      if (!currentUser) return;
-      const score = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-      document.getElementById('minesweeper-score').innerText = `Skor: ${score.minesweeper || 0}`;
-      document.getElementById('sudoku-score').innerText = `Skor: ${score.sudoku || 0}`;
-      document.getElementById('chess-score').innerText = `Skor: ${score.chess || 0}`;
-      const total = (score.minesweeper || 0) + (score.sudoku || 0) + (score.chess || 0);
-      document.getElementById('sidebar-game-score').innerText = total;
-      document.getElementById('game-score-display').innerText = total;
-      document.getElementById('profile-game-score').innerText = total;
     }
 
     function toggleImageInput() {
@@ -1815,21 +1687,7 @@
     }
 
     // ============================================================
-    // GÖRSEL BÜYÜTME
-    // ============================================================
-    function openImageModal(src) {
-      const modal = document.getElementById('image-modal');
-      const img = document.getElementById('image-modal-img');
-      img.src = src;
-      modal.classList.add('show');
-    }
-
-    function closeImageModal() {
-      document.getElementById('image-modal').classList.remove('show');
-    }
-
-    // ============================================================
-    // POSTS
+    // POSTS - Otomatik sansür ve 5 dakika bekleme
     // ============================================================
     function containsForbidden(text) {
       const forbidden = /\b(https?:\/\/|www\.|\.com|\.net|\.org|\.tr|fuck|siktir|amk|orospu|piç|göt|yarrak|amcık|sik|kahpe|kaltak|şerefsiz|hain|döl|sperm|çük|yavşak|ibne|puşt|gavat|pezevenk|şişko|çomar|mal|embesil|gerizekalı|salak|aptal|dangalak|mankafa)\b/i;
@@ -1849,6 +1707,7 @@
       if (!input) return;
       let text = input.value.trim();
       
+      // Sansür kontrolü
       if (containsForbidden(text)) {
         showToast('Bu gönderi yasaklı kelimeler içeriyor!', 'error');
         return;
@@ -1858,6 +1717,7 @@
       const imageUrl = imgUrlInput ? imgUrlInput.value.trim() : '';
       if (!text) { showToast('Lütfen yayınlamak için bir şeyler yazın.', 'warning'); return; }
 
+      // 5 dakika bekleme
       const now = Date.now();
       if (now - lastPostTime < POST_COOLDOWN_MS) {
         const remaining = Math.ceil((POST_COOLDOWN_MS - (now - lastPostTime)) / 1000);
@@ -1877,8 +1737,10 @@
       };
 
       postsDb.unshift(newPost);
+      // Maksimum gönderi sayısı kontrolü
       if (postsDb.length > MAX_POSTS) {
         postsDb = postsDb.slice(0, MAX_POSTS);
+        // Otomatik silme mesajı
         showToast('⚠️ Maksimum 100 gönderiye ulaşıldı, en eski gönderiler silindi.', 'warning');
       }
       await savePostsToDB();
@@ -1909,6 +1771,7 @@
       if (!input) return;
       let text = input.value.trim();
       if (!text) return;
+      // Sansür
       if (containsForbidden(text)) {
         showToast('Yorum yasaklı kelimeler içeriyor!', 'error');
         return;
@@ -2042,7 +1905,7 @@
             </div>
           </div>
           <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line break-words">${escapeHtml(post.text)}</p>
-          ${post.imageUrl ? `<div class="rounded-xl overflow-hidden border border-slate-800 max-h-80 bg-slate-950"><img src="${escapeHtml(post.imageUrl)}" onerror="this.style.display='none'" alt="Gönderi Görseli" class="post-image-thumb w-full object-cover max-h-[200px]" onclick="openImageModal('${escapeHtml(post.imageUrl)}')" loading="lazy"></div>` : ''}
+          ${post.imageUrl ? `<div class="rounded-xl overflow-hidden border border-slate-800 max-h-80 bg-slate-950"><img src="${escapeHtml(post.imageUrl)}" onerror="this.style.display='none'" alt="Gönderi Görseli" class="w-full h-full object-cover" loading="lazy"></div>` : ''}
           <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800/60 text-xs text-slate-400 flex-wrap">
             <button onclick="toggleLike('${post.id}')" class="flex items-center gap-1.5 hover:text-rose-400 transition touch-target ${isLiked ? 'text-rose-500 font-bold' : ''}">
               <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
@@ -2085,8 +1948,6 @@
         const followerCount = u.followers ? u.followers.length : 0;
         const isMe = u.username === currentUser.username;
         const isFollowing = currentUser.following && currentUser.following.includes(u.username);
-        const score = gameScores[u.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-        const totalScore = score.minesweeper + score.sudoku + score.chess;
         let rankBadge =
           `<span class="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center shrink-0">${index + 1}</span>`;
         if (index === 0) rankBadge =
@@ -2109,7 +1970,7 @@
                   ${isMe ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold shrink-0">Sen</span>` : ''}
                   ${followerCount >= 10 && u.neonColor ? `<span class="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-semibold shrink-0">✨ Neon</span>` : ''}
                 </div>
-                <p class="text-xs text-slate-500 truncate">@${escapeHtml(u.username)} • <span class="text-indigo-400 font-semibold">${followerCount} Takipçi</span> • <span class="text-amber-400 font-semibold">🎮 ${totalScore}</span></p>
+                <p class="text-xs text-slate-500 truncate">@${escapeHtml(u.username)} • <span class="text-indigo-400 font-semibold">${followerCount} Takipçi</span></p>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -2168,7 +2029,7 @@
     }
 
     // ============================================================
-    // DIRECT MESSAGES
+    // DIRECT MESSAGES - Otomatik sansür
     // ============================================================
     function renderDmUserList() {
       const container = document.getElementById('dm-users-list');
@@ -2179,14 +2040,12 @@
       container.innerHTML = otherUsers.map(u => {
         const isSelected = selectedDmUser === u.username;
         const nameDisplay = getUserDisplayName(u);
-        const unread = dmsDb.filter(m => m.sender === u.username && m.recipient === currentUser.username && !m.read).length;
         return `<div onclick="selectChatUser('${u.username}')" class="p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition touch-target ${isSelected ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-slate-900'}">
           <div class="w-8 h-8 shrink-0">${renderAvatarElement(u, "w-8 h-8 text-xs")}</div>
-          <div class="overflow-hidden min-w-0 flex-1">
+          <div class="overflow-hidden min-w-0">
             <div class="font-bold text-xs text-white truncate">${nameDisplay}</div>
             <div class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)}</div>
           </div>
-          ${unread > 0 ? `<span class="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">${unread}</span>` : ''}
         </div>`;
       }).join('');
     }
@@ -2208,8 +2067,6 @@
 
     function selectChatUser(username) {
       selectedDmUser = username;
-      dmsDb.forEach(m => { if (m.sender === username && m.recipient === currentUser.username) m.read = true; });
-      saveMessagesToDB();
       const targetUser = usersDb[username] || { fullname: username, username };
       document.getElementById('chat-target-avatar').innerHTML = renderAvatarElement(targetUser, "w-10 h-10 text-base");
       document.getElementById('chat-target-name').innerHTML = getUserDisplayName(targetUser);
@@ -2219,6 +2076,7 @@
       document.getElementById('dm-send-btn').disabled = false;
       renderDmUserList();
       renderChatMessages();
+      // chat mesaj kutusu scroll fix
       const box = document.getElementById('chat-messages-box');
       if (box) {
         box.style.display = 'flex';
@@ -2237,6 +2095,7 @@
       let text = input.value.trim();
       if (!text || !selectedDmUser) return;
       
+      // Sansür
       if (containsForbidden(text)) {
         showToast('Mesaj yasaklı kelimeler içeriyor!', 'error');
         return;
@@ -2244,14 +2103,13 @@
       text = censorText(text);
       
       const message = { id: 'dm_' + Date.now(), sender: currentUser.username, recipient: selectedDmUser, text,
-        timestamp: new Date().toISOString(), read: false };
+        timestamp: new Date().toISOString() };
       dmsDb.push(message);
       await saveMessagesToDB();
       if (mqttClient && mqttClient.connected) mqttClient.publish(TOPIC_DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE',
           message }));
       input.value = '';
       renderChatMessages();
-      renderDmUserList();
     }
 
     function renderChatMessages() {
@@ -2275,13 +2133,9 @@
 
     function updateUnreadBadge() {
       const badge = document.getElementById('unread-dm-badge');
-      const count = dmsDb.filter(m => m.recipient === currentUser.username && !m.read).length;
-      if (count > 0) {
-        badge.innerText = count > 99 ? '99+' : count;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
+      if (badge) { let current = parseInt(badge.innerText) || 0; 
+        badge.innerText = current + 1;
+        badge.classList.remove('hidden'); }
     }
 
     // ============================================================
@@ -2302,9 +2156,6 @@
       document.getElementById('profile-stat-posts').innerText = myPosts.length;
       document.getElementById('profile-stat-followers').innerText = (currentUser.followers || []).length;
       document.getElementById('profile-stat-following').innerText = (currentUser.following || []).length;
-      
-      const score = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-      document.getElementById('profile-game-score').innerText = score.minesweeper + score.sudoku + score.chess;
       
       const container = document.getElementById('profile-posts-container');
       if (myPosts.length === 0) {
@@ -2440,542 +2291,6 @@
     }
 
     // ============================================================
-    // OYUNLAR - DÜZELTİLMİŞ
-    // ============================================================
-    function startMinesweeper() {
-      const container = document.getElementById('game-container');
-      const size = 9;
-      const mines = 10;
-      let board = [];
-      let revealed = [];
-      let flagged = [];
-      let gameOver = false;
-      let firstClick = true;
-      let score = 0;
-      let gameActive = true;
-
-      function initBoard() {
-        board = Array(size).fill().map(() => Array(size).fill(0));
-        revealed = Array(size).fill().map(() => Array(size).fill(false));
-        flagged = Array(size).fill().map(() => Array(size).fill(false));
-        gameOver = false;
-        firstClick = true;
-        gameActive = true;
-        score = 0;
-        renderBoard();
-      }
-
-      function placeMines(excludeRow, excludeCol) {
-        let placed = 0;
-        while (placed < mines) {
-          const r = Math.floor(Math.random() * size);
-          const c = Math.floor(Math.random() * size);
-          if (board[r][c] === -1 || (r === excludeRow && c === excludeCol)) continue;
-          board[r][c] = -1;
-          placed++;
-        }
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            if (board[r][c] === -1) continue;
-            let count = 0;
-            for (let dr = -1; dr <= 1; dr++) {
-              for (let dc = -1; dc <= 1; dc++) {
-                const nr = r + dr,
-                  nc = c + dc;
-                if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === -1) count++;
-              }
-            }
-            board[r][c] = count;
-          }
-        }
-      }
-
-      function revealCell(r, c) {
-        if (!gameActive || gameOver || revealed[r][c] || flagged[r][c]) return;
-        if (firstClick) {
-          placeMines(r, c);
-          firstClick = false;
-        }
-        if (board[r][c] === -1) {
-          gameOver = true;
-          gameActive = false;
-          renderBoard();
-          showToast('💥 Mayına bastın!', 'error');
-          return;
-        }
-        revealed[r][c] = true;
-        score++;
-        if (board[r][c] === 0) {
-          for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-              const nr = r + dr,
-                nc = c + dc;
-              if (nr >= 0 && nr < size && nc >= 0 && nc < size && !revealed[nr][nc] && !flagged[nr][nc]) {
-                revealCell(nr, nc);
-              }
-            }
-          }
-        }
-        renderBoard();
-        checkWin();
-      }
-
-      function toggleFlag(r, c) {
-        if (!gameActive || gameOver || revealed[r][c]) return;
-        flagged[r][c] = !flagged[r][c];
-        renderBoard();
-      }
-
-      function checkWin() {
-        let totalSafe = size * size - mines;
-        let revealedCount = 0;
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            if (revealed[r][c]) revealedCount++;
-          }
-        }
-        if (revealedCount === totalSafe) {
-          gameOver = true;
-          gameActive = false;
-          const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-          s.minesweeper = (s.minesweeper || 0) + 10;
-          gameScores[currentUser.username] = s;
-          saveGameScoresToDB();
-          updateGameScoresUI();
-          updateUserUI();
-          renderBoard();
-          showToast('🎉 Mayın Tarlasını kazandın! +10 skor!', 'success');
-        }
-      }
-
-      function renderBoard() {
-        let html = `<div class="grid gap-1" style="grid-template-columns: repeat(${size}, 1fr); max-width: 360px; margin: 0 auto;">`;
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            let content = '';
-            let bg = 'bg-slate-800';
-            let extra = '';
-            if (gameOver && board[r][c] === -1) {
-              content = '💣';
-              bg = 'bg-rose-800';
-            } else if (revealed[r][c]) {
-              bg = 'bg-slate-700';
-              if (board[r][c] === 0) content = '';
-              else content = board[r][c];
-              if (board[r][c] === -1) content = '💣';
-            } else if (flagged[r][c]) {
-              content = '🚩';
-              bg = 'bg-amber-800/50';
-            }
-            const click = gameActive && !gameOver ? `onclick="window.revealCell(${r},${c})"` : '';
-            const rightClick = gameActive && !gameOver ? `oncontextmenu="event.preventDefault();window.toggleFlag(${r},${c})"` : '';
-            html += `<div class="aspect-square rounded flex items-center justify-center text-sm font-bold cursor-pointer ${bg} hover:bg-slate-600 transition" ${click} ${rightClick} style="min-width:30px;">${content}</div>`;
-          }
-        }
-        html += `</div>`;
-        html += `<div class="text-xs text-center text-slate-400 mt-2">Sol tık aç, sağ tık bayrak. Skor: ${score}</div>`;
-        container.innerHTML = html;
-        // attach functions to window so onclick works
-        window.revealCell = revealCell;
-        window.toggleFlag = toggleFlag;
-      }
-
-      initBoard();
-    }
-
-    function startSudoku() {
-      const container = document.getElementById('game-container');
-      const size = 4;
-      let board = [];
-      let original = [];
-      let score = 0;
-      let gameActive = true;
-
-      function generateSudoku() {
-        board = Array(size).fill().map(() => Array(size).fill(0));
-        // doldur
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            let nums = [1, 2, 3, 4];
-            for (let n of nums) {
-              if (isValid(r, c, n)) {
-                board[r][c] = n;
-                break;
-              }
-            }
-            if (board[r][c] === 0) {
-              // geri dön
-              let found = false;
-              for (let n of [1, 2, 3, 4]) {
-                if (isValid(r, c, n)) {
-                  board[r][c] = n;
-                  found = true;
-                  break;
-                }
-              }
-              if (!found) board[r][c] = 1;
-            }
-          }
-        }
-        // bazılarını sil
-        let remove = 6;
-        while (remove > 0) {
-          let r = Math.floor(Math.random() * size);
-          let c = Math.floor(Math.random() * size);
-          if (board[r][c] !== 0) {
-            board[r][c] = 0;
-            remove--;
-          }
-        }
-        original = board.map(row => [...row]);
-        renderSudoku();
-      }
-
-      function isValid(row, col, num) {
-        for (let i = 0; i < size; i++) {
-          if (board[row][i] === num || board[i][col] === num) return false;
-        }
-        const boxRow = Math.floor(row / 2) * 2;
-        const boxCol = Math.floor(col / 2) * 2;
-        for (let r = boxRow; r < boxRow + 2; r++) {
-          for (let c = boxCol; c < boxCol + 2; c++) {
-            if (board[r][c] === num) return false;
-          }
-        }
-        return true;
-      }
-
-      function setCell(row, col, value) {
-        if (!gameActive) return;
-        if (original[row][col] !== 0) return;
-        const num = parseInt(value);
-        if (isNaN(num) || num < 1 || num > 4) return;
-        if (isValid(row, col, num)) {
-          board[row][col] = num;
-          score++;
-          renderSudoku();
-          checkWin();
-        } else {
-          showToast('Geçersiz hamle!', 'error');
-        }
-      }
-
-      function checkWin() {
-        let complete = true;
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            if (board[r][c] === 0) complete = false;
-          }
-        }
-        if (complete) {
-          gameActive = false;
-          const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-          s.sudoku = (s.sudoku || 0) + 15;
-          gameScores[currentUser.username] = s;
-          saveGameScoresToDB();
-          updateGameScoresUI();
-          updateUserUI();
-          showToast('🎉 Sudoku tamamlandı! +15 skor!', 'success');
-          renderSudoku();
-        }
-      }
-
-      function renderSudoku() {
-        let html = `<div class="grid gap-1" style="grid-template-columns: repeat(${size}, 1fr); max-width: 280px; margin: 0 auto;">`;
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            const val = board[r][c];
-            const isOriginal = original[r][c] !== 0;
-            let bg = isOriginal ? 'bg-slate-700' : 'bg-slate-800';
-            let content = val || '';
-            let inputHtml = '';
-            if (!isOriginal && gameActive) {
-              inputHtml =
-                `<input type="number" min="1" max="4" class="w-full h-full bg-transparent text-center text-white outline-none" onchange="window.setCell(${r},${c},this.value)" value="${val||''}" style="font-size:1.5rem;width:100%;">`;
-            } else if (!isOriginal && !gameActive) {
-              content = val || '';
-            }
-            html += `<div class="aspect-square rounded flex items-center justify-center ${bg} ${isOriginal ? 'font-bold text-cyan-300' : ''}" style="min-width:50px;">${isOriginal ? content : (inputHtml || content)}</div>`;
-          }
-        }
-        html += `</div><div class="text-xs text-center text-slate-400 mt-2">Eksikleri doldur. Skor: ${score}</div>`;
-        container.innerHTML = html;
-        window.setCell = setCell;
-      }
-
-      generateSudoku();
-    }
-
-    function startChess() {
-      const container = document.getElementById('game-container');
-      // Tam satranç tahtası, bot ile oyna
-      let board = [];
-      let turn = 'white';
-      let selected = null;
-      let score = 0;
-      let gameOver = false;
-      let gameActive = true;
-
-      function initChess() {
-        board = Array(8).fill().map(() => Array(8).fill(null));
-        // Beyaz taşlar
-        const backRank = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
-        for (let i = 0; i < 8; i++) {
-          board[7][i] = { type: backRank[i], color: 'white' };
-          board[6][i] = { type: 'pawn', color: 'white' };
-          board[1][i] = { type: 'pawn', color: 'black' };
-          board[0][i] = { type: backRank[i], color: 'black' };
-        }
-        turn = 'white';
-        selected = null;
-        gameOver = false;
-        gameActive = true;
-        renderChess();
-      }
-
-      function renderChess() {
-        let html = `<div class="chess-board grid gap-0.5" style="grid-template-columns: repeat(8, 1fr); max-width: 360px; margin: 0 auto;">`;
-        const pieces = {
-          'white_king': '♔',
-          'white_queen': '♕',
-          'white_rook': '♖',
-          'white_bishop': '♗',
-          'white_knight': '♘',
-          'white_pawn': '♙',
-          'black_king': '♚',
-          'black_queen': '♛',
-          'black_rook': '♜',
-          'black_bishop': '♝',
-          'black_knight': '♞',
-          'black_pawn': '♟'
-        };
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const piece = board[r][c];
-            const isSelected = selected && selected[0] === r && selected[1] === c;
-            const bg = (r + c) % 2 === 0 ? 'bg-slate-700' : 'bg-slate-600';
-            const highlight = isSelected ? 'ring-2 ring-cyan-400' : '';
-            let content = '';
-            if (piece) {
-              const key = piece.color + '_' + piece.type;
-              content = pieces[key] || '';
-            }
-            const click = gameActive && !gameOver ? `onclick="window.chessClick(${r},${c})"` : '';
-            html += `<div class="cell ${bg} ${highlight}" ${click} style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border-radius:4px;">${content}</div>`;
-          }
-        }
-        html += `</div>`;
-        const status = gameOver ? 'Oyun Bitti' : `${turn === 'white' ? 'Beyaz' : 'Siyah'} hamlesi`;
-        html += `<div class="text-xs text-center text-slate-400 mt-2">${status} | Skor: ${score}</div>`;
-        container.innerHTML = html;
-        window.chessClick = chessClick;
-      }
-
-      function chessClick(row, col) {
-        if (!gameActive || gameOver) return;
-        const piece = board[row][col];
-        if (selected) {
-          const [sr, sc] = selected;
-          const selectedPiece = board[sr][sc];
-          if (selectedPiece) {
-            // Hamle kontrolü
-            const validMoves = getValidMoves(sr, sc);
-            const isValid = validMoves.some(([r, c]) => r === row && c === col);
-            if (isValid) {
-              // Hamle yap
-              const captured = board[row][col];
-              board[row][col] = selectedPiece;
-              board[sr][sc] = null;
-              if (captured) {
-                score += 5;
-                const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-                s.chess = (s.chess || 0) + 5;
-                gameScores[currentUser.username] = s;
-                saveGameScoresToDB();
-                updateGameScoresUI();
-                updateUserUI();
-                showToast('♟️ Taş yendi! +5 skor', 'info');
-              }
-              // Şah kontrolü
-              const king = board[row][col];
-              if (king && king.type === 'king') {
-                gameOver = true;
-                gameActive = false;
-                const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-                s.chess = (s.chess || 0) + 20;
-                gameScores[currentUser.username] = s;
-                saveGameScoresToDB();
-                updateGameScoresUI();
-                updateUserUI();
-                showToast('👑 Şah mat! +20 skor!', 'success');
-                renderChess();
-                return;
-              }
-              // Sıra değiş
-              turn = turn === 'white' ? 'black' : 'white';
-              selected = null;
-              renderChess();
-              // Bot hamlesi
-              if (!gameOver && turn === 'black' && gameActive) {
-                setTimeout(botMove, 400);
-              }
-              return;
-            }
-          }
-          selected = null;
-          renderChess();
-          return;
-        }
-        if (piece && piece.color === turn) {
-          selected = [row, col];
-          renderChess();
-        }
-      }
-
-      function getValidMoves(row, col) {
-        const piece = board[row][col];
-        if (!piece) return [];
-        const moves = [];
-        const color = piece.color;
-        const enemy = color === 'white' ? 'black' : 'white';
-        const dir = color === 'white' ? -1 : 1;
-        const startRow = color === 'white' ? 6 : 1;
-
-        if (piece.type === 'pawn') {
-          // ileri
-          if (board[row + dir] && !board[row + dir][col]) {
-            moves.push([row + dir, col]);
-            if (row === startRow && !board[row + 2 * dir][col]) moves.push([row + 2 * dir, col]);
-          }
-          // çapraz yeme
-          for (let dc of [-1, 1]) {
-            const nr = row + dir,
-              nc = col + dc;
-            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] && board[nr][nc].color === enemy) {
-              moves.push([nr, nc]);
-            }
-          }
-        } else if (piece.type === 'king') {
-          for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-              if (dr === 0 && dc === 0) continue;
-              const nr = row + dr,
-                nc = col + dc;
-              if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc].color === enemy)) {
-                moves.push([nr, nc]);
-              }
-            }
-          }
-        } else if (piece.type === 'queen' || piece.type === 'rook' || piece.type === 'bishop') {
-          const dirs = piece.type === 'rook' ? [
-            [1, 0],
-            [-1, 0],
-            [0, 1],
-            [0, -1]
-          ] : piece.type === 'bishop' ? [
-            [1, 1],
-            [1, -1],
-            [-1, 1],
-            [-1, -1]
-          ] : [
-            [1, 0],
-            [-1, 0],
-            [0, 1],
-            [0, -1],
-            [1, 1],
-            [1, -1],
-            [-1, 1],
-            [-1, -1]
-          ];
-          for (let [dr, dc] of dirs) {
-            let r = row + dr,
-              c = col + dc;
-            while (r >= 0 && r < 8 && c >= 0 && c < 8) {
-              if (board[r][c]) {
-                if (board[r][c].color === enemy) moves.push([r, c]);
-                break;
-              }
-              moves.push([r, c]);
-              r += dr;
-              c += dc;
-            }
-          }
-        } else if (piece.type === 'knight') {
-          const jumps = [
-            [-2, -1],
-            [-2, 1],
-            [-1, -2],
-            [-1, 2],
-            [1, -2],
-            [1, 2],
-            [2, -1],
-            [2, 1]
-          ];
-          for (let [dr, dc] of jumps) {
-            const nr = row + dr,
-              nc = col + dc;
-            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc].color === enemy)) {
-              moves.push([nr, nc]);
-            }
-          }
-        }
-        return moves;
-      }
-
-      function botMove() {
-        if (!gameActive || gameOver) return;
-        // Bot siyah oynar - rastgele geçerli hamle
-        let pieces = [];
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const p = board[r][c];
-            if (p && p.color === 'black') {
-              const moves = getValidMoves(r, c);
-              if (moves.length > 0) {
-                pieces.push({ r, c, moves });
-              }
-            }
-          }
-        }
-        if (pieces.length === 0) {
-          // Beyaz kazandı
-          gameOver = true;
-          gameActive = false;
-          const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-          s.chess = (s.chess || 0) + 20;
-          gameScores[currentUser.username] = s;
-          saveGameScoresToDB();
-          updateGameScoresUI();
-          updateUserUI();
-          showToast('🎉 Botu yendin! +20 skor!', 'success');
-          renderChess();
-          return;
-        }
-        // Rastgele seç
-        const idx = Math.floor(Math.random() * pieces.length);
-        const { r, c, moves } = pieces[idx];
-        const move = moves[Math.floor(Math.random() * moves.length)];
-        const [nr, nc] = move;
-        const captured = board[nr][nc];
-        board[nr][nc] = board[r][c];
-        board[r][c] = null;
-        // Şah kontrolü
-        if (captured && captured.type === 'king') {
-          gameOver = true;
-          gameActive = false;
-          showToast('💀 Bot kazandı!', 'error');
-          renderChess();
-          return;
-        }
-        turn = 'white';
-        selected = null;
-        renderChess();
-      }
-
-      initChess();
-    }
-
-    // ============================================================
     // UI HELPERS
     // ============================================================
     function showToast(message, type = 'info') {
@@ -3060,6 +2375,7 @@
       }
     }
 
+    // Başlangıçta dil Türkçe
     setLanguage('tr');
   </script>
 </body>
