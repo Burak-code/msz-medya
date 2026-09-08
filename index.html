@@ -83,7 +83,6 @@
       vertical-align: middle;
       object-fit: contain;
     }
-    /* chat messages scroll fix - SABİT YÜKSEKLİK */
     #chat-messages-box {
       display: flex;
       flex-direction: column;
@@ -96,7 +95,6 @@
     #chat-messages-box .flex-col {
       flex-shrink: 0;
     }
-    /* Mesajlar için içerik alanı */
     #chat-messages-inner {
       display: flex;
       flex-direction: column;
@@ -110,6 +108,58 @@
       border-radius: 2px;
       display: inline-block;
       cursor: pointer;
+    }
+    .clickable-stat {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .clickable-stat:hover {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 4px 8px;
+      margin: -4px -8px;
+    }
+    .message-link, .post-link {
+      color: #60a5fa;
+      text-decoration: underline;
+      cursor: pointer;
+      word-break: break-all;
+    }
+    .message-link:hover, .post-link:hover {
+      color: #93bbfc;
+    }
+    .dm-unread-badge {
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+    }
+    .dm-item {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dm-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .dm-item-selected {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+    .file-input-hidden {
+      display: none;
+    }
+    .attachment-btn {
+      transition: all 0.2s;
+    }
+    .attachment-btn:hover {
+      color: #22d3ee;
     }
   </style>
 </head>
@@ -178,6 +228,38 @@
     </div>
   </div>
 
+  <!-- ŞİFREMİ UNUTTUM MODALI (SADECE KENDİ HESABI İÇİN) -->
+  <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-amber-400"></i>
+          <span id="forgot-pass-title">Şifremi Unuttum</span>
+        </h3>
+        <button onclick="closeForgotPasswordModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-xs text-slate-400" id="forgot-pass-desc">Yeni şifreni belirle.</p>
+      <form onsubmit="resetPassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-current-pass-label">Mevcut Şifre</label>
+          <input type="password" id="forgot-current-password" required placeholder="••••••••" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-new-pass-label">Yeni Şifre</label>
+          <input type="password" id="forgot-new-password" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-new-pass-confirm-label">Yeni Şifre (Tekrar)</label>
+          <input type="password" id="forgot-new-password-confirm" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeForgotPasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target" id="forgot-cancel-btn">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-xl shadow touch-target" id="forgot-reset-btn">Şifreyi Sıfırla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- HESAP SİLME MODALI -->
   <div id="delete-account-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
@@ -207,6 +289,38 @@
     </div>
   </div>
 
+  <!-- TAKİPÇİ LİSTESİ MODALI -->
+  <div id="followers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-users text-indigo-400"></i>
+          <span id="followers-modal-title">Takipçiler</span>
+        </h3>
+        <button onclick="closeFollowersModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="followers-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+        <div class="text-center text-slate-500 text-sm py-8">Henüz takipçi yok.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAKİP EDİLEN LİSTESİ MODALI -->
+  <div id="following-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-cyan-400"></i>
+          <span id="following-modal-title">Takip Edilenler</span>
+        </h3>
+        <button onclick="closeFollowingModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="following-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+        <div class="text-center text-slate-500 text-sm py-8">Henüz kimse takip edilmiyor.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- AUTH SCREEN -->
   <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
     <div class="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -226,6 +340,9 @@
       <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
         <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target" id="auth-login-tab">Giriş Yap</button>
         <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target" id="auth-register-tab">Kayıt Ol</button>
+      </div>
+      <div id="forgot-password-link-container" class="text-right mb-4">
+        <button onclick="openForgotPasswordModal()" class="text-xs text-amber-400 hover:text-amber-300 transition font-medium">Şifremi Unuttum</button>
       </div>
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
@@ -320,9 +437,12 @@
             <button onclick="toggleSettingsDropdown()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target">
               <i class="fa-solid fa-gear text-xs sm:text-sm"></i>
             </button>
-            <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
+            <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-52 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
               <button onclick="openChangePasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 touch-target" id="settings-change-pass">
                 <i class="fa-solid fa-key text-cyan-400"></i> Şifre Değiştir
+              </button>
+              <button onclick="openForgotPasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-amber-400 hover:bg-amber-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target" id="settings-forgot-pass">
+                <i class="fa-solid fa-question-circle text-amber-400"></i> Şifremi Unuttum
               </button>
               <button onclick="openDeleteAccountModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target" id="settings-delete-account">
                 <i class="fa-solid fa-trash-can text-rose-400"></i> Hesabı Sil
@@ -351,13 +471,13 @@
               <div id="sidebar-post-count" class="font-bold text-cyan-400 text-base">0</div>
               <div class="text-[10px] text-slate-500" id="sidebar-post-label">Gönderi</div>
             </div>
-            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 clickable-stat" onclick="openFollowersModal(currentUser.username)">
               <div id="sidebar-followers-count" class="font-bold text-indigo-400 text-base">0</div>
               <div class="text-[10px] text-slate-500" id="sidebar-followers-label">Takipçi</div>
             </div>
-            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-              <div id="sidebar-user-count" class="font-bold text-emerald-400 text-base">1</div>
-              <div class="text-[10px] text-slate-500" id="sidebar-user-label">Üye</div>
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 clickable-stat" onclick="openFollowingModal(currentUser.username)">
+              <div id="sidebar-user-count" class="font-bold text-emerald-400 text-base">0</div>
+              <div class="text-[10px] text-slate-500" id="sidebar-user-label">Takip</div>
             </div>
           </div>
         </div>
@@ -451,11 +571,17 @@
                 </div>
               </div>
               <div class="p-3 border-t border-slate-800 bg-slate-900">
-                <form id="dm-form" onsubmit="sendDirectMessage(event)" class="flex gap-2">
+                <form id="dm-form" onsubmit="sendDirectMessage(event)" class="flex gap-2 flex-wrap">
                   <input type="text" id="dm-input-text" disabled placeholder="Mesajınızı yazın..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50 min-h-[44px]">
-                  <button type="submit" id="dm-send-btn" disabled class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition touch-target min-w-[44px]">
-                    <i class="fa-solid fa-paper-plane"></i>
-                  </button>
+                  <div class="flex items-center gap-1">
+                    <button type="button" onclick="document.getElementById('dm-file-input').click()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-xl transition attachment-btn touch-target" title="Dosya Gönder">
+                      <i class="fa-solid fa-paperclip text-sm"></i>
+                    </button>
+                    <input type="file" id="dm-file-input" class="file-input-hidden" onchange="sendFileAttachment(event)">
+                    <button type="submit" id="dm-send-btn" disabled class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition touch-target min-w-[44px]">
+                      <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -516,9 +642,9 @@
               </div>
               <p id="profile-bio" class="text-sm text-slate-300 leading-relaxed">...</p>
               <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800 text-xs text-slate-400 flex-wrap">
+                <div class="clickable-stat" onclick="openFollowersModal(currentUser.username)"><strong id="profile-stat-followers" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-followers-label">Takipçi</span></div>
+                <div class="clickable-stat" onclick="openFollowingModal(currentUser.username)"><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-following-label">Takip</span></div>
                 <div><strong id="profile-stat-posts" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-posts-label">Gönderi</span></div>
-                <div><strong id="profile-stat-followers" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-followers-label">Takipçi</span></div>
-                <div><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-following-label">Takip</span></div>
                 <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span id="profile-active-label">Aktif</span></div>
               </div>
             </div>
@@ -557,8 +683,8 @@
         <p id="pub-profile-bio" class="text-xs text-slate-300 leading-relaxed italic">...</p>
         <div class="flex items-center gap-4 sm:gap-6 py-2 border-y border-slate-800 text-xs text-slate-400 flex-wrap">
           <div><strong id="pub-profile-posts-count" class="text-white font-bold text-sm">0</strong> <span id="pub-posts-label">Gönderi</span></div>
-          <div><strong id="pub-profile-followers-count" class="text-white font-bold text-sm">0</strong> <span id="pub-followers-label">Takipçi</span></div>
-          <div><strong id="pub-profile-following-count" class="text-white font-bold text-sm">0</strong> <span id="pub-following-label">Takip</span></div>
+          <div class="clickable-stat" onclick="openFollowersModalFromPublic()"><strong id="pub-profile-followers-count" class="text-white font-bold text-sm">0</strong> <span id="pub-followers-label">Takipçi</span></div>
+          <div class="clickable-stat" onclick="openFollowingModalFromPublic()"><strong id="pub-profile-following-count" class="text-white font-bold text-sm">0</strong> <span id="pub-following-label">Takip</span></div>
         </div>
         <div class="space-y-3 pt-2">
           <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider" id="pub-posts-title">Gönderileri</h4>
@@ -655,11 +781,12 @@
         "nav-users-label": "Topluluk",
         "nav-profile-label": "Profilim",
         "settings-change-pass": "Şifre Değiştir",
+        "settings-forgot-pass": "Şifremi Unuttum",
         "settings-delete-account": "Hesabı Sil",
         "settings-logout": "Çıkış Yap",
         "sidebar-post-label": "Gönderi",
         "sidebar-followers-label": "Takipçi",
-        "sidebar-user-label": "Üye",
+        "sidebar-user-label": "Takip",
         "sidebar-social-title": "Sosyal Bağlantılar",
         "sidebar-website": "Web Sitem",
         "sidebar-instagram": "Instagram",
@@ -712,7 +839,16 @@
         "delete-pass-label": "Şifreniz",
         "delete-confirm-label": "Onaylamak için yazın: ",
         "cancel-delete-btn": "İptal",
-        "confirm-delete-btn": "Hesabı Sil"
+        "confirm-delete-btn": "Hesabı Sil",
+        "forgot-pass-title": "Şifremi Unuttum",
+        "forgot-pass-desc": "Yeni şifreni belirle.",
+        "forgot-current-pass-label": "Mevcut Şifre",
+        "forgot-new-pass-label": "Yeni Şifre",
+        "forgot-new-pass-confirm-label": "Yeni Şifre (Tekrar)",
+        "forgot-cancel-btn": "İptal",
+        "forgot-reset-btn": "Şifreyi Sıfırla",
+        "followers-modal-title": "Takipçiler",
+        "following-modal-title": "Takip Edilenler"
       },
       en: {
         "auth-subtitle": "Real-Time Social Network",
@@ -730,11 +866,12 @@
         "nav-users-label": "Community",
         "nav-profile-label": "Profile",
         "settings-change-pass": "Change Password",
+        "settings-forgot-pass": "Forgot Password",
         "settings-delete-account": "Delete Account",
         "settings-logout": "Logout",
         "sidebar-post-label": "Posts",
         "sidebar-followers-label": "Followers",
-        "sidebar-user-label": "Members",
+        "sidebar-user-label": "Following",
         "sidebar-social-title": "Social Links",
         "sidebar-website": "My Website",
         "sidebar-instagram": "Instagram",
@@ -787,7 +924,16 @@
         "delete-pass-label": "Your Password",
         "delete-confirm-label": "Type to confirm: ",
         "cancel-delete-btn": "Cancel",
-        "confirm-delete-btn": "Delete Account"
+        "confirm-delete-btn": "Delete Account",
+        "forgot-pass-title": "Forgot Password",
+        "forgot-pass-desc": "Set your new password.",
+        "forgot-current-pass-label": "Current Password",
+        "forgot-new-pass-label": "New Password",
+        "forgot-new-pass-confirm-label": "New Password (Again)",
+        "forgot-cancel-btn": "Cancel",
+        "forgot-reset-btn": "Reset Password",
+        "followers-modal-title": "Followers",
+        "following-modal-title": "Following"
       }
     };
     let currentLang = 'tr';
@@ -796,13 +942,6 @@
       if (!langData[lang]) return;
       currentLang = lang;
       const data = langData[lang];
-      document.querySelectorAll('[id]').forEach(el => {
-        const key = el.id;
-        if (data[key] !== undefined && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'SELECT') {
-          // manual updates
-        }
-      });
-      // manual updates for labels and buttons
       document.getElementById('auth-subtitle').innerText = data['auth-subtitle'] || 'Real-Time Social Network';
       document.getElementById('nav-feed-label').innerText = data['nav-feed-label'] || 'Feed';
       document.getElementById('nav-messages-label').innerText = data['nav-messages-label'] || 'Messages';
@@ -811,7 +950,7 @@
       document.getElementById('submit-post-text').innerText = data['submit-post-text'] || 'Share';
       document.getElementById('sidebar-post-label').innerText = data['sidebar-post-label'] || 'Posts';
       document.getElementById('sidebar-followers-label').innerText = data['sidebar-followers-label'] || 'Followers';
-      document.getElementById('sidebar-user-label').innerText = data['sidebar-user-label'] || 'Members';
+      document.getElementById('sidebar-user-label').innerText = data['sidebar-user-label'] || 'Following';
       document.getElementById('sidebar-social-title').innerText = data['sidebar-social-title'] || 'Social Links';
       document.getElementById('sidebar-website').innerText = data['sidebar-website'] || 'My Website';
       document.getElementById('sidebar-instagram').innerText = data['sidebar-instagram'] || 'Instagram';
@@ -876,6 +1015,16 @@
       document.getElementById('reg-username-label').innerText = data['reg-username-label'] || 'Username';
       document.getElementById('reg-password-label').innerText = data['reg-password-label'] || 'Password';
       document.getElementById('reg-submit-btn').innerText = data['reg-submit-btn'] || 'Create Account & Login';
+      document.getElementById('settings-forgot-pass').innerText = data['settings-forgot-pass'] || 'Forgot Password';
+      document.getElementById('forgot-pass-title').innerText = data['forgot-pass-title'] || 'Forgot Password';
+      document.getElementById('forgot-pass-desc').innerText = data['forgot-pass-desc'] || 'Set your new password.';
+      document.getElementById('forgot-current-pass-label').innerText = data['forgot-current-pass-label'] || 'Current Password';
+      document.getElementById('forgot-new-pass-label').innerText = data['forgot-new-pass-label'] || 'New Password';
+      document.getElementById('forgot-new-pass-confirm-label').innerText = data['forgot-new-pass-confirm-label'] || 'New Password (Again)';
+      document.getElementById('forgot-cancel-btn').innerText = data['forgot-cancel-btn'] || 'Cancel';
+      document.getElementById('forgot-reset-btn').innerText = data['forgot-reset-btn'] || 'Reset Password';
+      document.getElementById('followers-modal-title').innerText = data['followers-modal-title'] || 'Followers';
+      document.getElementById('following-modal-title').innerText = data['following-modal-title'] || 'Following';
     }
 
     // ============================================================
@@ -890,6 +1039,9 @@
     const TOPIC_DM = TOPIC_PREFIX + 'dm/';
     const TOPIC_COMMENTS = TOPIC_PREFIX + 'comments';
 
+    // DM okunmamış mesaj sayıları
+    let dmUnreadCounts = {};
+
     // ============================================================
     // STATE
     // ============================================================
@@ -902,7 +1054,7 @@
     let isMqttConnected = false;
     let isDBReady = false;
     let lastPostTime = 0;
-    const POST_COOLDOWN_MS = 5 * 60 * 1000; // 5 dakika
+    const POST_COOLDOWN_MS = 3 * 60 * 1000; // 3 dakika
     const MAX_POSTS = 100;
 
     // Bildirim sistemi
@@ -911,6 +1063,9 @@
 
     // Tik sistemi
     const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
+
+    // DM mesajları için DM listesi sıralama
+    let dmLastMessageTime = {};
 
     // ============================================================
     // INDEXEDDB
@@ -1100,6 +1255,25 @@
         });
       }
 
+      const dmInput = document.getElementById('dm-input-text');
+      if (dmInput) {
+        dmInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault();
+            document.getElementById('dm-form').dispatchEvent(new Event('submit')); }
+        });
+      }
+
+      // Yorum inputları için enter tuşu - dinamik olarak eklendiği için event delegation
+      document.addEventListener('keydown', function(e) {
+        if (e.target && e.target.id && e.target.id.startsWith('comment-input-')) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const postId = e.target.id.replace('comment-input-', '');
+            submitComment(postId);
+          }
+        }
+      });
+
       const savedSession = localStorage.getItem('sp_social_active_user');
       const savedUsername = localStorage.getItem('sp_social_username');
       const savedPassword = localStorage.getItem('sp_social_password');
@@ -1126,15 +1300,18 @@
       const regForm = document.getElementById('register-form');
       const tabLoginBtn = document.getElementById('tab-login-btn');
       const tabRegBtn = document.getElementById('tab-register-btn');
+      const forgotLink = document.getElementById('forgot-password-link-container');
 
       if (tab === 'login') {
         loginForm.classList.remove('hidden');
         regForm.classList.add('hidden');
+        forgotLink.classList.remove('hidden');
         tabLoginBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow';
         tabRegBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
       } else {
         loginForm.classList.add('hidden');
         regForm.classList.remove('hidden');
+        forgotLink.classList.add('hidden');
         tabRegBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-indigo-500 text-white shadow';
         tabLoginBtn.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
       }
@@ -1225,6 +1402,151 @@
       renderDmUserList();
       renderUsersLeaderboard();
       updateNotificationBadge();
+    }
+
+    // ============================================================
+    // FORGOT PASSWORD - SADECE KENDİ HESABI İÇİN
+    // ============================================================
+    function openForgotPasswordModal() {
+      document.getElementById('forgot-password-modal').classList.remove('hidden');
+      document.getElementById('forgot-current-password').value = '';
+      document.getElementById('forgot-new-password').value = '';
+      document.getElementById('forgot-new-password-confirm').value = '';
+    }
+
+    function closeForgotPasswordModal() {
+      document.getElementById('forgot-password-modal').classList.add('hidden');
+    }
+
+    async function resetPassword(e) {
+      e.preventDefault();
+      const currentPass = document.getElementById('forgot-current-password').value;
+      const newPass = document.getElementById('forgot-new-password').value;
+      const confirmPass = document.getElementById('forgot-new-password-confirm').value;
+
+      // Sadece giriş yapmış kullanıcının şifresini değiştirebilir
+      if (!currentUser) {
+        showModal('Hata', 'Oturum açmış bir kullanıcı bulunamadı!', 'error');
+        return;
+      }
+
+      if (currentUser.password !== currentPass) {
+        showModal('Hata', 'Mevcut şifreniz yanlış!', 'error');
+        return;
+      }
+
+      if (newPass.length < 4) {
+        showModal('Hata', 'Şifre en az 4 karakter olmalı!', 'error');
+        return;
+      }
+
+      if (newPass !== confirmPass) {
+        showModal('Hata', 'Şifreler eşleşmiyor!', 'error');
+        return;
+      }
+
+      currentUser.password = newPass;
+      usersDb[currentUser.username] = currentUser;
+      await saveUsersToDB();
+
+      if (localStorage.getItem('sp_social_username') === currentUser.username) {
+        localStorage.setItem('sp_social_password', newPass);
+      }
+
+      closeForgotPasswordModal();
+      showToast('✅ Şifreniz başarıyla sıfırlandı!', 'success');
+    }
+
+    // ============================================================
+    // FOLLOWERS & FOLLOWING MODALS
+    // ============================================================
+    let followersModalTarget = null;
+    let followingModalTarget = null;
+
+    function openFollowersModal(username) {
+      followersModalTarget = username;
+      const user = usersDb[username];
+      if (!user) { showToast('Kullanıcı bulunamadı.', 'error'); return; }
+      
+      const title = document.getElementById('followers-modal-title');
+      title.innerText = currentLang === 'tr' ? `${user.fullname} Takipçileri` : `${user.fullname}'s Followers`;
+      
+      const list = document.getElementById('followers-list');
+      const followers = user.followers || [];
+      
+      if (followers.length === 0) {
+        list.innerHTML = `<div class="text-center text-slate-500 text-sm py-8">Henüz takipçi yok.</div>`;
+      } else {
+        list.innerHTML = followers.map(f => {
+          const followerUser = usersDb[f];
+          if (!followerUser) return '';
+          return `
+            <div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition">
+              <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${followerUser.username}'); closeFollowersModal();">
+                <div class="w-8 h-8 shrink-0">${renderAvatarElement(followerUser, "w-8 h-8 text-xs")}</div>
+                <div>
+                  <div class="font-bold text-xs text-white">${getUserDisplayName(followerUser)}</div>
+                  <div class="text-[10px] text-slate-500">@${followerUser.username}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      document.getElementById('followers-modal').classList.remove('hidden');
+    }
+
+    function closeFollowersModal() {
+      document.getElementById('followers-modal').classList.add('hidden');
+      followersModalTarget = null;
+    }
+
+    function openFollowingModal(username) {
+      followingModalTarget = username;
+      const user = usersDb[username];
+      if (!user) { showToast('Kullanıcı bulunamadı.', 'error'); return; }
+      
+      const title = document.getElementById('following-modal-title');
+      title.innerText = currentLang === 'tr' ? `${user.fullname} Takip Ettikleri` : `${user.fullname} Following`;
+      
+      const list = document.getElementById('following-list');
+      const following = user.following || [];
+      
+      if (following.length === 0) {
+        list.innerHTML = `<div class="text-center text-slate-500 text-sm py-8">Henüz kimse takip edilmiyor.</div>`;
+      } else {
+        list.innerHTML = following.map(f => {
+          const followingUser = usersDb[f];
+          if (!followingUser) return '';
+          return `
+            <div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition">
+              <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${followingUser.username}'); closeFollowingModal();">
+                <div class="w-8 h-8 shrink-0">${renderAvatarElement(followingUser, "w-8 h-8 text-xs")}</div>
+                <div>
+                  <div class="font-bold text-xs text-white">${getUserDisplayName(followingUser)}</div>
+                  <div class="text-[10px] text-slate-500">@${followingUser.username}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      document.getElementById('following-modal').classList.remove('hidden');
+    }
+
+    function closeFollowingModal() {
+      document.getElementById('following-modal').classList.add('hidden');
+      followingModalTarget = null;
+    }
+
+    function openFollowersModalFromPublic() {
+      if (viewingPublicUsername) openFollowersModal(viewingPublicUsername);
+    }
+
+    function openFollowingModalFromPublic() {
+      if (viewingPublicUsername) openFollowingModal(viewingPublicUsername);
     }
 
     // ============================================================
@@ -1475,11 +1797,26 @@
         return;
       }
       if (topic === TOPIC_DM + currentUser.username && data.type === 'DIRECT_MESSAGE') {
+        if (data.message.sender !== currentUser.username) {
+          if (!dmUnreadCounts[data.message.sender]) dmUnreadCounts[data.message.sender] = 0;
+          dmUnreadCounts[data.message.sender]++;
+          renderDmUserList();
+        }
+        
         dmsDb.push(data.message);
         await saveMessagesToDB();
+        
+        dmLastMessageTime[data.message.sender] = Date.now();
+        
         addNotification(`@${data.message.sender} kullanıcısından yeni mesajınız var! 💬`);
-        if (activeTab === 'messages' && selectedDmUser === data.message.sender) renderChatMessages();
-        else { updateUnreadBadge(); }
+        if (activeTab === 'messages' && selectedDmUser === data.message.sender) {
+          dmUnreadCounts[data.message.sender] = 0;
+          renderChatMessages();
+          renderDmUserList();
+        } else {
+          updateUnreadBadge();
+          renderDmUserList();
+        }
         return;
       }
       if (topic === TOPIC_COMMENTS && data.type === 'NEW_COMMENT') {
@@ -1494,8 +1831,8 @@
               addNotification(`${data.comment.author.fullname} (@${data.comment.author.username}) bir gönderiye yorum yaptı.`);
             }
           }
+          renderFeed();
         }
-        renderFeed();
         return;
       }
     }
@@ -1609,7 +1946,6 @@
           'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50 relative';
         document.getElementById('unread-dm-badge').classList.add('hidden');
         renderDmUserList();
-        // Eğer seçili bir kullanıcı varsa mesajları göster
         if (selectedDmUser) renderChatMessages();
       } else if (tab === 'users') {
         usersTab.classList.remove('hidden');
@@ -1668,7 +2004,7 @@
       const myPosts = postsDb.filter(p => p.author.username === currentUser.username);
       document.getElementById('sidebar-post-count').innerText = myPosts.length;
       document.getElementById('sidebar-followers-count').innerText = (currentUser.followers || []).length;
-      document.getElementById('sidebar-user-count').innerText = Object.keys(usersDb).length;
+      document.getElementById('sidebar-user-count').innerText = (currentUser.following || []).length;
     }
 
     function toggleImageInput() {
@@ -1676,11 +2012,39 @@
     }
 
     // ============================================================
-    // POSTS - Otomatik sansür ve 5 dakika bekleme
+    // LINK DÖNÜŞTÜRÜCÜ (mavi, tıklanabilir, yeni sekmede aç)
+    // ============================================================
+    function convertLinksToAnchors(text) {
+      const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+      return text.replace(urlRegex, function(url) {
+        let href = url;
+        if (!href.startsWith('http://') && !href.startsWith('https://')) {
+          href = 'https://' + href;
+        }
+        return `<a href="${href}" target="_blank" class="message-link" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
+      });
+    }
+
+    // ============================================================
+    // POSTS
     // ============================================================
     function containsForbidden(text) {
-      const forbidden = /\b(https?:\/\/|www\.|\.com|\.net|\.org|\.tr|fuck|siktir|amk|orospu|piç|göt|yarrak|amcık|sik|kahpe|kaltak|şerefsiz|hain|döl|sperm|çük|yavşak|ibne|puşt|gavat|pezevenk|şişko|çomar|mal|embesil|gerizekalı|salak|aptal|dangalak|mankafa)\b/i;
-      return forbidden.test(text);
+      const allowedDomains = ['youtube.com', 'youtu.be', 'instagram.com', 'twitter.com', 'x.com'];
+      
+      const urlRegex = /(https?:\/\/|www\.)([^\s]+)/gi;
+      let match;
+      while ((match = urlRegex.exec(text)) !== null) {
+        const fullMatch = match[0];
+        const isAllowed = allowedDomains.some(domain => fullMatch.includes(domain));
+        if (isAllowed) {
+          return false;
+        }
+      }
+      
+      const forbiddenLinks = /\b(https?:\/\/|www\.)(?!(youtube\.com|youtu\.be|instagram\.com|twitter\.com|x\.com)[\/\s]?)/i;
+      const forbiddenWords = /\b(fuck|siktir|amk|orospu|piç|göt|yarrak|amcık|sik|kahpe|kaltak|şerefsiz|hain|döl|sperm|çük|yavşak|ibne|puşt|gavat|pezevenk|şişko|çomar|mal|embesil|gerizekalı|salak|aptal|dangalak|mankafa)\b/i;
+      
+      return forbiddenLinks.test(text) || forbiddenWords.test(text);
     }
 
     function censorText(text) {
@@ -1690,15 +2054,20 @@
       return text;
     }
 
+    function renderTextWithLinks(text) {
+      const censored = censorText(text);
+      if (censored === '****') return '****';
+      return convertLinksToAnchors(censored);
+    }
+
     async function submitPost() {
       const input = document.getElementById('post-input');
       const imgUrlInput = document.getElementById('post-image-url');
       if (!input) return;
       let text = input.value.trim();
       
-      // Sansür kontrolü
       if (containsForbidden(text)) {
-        showToast('Bu gönderi yasaklı kelimeler içeriyor!', 'error');
+        showToast('Bu gönderi yasaklı içerik içeriyor!', 'error');
         return;
       }
       text = censorText(text);
@@ -1706,7 +2075,6 @@
       const imageUrl = imgUrlInput ? imgUrlInput.value.trim() : '';
       if (!text) { showToast('Lütfen yayınlamak için bir şeyler yazın.', 'warning'); return; }
 
-      // 5 dakika bekleme
       const now = Date.now();
       if (now - lastPostTime < POST_COOLDOWN_MS) {
         const remaining = Math.ceil((POST_COOLDOWN_MS - (now - lastPostTime)) / 1000);
@@ -1758,9 +2126,8 @@
       if (!input) return;
       let text = input.value.trim();
       if (!text) return;
-      // Sansür
       if (containsForbidden(text)) {
-        showToast('Yorum yasaklı kelimeler içeriyor!', 'error');
+        showToast('Yorum yasaklı içerik içeriyor!', 'error');
         return;
       }
       text = censorText(text);
@@ -1788,6 +2155,11 @@
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(TOPIC_COMMENTS, JSON.stringify({ type: 'NEW_COMMENT', comment }));
       }
+      
+      const container = document.getElementById('comments-container-' + postId);
+      if (container && container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+      }
     }
 
     function renderComments(postId) {
@@ -1805,7 +2177,7 @@
                 <span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span>
                 <span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span>
               </div>
-              <p class="text-xs text-slate-300 break-words">${escapeHtml(c.text)}</p>
+              <p class="text-xs text-slate-300 break-words">${renderTextWithLinks(c.text)}</p>
             </div>
             ${c.author.username === currentUser.username ? `<button onclick="deleteComment('${c.id}', '${postId}')" class="text-slate-600 hover:text-rose-400 text-xs transition touch-target p-1"><i class="fa-solid fa-times"></i></button>` : ''}
           </div>
@@ -1845,25 +2217,6 @@
       showToast('Gönderi silindi.', 'info');
     }
 
-    function renderFeed() {
-      const container = document.getElementById('posts-container');
-      if (!container) return;
-      
-      const sortedPosts = [...postsDb].sort((a, b) => 
-        new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      
-      const feedCount = document.getElementById('post-feed-count');
-      if (feedCount) feedCount.innerText = `${sortedPosts.length} Gönderi`;
-      
-      if (sortedPosts.length === 0) {
-        container.innerHTML =
-          `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500 space-y-2"><i class="fa-solid fa-comments text-3xl text-slate-700"></i><p class="text-sm">Henüz hiç gönderi paylaşılmadı. İlk gönderiyi sen at!</p></div>`;
-        return;
-      }
-      container.innerHTML = sortedPosts.map(post => createPostCardHtml(post)).join('');
-    }
-
     function createPostCardHtml(post) {
       const isLiked = post.likes.includes(currentUser.username);
       const isOwner = post.author.username === currentUser.username;
@@ -1891,7 +2244,7 @@
               ${isOwner ? `<button onclick="deletePost('${post.id}')" title="Gönderiyi Sil" class="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg transition text-xs touch-target"><i class="fa-solid fa-trash-can"></i></button>` : ''}
             </div>
           </div>
-          <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line break-words">${escapeHtml(post.text)}</p>
+          <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line break-words">${renderTextWithLinks(post.text)}</p>
           ${post.imageUrl ? `<div class="rounded-xl overflow-hidden border border-slate-800 max-h-80 bg-slate-950"><img src="${escapeHtml(post.imageUrl)}" onerror="this.style.display='none'" alt="Gönderi Görseli" class="w-full h-full object-cover" loading="lazy"></div>` : ''}
           <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800/60 text-xs text-slate-400 flex-wrap">
             <button onclick="toggleLike('${post.id}')" class="flex items-center gap-1.5 hover:text-rose-400 transition touch-target ${isLiked ? 'text-rose-500 font-bold' : ''}">
@@ -1916,6 +2269,25 @@
           </div>
         </div>
       `;
+    }
+
+    function renderFeed() {
+      const container = document.getElementById('posts-container');
+      if (!container) return;
+      
+      const sortedPosts = [...postsDb].sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      
+      const feedCount = document.getElementById('post-feed-count');
+      if (feedCount) feedCount.innerText = `${sortedPosts.length} Gönderi`;
+      
+      if (sortedPosts.length === 0) {
+        container.innerHTML =
+          `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500 space-y-2"><i class="fa-solid fa-comments text-3xl text-slate-700"></i><p class="text-sm">Henüz hiç gönderi paylaşılmadı. İlk gönderiyi sen at!</p></div>`;
+        return;
+      }
+      container.innerHTML = sortedPosts.map(post => createPostCardHtml(post)).join('');
     }
 
     // ============================================================
@@ -2016,23 +2388,52 @@
     }
 
     // ============================================================
-    // DIRECT MESSAGES - Otomatik sansür
+    // DIRECT MESSAGES
     // ============================================================
     function renderDmUserList() {
       const container = document.getElementById('dm-users-list');
       if (!container) return;
+      
+      const dmUsers = new Set();
+      dmsDb.forEach(m => {
+        if (m.sender === currentUser.username) dmUsers.add(m.recipient);
+        if (m.recipient === currentUser.username) dmUsers.add(m.sender);
+      });
+      
       const otherUsers = Object.values(usersDb).filter(u => u.username !== currentUser.username);
-      if (otherUsers.length === 0) { container.innerHTML =
-          `<div class="p-4 text-center text-xs text-slate-500">Kayıtlı başka kullanıcı yok.</div>`; return; }
-      container.innerHTML = otherUsers.map(u => {
+      
+      const sortedUsers = otherUsers.sort((a, b) => {
+        const aHasDm = dmUsers.has(a.username);
+        const bHasDm = dmUsers.has(b.username);
+        if (aHasDm && !bHasDm) return -1;
+        if (!aHasDm && bHasDm) return 1;
+        
+        if (aHasDm && bHasDm) {
+          const aTime = dmLastMessageTime[a.username] || 0;
+          const bTime = dmLastMessageTime[b.username] || 0;
+          return bTime - aTime;
+        }
+        
+        return a.fullname.localeCompare(b.fullname);
+      });
+      
+      if (sortedUsers.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Kayıtlı başka kullanıcı yok.</div>`;
+        return;
+      }
+      
+      container.innerHTML = sortedUsers.map(u => {
         const isSelected = selectedDmUser === u.username;
         const nameDisplay = getUserDisplayName(u);
-        return `<div onclick="selectChatUser('${u.username}')" class="p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition touch-target ${isSelected ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-slate-900'}">
+        const unreadCount = dmUnreadCounts[u.username] || 0;
+        
+        return `<div onclick="selectChatUser('${u.username}')" class="dm-item p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition ${isSelected ? 'dm-item-selected' : 'hover:bg-slate-900'}">
           <div class="w-8 h-8 shrink-0">${renderAvatarElement(u, "w-8 h-8 text-xs")}</div>
-          <div class="overflow-hidden min-w-0">
+          <div class="overflow-hidden min-w-0 flex-1">
             <div class="font-bold text-xs text-white truncate">${nameDisplay}</div>
             <div class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)}</div>
           </div>
+          ${unreadCount > 0 ? `<span class="dm-unread-badge">${unreadCount}</span>` : ''}
         </div>`;
       }).join('');
     }
@@ -2054,6 +2455,11 @@
 
     function selectChatUser(username) {
       selectedDmUser = username;
+      // Okunmamış sayacı sıfırla
+      if (dmUnreadCounts[username]) {
+        dmUnreadCounts[username] = 0;
+        renderDmUserList();
+      }
       const targetUser = usersDb[username] || { fullname: username, username };
       document.getElementById('chat-target-avatar').innerHTML = renderAvatarElement(targetUser, "w-10 h-10 text-base");
       document.getElementById('chat-target-name').innerHTML = getUserDisplayName(targetUser);
@@ -2067,15 +2473,68 @@
 
     function openSelectedUserProfile() { if (selectedDmUser) openPublicProfileModal(selectedDmUser); }
 
+    // Dosya gönderme
+    function sendFileAttachment(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Dosya boyutu kontrolü (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('Dosya boyutu 10MB\'dan büyük olamaz!', 'error');
+        event.target.value = '';
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fileData = e.target.result;
+        let messageText = '';
+        const fileType = file.type;
+        const fileName = file.name;
+        
+        if (fileType.startsWith('image/')) {
+          messageText = `📷 Resim: ${fileName}`;
+        } else if (fileType.startsWith('audio/')) {
+          messageText = `🎵 Müzik: ${fileName}`;
+        } else {
+          messageText = `📎 Dosya: ${fileName}`;
+        }
+        
+        // Mesajı gönder
+        const message = {
+          id: 'dm_' + Date.now(),
+          sender: currentUser.username,
+          recipient: selectedDmUser,
+          text: messageText,
+          timestamp: new Date().toISOString(),
+          attachment: {
+            data: fileData,
+            type: fileType,
+            name: fileName,
+            size: file.size
+          }
+        };
+        
+        dmsDb.push(message);
+        saveMessagesToDB();
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.publish(TOPIC_DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message }));
+        }
+        renderChatMessages();
+        showToast('📎 Dosya gönderildi!', 'success');
+        event.target.value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+
     async function sendDirectMessage(e) {
       e.preventDefault();
       const input = document.getElementById('dm-input-text');
       let text = input.value.trim();
       if (!text || !selectedDmUser) return;
       
-      // Sansür
       if (containsForbidden(text)) {
-        showToast('Mesaj yasaklı kelimeler içeriyor!', 'error');
+        showToast('Mesaj yasaklı içerik içeriyor!', 'error');
         return;
       }
       text = censorText(text);
@@ -2110,13 +2569,27 @@
       container.innerHTML = conversation.map(m => {
         const isMe = m.sender === currentUser.username;
         const time = formatTimeAgo(m.timestamp);
+        let content = renderTextWithLinks(m.text);
+        
+        // Ek dosya varsa göster
+        if (m.attachment) {
+          if (m.attachment.type && m.attachment.type.startsWith('image/')) {
+            content += `<div class="mt-2 max-w-[200px] rounded-lg overflow-hidden border border-slate-700">
+              <img src="${m.attachment.data}" alt="Resim" class="w-full h-auto object-cover" loading="lazy" onclick="window.open('${m.attachment.data}', '_blank')">
+            </div>`;
+          } else if (m.attachment.type && m.attachment.type.startsWith('audio/')) {
+            content += `<div class="mt-2"><audio controls class="w-full max-w-[200px] h-8"><source src="${m.attachment.data}" type="${m.attachment.type}">Tarayıcınız audio desteklemiyor.</audio></div>`;
+          } else {
+            content += `<div class="mt-1 text-[10px] text-slate-400">📎 ${m.attachment.name || 'Dosya'}</div>`;
+          }
+        }
+        
         return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-          <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow break-words">${escapeHtml(m.text)}</div>
+          <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow break-words">${content}</div>
           <span class="text-[9px] text-slate-500 font-mono mt-1 px-1">${time}</span>
         </div>`;
       }).join('');
       
-      // Scroll'u en aşağıya kaydır - üstteki parent box'ı kullan
       const parentBox = document.getElementById('chat-messages-box');
       if (parentBox) {
         parentBox.scrollTop = parentBox.scrollHeight;
@@ -2125,9 +2598,18 @@
 
     function updateUnreadBadge() {
       const badge = document.getElementById('unread-dm-badge');
-      if (badge) { let current = parseInt(badge.innerText) || 0; 
-        badge.innerText = current + 1;
-        badge.classList.remove('hidden'); }
+      let totalUnread = 0;
+      for (const key in dmUnreadCounts) {
+        totalUnread += dmUnreadCounts[key];
+      }
+      if (badge) {
+        if (totalUnread > 0) {
+          badge.innerText = totalUnread > 99 ? '99+' : totalUnread;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
     }
 
     // ============================================================
