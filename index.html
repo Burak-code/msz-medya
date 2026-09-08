@@ -101,6 +101,7 @@
       display: inline-block;
       cursor: pointer;
     }
+    /* görsel büyütme */
     .post-image-thumb {
       max-width: 100%;
       max-height: 200px;
@@ -151,32 +152,6 @@
       font-size: 11px;
       color: #fbbf24;
       font-weight: bold;
-    }
-    /* oyunlar için ek */
-    .game-container-inner {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    .chess-board .cell {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: 0.15s;
-    }
-    .chess-board .cell:hover {
-      filter: brightness(1.2);
-    }
-    @media (max-width: 480px) {
-      .chess-board .cell {
-        width: 32px;
-        height: 32px;
-        font-size: 22px;
-      }
     }
   </style>
 </head>
@@ -585,7 +560,7 @@
               <span id="games-title">Oyunlar</span>
               <span class="text-xs text-slate-400 ml-2">Skorun: <span id="game-score-display" class="text-amber-400 font-bold">0</span></span>
             </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800 text-center">
                 <h3 class="font-bold text-sm text-white">💣 Mayın Tarlası</h3>
                 <p class="text-xs text-slate-400 mt-1">9x9, 10 mayın</p>
@@ -594,18 +569,18 @@
               </div>
               <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800 text-center">
                 <h3 class="font-bold text-sm text-white">🧩 Sudoku</h3>
-                <p class="text-xs text-slate-400 mt-1">4x4 kolay</p>
+                <p class="text-xs text-slate-400 mt-1">Kolay seviye</p>
                 <button onclick="startSudoku()" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">Oyna</button>
                 <div id="sudoku-score" class="text-xs text-amber-400 mt-2">Skor: 0</div>
               </div>
               <div class="bg-slate-950/70 rounded-xl p-4 border border-slate-800 text-center">
-                <h3 class="font-bold text-sm text-white">♟️ Satranç</h3>
-                <p class="text-xs text-slate-400 mt-1">Bot ile oyna</p>
+                <h3 class="font-bold text-sm text-white">♟️ Basit Satranç</h3>
+                <p class="text-xs text-slate-400 mt-1">Hamle yap, kazan</p>
                 <button onclick="startChess()" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition">Oyna</button>
                 <div id="chess-score" class="text-xs text-amber-400 mt-2">Skor: 0</div>
               </div>
             </div>
-            <div id="game-container" class="bg-slate-950 rounded-2xl p-4 border border-slate-800 min-h-[200px] flex items-center justify-center text-slate-500 text-sm">
+            <div id="game-container" class="mt-6 bg-slate-950 rounded-2xl p-4 border border-slate-800 min-h-[200px] flex items-center justify-center text-slate-500 text-sm">
               Bir oyun seçin.
             </div>
           </div>
@@ -921,8 +896,10 @@
       if (!langData[lang]) return;
       currentLang = lang;
       const data = langData[lang];
+      // manual updates for new keys
       document.getElementById('nav-games-label').innerText = data['nav-games-label'] || 'Games';
       document.getElementById('games-title').innerText = data['games-title'] || 'Games';
+      // others
       document.getElementById('auth-subtitle').innerText = data['auth-subtitle'] || 'Real-Time Social Network';
       document.getElementById('nav-feed-label').innerText = data['nav-feed-label'] || 'Feed';
       document.getElementById('nav-messages-label').innerText = data['nav-messages-label'] || 'Messages';
@@ -1024,7 +1001,7 @@
     let lastPostTime = 0;
     const POST_COOLDOWN_MS = 5 * 60 * 1000;
     const MAX_POSTS = 100;
-    let gameScores = {};
+    let gameScores = {}; // username: { minesweeper: 0, sudoku: 0, chess: 0 }
 
     let notifications = [];
     let notificationCount = 0;
@@ -1738,6 +1715,7 @@
         gamesTab.classList.remove('hidden');
         navGames.className =
           'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-emerald-400 border border-slate-700/50';
+        // game container already shows
       } else if (tab === 'profile') {
         profileTab.classList.remove('hidden');
         navProf.className =
@@ -1791,6 +1769,7 @@
       document.getElementById('sidebar-post-count').innerText = myPosts.length;
       document.getElementById('sidebar-followers-count').innerText = (currentUser.followers || []).length;
       document.getElementById('sidebar-user-count').innerText = Object.keys(usersDb).length;
+      // game score
       const score = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
       const total = score.minesweeper + score.sudoku + score.chess;
       document.getElementById('sidebar-game-score').innerText = total;
@@ -2179,6 +2158,7 @@
       container.innerHTML = otherUsers.map(u => {
         const isSelected = selectedDmUser === u.username;
         const nameDisplay = getUserDisplayName(u);
+        // kaç okunmamış mesaj var?
         const unread = dmsDb.filter(m => m.sender === u.username && m.recipient === currentUser.username && !m.read).length;
         return `<div onclick="selectChatUser('${u.username}')" class="p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition touch-target ${isSelected ? 'bg-cyan-500/10 border border-cyan-500/30' : 'hover:bg-slate-900'}">
           <div class="w-8 h-8 shrink-0">${renderAvatarElement(u, "w-8 h-8 text-xs")}</div>
@@ -2208,6 +2188,7 @@
 
     function selectChatUser(username) {
       selectedDmUser = username;
+      // mesajları okundu işaretle
       dmsDb.forEach(m => { if (m.sender === username && m.recipient === currentUser.username) m.read = true; });
       saveMessagesToDB();
       const targetUser = usersDb[username] || { fullname: username, username };
@@ -2440,7 +2421,7 @@
     }
 
     // ============================================================
-    // OYUNLAR - DÜZELTİLMİŞ
+    // OYUNLAR
     // ============================================================
     function startMinesweeper() {
       const container = document.getElementById('game-container');
@@ -2452,7 +2433,6 @@
       let gameOver = false;
       let firstClick = true;
       let score = 0;
-      let gameActive = true;
 
       function initBoard() {
         board = Array(size).fill().map(() => Array(size).fill(0));
@@ -2460,7 +2440,6 @@
         flagged = Array(size).fill().map(() => Array(size).fill(false));
         gameOver = false;
         firstClick = true;
-        gameActive = true;
         score = 0;
         renderBoard();
       }
@@ -2474,6 +2453,7 @@
           board[r][c] = -1;
           placed++;
         }
+        // sayıları hesapla
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (board[r][c] === -1) continue;
@@ -2491,14 +2471,13 @@
       }
 
       function revealCell(r, c) {
-        if (!gameActive || gameOver || revealed[r][c] || flagged[r][c]) return;
+        if (gameOver || revealed[r][c] || flagged[r][c]) return;
         if (firstClick) {
           placeMines(r, c);
           firstClick = false;
         }
         if (board[r][c] === -1) {
           gameOver = true;
-          gameActive = false;
           renderBoard();
           showToast('💥 Mayına bastın!', 'error');
           return;
@@ -2510,7 +2489,7 @@
             for (let dc = -1; dc <= 1; dc++) {
               const nr = r + dr,
                 nc = c + dc;
-              if (nr >= 0 && nr < size && nc >= 0 && nc < size && !revealed[nr][nc] && !flagged[nr][nc]) {
+              if (nr >= 0 && nr < size && nc >= 0 && nc < size && !revealed[nr][nc]) {
                 revealCell(nr, nc);
               }
             }
@@ -2521,7 +2500,7 @@
       }
 
       function toggleFlag(r, c) {
-        if (!gameActive || gameOver || revealed[r][c]) return;
+        if (gameOver || revealed[r][c]) return;
         flagged[r][c] = !flagged[r][c];
         renderBoard();
       }
@@ -2536,7 +2515,6 @@
         }
         if (revealedCount === totalSafe) {
           gameOver = true;
-          gameActive = false;
           const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
           s.minesweeper = (s.minesweeper || 0) + 10;
           gameScores[currentUser.username] = s;
@@ -2567,15 +2545,19 @@
               content = '🚩';
               bg = 'bg-amber-800/50';
             }
-            const click = gameActive && !gameOver ? `onclick="window.revealCell(${r},${c})"` : '';
-            const rightClick = gameActive && !gameOver ? `oncontextmenu="event.preventDefault();window.toggleFlag(${r},${c})"` : '';
-            html += `<div class="aspect-square rounded flex items-center justify-center text-sm font-bold cursor-pointer ${bg} hover:bg-slate-600 transition" ${click} ${rightClick} style="min-width:30px;">${content}</div>`;
+            const reveal = board[r][c] === -1 ? '' : `onclick="revealCell(${r},${c})"`;
+            const flagAction = `oncontextmenu="event.preventDefault();toggleFlag(${r},${c})"`;
+            html += `<div class="aspect-square rounded flex items-center justify-center text-sm font-bold cursor-pointer ${bg} hover:bg-slate-600 transition" ${reveal} ${flagAction} style="min-width:30px;">${content}</div>`;
           }
         }
         html += `</div>`;
         html += `<div class="text-xs text-center text-slate-400 mt-2">Sol tık aç, sağ tık bayrak. Skor: ${score}</div>`;
         container.innerHTML = html;
-        // attach functions to window so onclick works
+        // Attach events for right-click
+        container.querySelectorAll('.aspect-square').forEach(el => {
+          el.addEventListener('contextmenu', (e) => e.preventDefault());
+        });
+        // Expose functions to window
         window.revealCell = revealCell;
         window.toggleFlag = toggleFlag;
       }
@@ -2585,35 +2567,31 @@
 
     function startSudoku() {
       const container = document.getElementById('game-container');
+      // basit sudoku - 4x4 kolay
       const size = 4;
-      let board = [];
+      let board = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+      ];
       let original = [];
       let score = 0;
-      let gameActive = true;
 
       function generateSudoku() {
-        board = Array(size).fill().map(() => Array(size).fill(0));
-        // doldur
+        // basit doldur
+        const nums = [1, 2, 3, 4];
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
-            let nums = [1, 2, 3, 4];
-            for (let n of nums) {
-              if (isValid(r, c, n)) {
-                board[r][c] = n;
-                break;
-              }
-            }
-            if (board[r][c] === 0) {
-              // geri dön
-              let found = false;
-              for (let n of [1, 2, 3, 4]) {
-                if (isValid(r, c, n)) {
-                  board[r][c] = n;
-                  found = true;
-                  break;
-                }
-              }
-              if (!found) board[r][c] = 1;
+            board[r][c] = 0;
+          }
+        }
+        // yerleştir
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            let available = nums.filter(n => isValid(r, c, n));
+            if (available.length > 0) {
+              board[r][c] = available[Math.floor(Math.random() * available.length)];
             }
           }
         }
@@ -2646,7 +2624,6 @@
       }
 
       function setCell(row, col, value) {
-        if (!gameActive) return;
         if (original[row][col] !== 0) return;
         const num = parseInt(value);
         if (isNaN(num) || num < 1 || num > 4) return;
@@ -2654,13 +2631,13 @@
           board[row][col] = num;
           score++;
           renderSudoku();
-          checkWin();
+          checkSudokuWin();
         } else {
           showToast('Geçersiz hamle!', 'error');
         }
       }
 
-      function checkWin() {
+      function checkSudokuWin() {
         let complete = true;
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
@@ -2668,7 +2645,6 @@
           }
         }
         if (complete) {
-          gameActive = false;
           const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
           s.sudoku = (s.sudoku || 0) + 15;
           gameScores[currentUser.username] = s;
@@ -2681,7 +2657,7 @@
       }
 
       function renderSudoku() {
-        let html = `<div class="grid gap-1" style="grid-template-columns: repeat(${size}, 1fr); max-width: 280px; margin: 0 auto;">`;
+        let html = `<div class="grid gap-1" style="grid-template-columns: repeat(${size}, 1fr); max-width: 240px; margin: 0 auto;">`;
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             const val = board[r][c];
@@ -2689,13 +2665,11 @@
             let bg = isOriginal ? 'bg-slate-700' : 'bg-slate-800';
             let content = val || '';
             let inputHtml = '';
-            if (!isOriginal && gameActive) {
+            if (!isOriginal) {
               inputHtml =
-                `<input type="number" min="1" max="4" class="w-full h-full bg-transparent text-center text-white outline-none" onchange="window.setCell(${r},${c},this.value)" value="${val||''}" style="font-size:1.5rem;width:100%;">`;
-            } else if (!isOriginal && !gameActive) {
-              content = val || '';
+                `<input type="number" min="1" max="4" class="w-full h-full bg-transparent text-center text-white outline-none" onchange="setCell(${r},${c},this.value)" value="${val||''}" style="font-size:1.2rem;">`;
             }
-            html += `<div class="aspect-square rounded flex items-center justify-center ${bg} ${isOriginal ? 'font-bold text-cyan-300' : ''}" style="min-width:50px;">${isOriginal ? content : (inputHtml || content)}</div>`;
+            html += `<div class="aspect-square rounded flex items-center justify-center ${bg} ${isOriginal ? 'font-bold text-cyan-300' : ''}" style="min-width:40px;">${isOriginal ? content : inputHtml}</div>`;
           }
         }
         html += `</div><div class="text-xs text-center text-slate-400 mt-2">Eksikleri doldur. Skor: ${score}</div>`;
@@ -2708,45 +2682,33 @@
 
     function startChess() {
       const container = document.getElementById('game-container');
-      // Tam satranç tahtası, bot ile oyna
+      // Basit satranç - sadece piyon ve şah ile basit oyun
       let board = [];
       let turn = 'white';
       let selected = null;
       let score = 0;
       let gameOver = false;
-      let gameActive = true;
 
       function initChess() {
         board = Array(8).fill().map(() => Array(8).fill(null));
-        // Beyaz taşlar
-        const backRank = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
-        for (let i = 0; i < 8; i++) {
-          board[7][i] = { type: backRank[i], color: 'white' };
-          board[6][i] = { type: 'pawn', color: 'white' };
-          board[1][i] = { type: 'pawn', color: 'black' };
-          board[0][i] = { type: backRank[i], color: 'black' };
-        }
+        // beyaz piyonlar
+        for (let i = 0; i < 8; i++) board[6][i] = { type: 'pawn', color: 'white' };
+        board[7][4] = { type: 'king', color: 'white' };
+        // siyah piyonlar
+        for (let i = 0; i < 8; i++) board[1][i] = { type: 'pawn', color: 'black' };
+        board[0][4] = { type: 'king', color: 'black' };
         turn = 'white';
         selected = null;
         gameOver = false;
-        gameActive = true;
         renderChess();
       }
 
       function renderChess() {
-        let html = `<div class="chess-board grid gap-0.5" style="grid-template-columns: repeat(8, 1fr); max-width: 360px; margin: 0 auto;">`;
+        let html = `<div class="grid gap-0.5" style="grid-template-columns: repeat(8, 1fr); max-width: 320px; margin: 0 auto;">`;
         const pieces = {
           'white_king': '♔',
-          'white_queen': '♕',
-          'white_rook': '♖',
-          'white_bishop': '♗',
-          'white_knight': '♘',
           'white_pawn': '♙',
           'black_king': '♚',
-          'black_queen': '♛',
-          'black_rook': '♜',
-          'black_bishop': '♝',
-          'black_knight': '♞',
           'black_pawn': '♟'
         };
         for (let r = 0; r < 8; r++) {
@@ -2760,33 +2722,40 @@
               const key = piece.color + '_' + piece.type;
               content = pieces[key] || '';
             }
-            const click = gameActive && !gameOver ? `onclick="window.chessClick(${r},${c})"` : '';
-            html += `<div class="cell ${bg} ${highlight}" ${click} style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border-radius:4px;">${content}</div>`;
+            html += `<div class="aspect-square rounded flex items-center justify-center text-2xl cursor-pointer ${bg} ${highlight} hover:ring-2 hover:ring-amber-400 transition" onclick="chessClick(${r},${c})">${content}</div>`;
           }
         }
         html += `</div>`;
-        const status = gameOver ? 'Oyun Bitti' : `${turn === 'white' ? 'Beyaz' : 'Siyah'} hamlesi`;
-        html += `<div class="text-xs text-center text-slate-400 mt-2">${status} | Skor: ${score}</div>`;
+        html += `<div class="text-xs text-center text-slate-400 mt-2">${turn === 'white' ? 'Beyaz' : 'Siyah'} hamlesi. Skor: ${score}</div>`;
         container.innerHTML = html;
         window.chessClick = chessClick;
       }
 
       function chessClick(row, col) {
-        if (!gameActive || gameOver) return;
+        if (gameOver) return;
         const piece = board[row][col];
         if (selected) {
+          // hamle yap
           const [sr, sc] = selected;
           const selectedPiece = board[sr][sc];
           if (selectedPiece) {
-            // Hamle kontrolü
-            const validMoves = getValidMoves(sr, sc);
-            const isValid = validMoves.some(([r, c]) => r === row && c === col);
-            if (isValid) {
-              // Hamle yap
-              const captured = board[row][col];
+            // basit hamle kontrolü - sadece ileri ve çapraz (piyon)
+            let valid = false;
+            const dr = row - sr;
+            const dc = col - sc;
+            if (selectedPiece.type === 'pawn') {
+              const dir = selectedPiece.color === 'white' ? -1 : 1;
+              if (dr === dir && dc === 0 && !piece) valid = true;
+              if (dr === dir && Math.abs(dc) === 1 && piece && piece.color !== selectedPiece.color) valid = true;
+            } else if (selectedPiece.type === 'king') {
+              if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1 && (!piece || piece.color !== selectedPiece.color)) valid = true;
+            }
+            if (valid) {
+              // hamle
               board[row][col] = selectedPiece;
               board[sr][sc] = null;
-              if (captured) {
+              // yemek
+              if (piece && piece.color !== selectedPiece.color) {
                 score += 5;
                 const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
                 s.chess = (s.chess || 0) + 5;
@@ -2794,13 +2763,12 @@
                 saveGameScoresToDB();
                 updateGameScoresUI();
                 updateUserUI();
-                showToast('♟️ Taş yendi! +5 skor', 'info');
+                showToast('♟️ Piyon yendi! +5 skor', 'info');
               }
-              // Şah kontrolü
+              // şah kontrolü
               const king = board[row][col];
               if (king && king.type === 'king') {
                 gameOver = true;
-                gameActive = false;
                 const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
                 s.chess = (s.chess || 0) + 20;
                 gameScores[currentUser.username] = s;
@@ -2811,14 +2779,10 @@
                 renderChess();
                 return;
               }
-              // Sıra değiş
+              // sıra değiş
               turn = turn === 'white' ? 'black' : 'white';
               selected = null;
               renderChess();
-              // Bot hamlesi
-              if (!gameOver && turn === 'black' && gameActive) {
-                setTimeout(botMove, 400);
-              }
               return;
             }
           }
@@ -2830,146 +2794,6 @@
           selected = [row, col];
           renderChess();
         }
-      }
-
-      function getValidMoves(row, col) {
-        const piece = board[row][col];
-        if (!piece) return [];
-        const moves = [];
-        const color = piece.color;
-        const enemy = color === 'white' ? 'black' : 'white';
-        const dir = color === 'white' ? -1 : 1;
-        const startRow = color === 'white' ? 6 : 1;
-
-        if (piece.type === 'pawn') {
-          // ileri
-          if (board[row + dir] && !board[row + dir][col]) {
-            moves.push([row + dir, col]);
-            if (row === startRow && !board[row + 2 * dir][col]) moves.push([row + 2 * dir, col]);
-          }
-          // çapraz yeme
-          for (let dc of [-1, 1]) {
-            const nr = row + dir,
-              nc = col + dc;
-            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] && board[nr][nc].color === enemy) {
-              moves.push([nr, nc]);
-            }
-          }
-        } else if (piece.type === 'king') {
-          for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-              if (dr === 0 && dc === 0) continue;
-              const nr = row + dr,
-                nc = col + dc;
-              if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc].color === enemy)) {
-                moves.push([nr, nc]);
-              }
-            }
-          }
-        } else if (piece.type === 'queen' || piece.type === 'rook' || piece.type === 'bishop') {
-          const dirs = piece.type === 'rook' ? [
-            [1, 0],
-            [-1, 0],
-            [0, 1],
-            [0, -1]
-          ] : piece.type === 'bishop' ? [
-            [1, 1],
-            [1, -1],
-            [-1, 1],
-            [-1, -1]
-          ] : [
-            [1, 0],
-            [-1, 0],
-            [0, 1],
-            [0, -1],
-            [1, 1],
-            [1, -1],
-            [-1, 1],
-            [-1, -1]
-          ];
-          for (let [dr, dc] of dirs) {
-            let r = row + dr,
-              c = col + dc;
-            while (r >= 0 && r < 8 && c >= 0 && c < 8) {
-              if (board[r][c]) {
-                if (board[r][c].color === enemy) moves.push([r, c]);
-                break;
-              }
-              moves.push([r, c]);
-              r += dr;
-              c += dc;
-            }
-          }
-        } else if (piece.type === 'knight') {
-          const jumps = [
-            [-2, -1],
-            [-2, 1],
-            [-1, -2],
-            [-1, 2],
-            [1, -2],
-            [1, 2],
-            [2, -1],
-            [2, 1]
-          ];
-          for (let [dr, dc] of jumps) {
-            const nr = row + dr,
-              nc = col + dc;
-            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc].color === enemy)) {
-              moves.push([nr, nc]);
-            }
-          }
-        }
-        return moves;
-      }
-
-      function botMove() {
-        if (!gameActive || gameOver) return;
-        // Bot siyah oynar - rastgele geçerli hamle
-        let pieces = [];
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const p = board[r][c];
-            if (p && p.color === 'black') {
-              const moves = getValidMoves(r, c);
-              if (moves.length > 0) {
-                pieces.push({ r, c, moves });
-              }
-            }
-          }
-        }
-        if (pieces.length === 0) {
-          // Beyaz kazandı
-          gameOver = true;
-          gameActive = false;
-          const s = gameScores[currentUser.username] || { minesweeper: 0, sudoku: 0, chess: 0 };
-          s.chess = (s.chess || 0) + 20;
-          gameScores[currentUser.username] = s;
-          saveGameScoresToDB();
-          updateGameScoresUI();
-          updateUserUI();
-          showToast('🎉 Botu yendin! +20 skor!', 'success');
-          renderChess();
-          return;
-        }
-        // Rastgele seç
-        const idx = Math.floor(Math.random() * pieces.length);
-        const { r, c, moves } = pieces[idx];
-        const move = moves[Math.floor(Math.random() * moves.length)];
-        const [nr, nc] = move;
-        const captured = board[nr][nc];
-        board[nr][nc] = board[r][c];
-        board[r][c] = null;
-        // Şah kontrolü
-        if (captured && captured.type === 'king') {
-          gameOver = true;
-          gameActive = false;
-          showToast('💀 Bot kazandı!', 'error');
-          renderChess();
-          return;
-        }
-        turn = 'white';
-        selected = null;
-        renderChess();
       }
 
       initChess();
@@ -3060,6 +2884,7 @@
       }
     }
 
+    // Başlangıçta dil Türkçe
     setLanguage('tr');
   </script>
 </body>
