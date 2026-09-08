@@ -571,6 +571,35 @@
     </div>
   </div>
 
+  <!-- TİK MODAL -->
+  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white">Tik Al</h3>
+        <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-slate-300">Kodunu girmek için aşağıdaki alanı kullan:</p>
+      <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+      <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
+      <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition">Onayla</button>
+    </div>
+  </div>
+
+  <!-- TİK GÖSTER MODAL -->
+  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
+      <img src="tick.png" alt="Tik" class="w-24 h-24 mx-auto object-contain">
+      <h3 class="text-xl font-bold text-white">Tebrikler!</h3>
+      <p class="text-sm text-slate-300">Tik başarıyla alındı!</p>
+      <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition">Kapat</button>
+    </div>
+  </div>
+
+  <!-- TİK AL BUTONU -->
+  <button onclick="openTikModal()" class="fixed bottom-4 right-4 z-40 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-cyan-500/30 transition">
+    <i class="fa-solid fa-certificate mr-1"></i> Tik Al
+  </button>
+
   <script>
     // ============================================================
     // KONFIGURASYON
@@ -599,6 +628,9 @@
     // Bildirim sistemi
     let notifications = [];
     let notificationCount = 0;
+
+    // Tik sistemi
+    const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
 
     // ============================================================
     // INDEXEDDB
@@ -850,8 +882,8 @@
         avatarUrl: null,
         followers: [],
         following: [],
-        neonColor: null, // Neon renk seçimi için
-        hasTik: false, // Tik durumu
+        neonColor: null,
+        hasTik: false,
         joinedAt: new Date().toISOString()
       };
 
@@ -1117,7 +1149,6 @@
         if (!postsDb.some(p => p.id === data.post.id)) {
           postsDb.unshift(data.post);
           await savePostsToDB();
-          // Bildirim ekle
           if (data.post.author.username !== currentUser.username) {
             addNotification(`${data.post.author.fullname} (@${data.post.author.username}) yeni bir gönderi paylaştı.`);
           }
@@ -1149,7 +1180,6 @@
         if (usersDb[data.followerUsername]) usersDb[data.followerUsername].following = data.following;
         await saveUsersToDB();
         if (data.targetUsername === currentUser.username) currentUser.followers = data.followers;
-        // Takip bildirimi
         if (data.followerUsername !== currentUser.username && data.targetUsername === currentUser.username) {
           const follower = usersDb[data.followerUsername];
           if (follower) {
@@ -1164,7 +1194,6 @@
       if (topic === TOPIC_DM + currentUser.username && data.type === 'DIRECT_MESSAGE') {
         dmsDb.push(data.message);
         await saveMessagesToDB();
-        // DM bildirimi
         addNotification(`@${data.message.sender} kullanıcısından yeni mesajınız var! 💬`);
         if (activeTab === 'messages' && selectedDmUser === data.message.sender) renderChatMessages();
         else { updateUnreadBadge(); }
@@ -1174,7 +1203,6 @@
         if (!commentsDb.some(c => c.id === data.comment.id)) {
           commentsDb.push(data.comment);
           await saveCommentsToDB();
-          // Yorum bildirimi
           if (data.comment.author.username !== currentUser.username) {
             const post = postsDb.find(p => p.id === data.comment.postId);
             if (post && post.author.username === currentUser.username) {
@@ -1201,7 +1229,6 @@
       });
       notificationCount = notifications.filter(n => !n.read).length;
       updateNotificationBadge();
-      // Toast ile göster
       showToast('🔔 ' + text, 'info');
     }
 
@@ -1220,7 +1247,6 @@
       const list = document.getElementById('notification-list');
       modal.classList.remove('hidden');
 
-      // Tüm bildirimleri okundu işaretle
       notifications.forEach(n => n.read = true);
       notificationCount = 0;
       updateNotificationBadge();
@@ -1325,7 +1351,6 @@
       return `<div class="${sizeClasses} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow">${letter}</div>`;
     }
 
-    // Tik rozeti gösteren fonksiyon (YENİ)
     function showTikBadge(userObj) {
       if (userObj && userObj.hasTik) {
         return `<img src="tick.png" class="tik-rozet" alt="Tik">`;
@@ -1338,12 +1363,10 @@
       const followerCount = (userObj.followers || []).length;
       let nameHtml = escapeHtml(userObj.fullname);
 
-      // Neon renk kontrolü (10 takipçi)
       if (followerCount >= 10 && userObj.neonColor) {
         nameHtml = `<span class="neon-text" style="color: ${userObj.neonColor};">${nameHtml}</span>`;
       }
 
-      // Tik rozetini ekle
       nameHtml += showTikBadge(userObj);
 
       return nameHtml;
@@ -1501,14 +1524,21 @@
     function renderFeed() {
       const container = document.getElementById('posts-container');
       if (!container) return;
+      
+      // GÖNDERİLERİ EN YENİDEN ESKİYE SIRALA
+      const sortedPosts = [...postsDb].sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      
       const feedCount = document.getElementById('post-feed-count');
-      if (feedCount) feedCount.innerText = `${postsDb.length} Gönderi`;
-      if (postsDb.length === 0) {
+      if (feedCount) feedCount.innerText = `${sortedPosts.length} Gönderi`;
+      
+      if (sortedPosts.length === 0) {
         container.innerHTML =
           `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500 space-y-2"><i class="fa-solid fa-comments text-3xl text-slate-700"></i><p class="text-sm">Henüz hiç gönderi paylaşılmadı. İlk gönderiyi sen at!</p></div>`;
         return;
       }
-      container.innerHTML = postsDb.map(post => createPostCardHtml(post)).join('');
+      container.innerHTML = sortedPosts.map(post => createPostCardHtml(post)).join('');
     }
 
     function createPostCardHtml(post) {
@@ -1591,7 +1621,6 @@
         if (index === 2) rankBadge =
           `<span class="w-8 h-8 rounded-xl bg-amber-700/20 text-amber-600 border border-amber-700/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥉</span>`;
 
-        // Neon renk kontrolü
         const nameDisplay = getUserDisplayName(u);
 
         return `
@@ -1633,9 +1662,7 @@
         targetUser.followers.push(currentUser.username);
         currentUser.following.push(targetUsername);
 
-        // Neon renk kontrolü - 10 takipçiye ulaştıysa ve neon rengi yoksa
         if (targetUser.followers.length >= 10 && !targetUser.neonColor) {
-          // Rastgele neon mor tonu
           const neonColors = [
             '#b026ff', '#9b00ff', '#8b00cc', '#7a00b3', '#6a0099',
             '#c44dff', '#d580ff', '#e6b3ff', '#a64dff', '#8000ff'
@@ -1644,7 +1671,6 @@
           usersDb[targetUsername] = targetUser;
           await saveUsersToDB();
           showToast(`🎉 @${targetUsername} 10 takipçiye ulaştı ve neon renk kazandı!`, 'success');
-          // Bildirim
           addNotification(`🎉 @${targetUsername} 10 takipçiye ulaştı ve neon renk kazandı!`);
         }
 
@@ -1769,10 +1795,16 @@
       document.getElementById('profile-fullname').innerHTML = getUserDisplayName(currentUser);
       document.getElementById('profile-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
       document.getElementById('profile-bio').innerText = currentUser.bio;
-      const myPosts = postsDb.filter(p => p.author.username === currentUser.username);
+      
+      // KENDİ GÖNDERİLERİNİ EN YENİDEN ESKİYE SIRALA
+      const myPosts = postsDb
+        .filter(p => p.author.username === currentUser.username)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
       document.getElementById('profile-stat-posts').innerText = myPosts.length;
       document.getElementById('profile-stat-followers').innerText = (currentUser.followers || []).length;
       document.getElementById('profile-stat-following').innerText = (currentUser.following || []).length;
+      
       const container = document.getElementById('profile-posts-container');
       if (myPosts.length === 0) {
         container.innerHTML =
@@ -1807,10 +1839,16 @@
       document.getElementById('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
       const followers = u.followers || [];
       const following = u.following || [];
-      const userPosts = postsDb.filter(p => p.author.username === username);
+      
+      // KULLANICININ GÖNDERİLERİNİ EN YENİDEN ESKİYE SIRALA
+      const userPosts = postsDb
+        .filter(p => p.author.username === username)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
       document.getElementById('pub-profile-posts-count').innerText = userPosts.length;
       document.getElementById('pub-profile-followers-count').innerText = followers.length;
       document.getElementById('pub-profile-following-count').innerText = following.length;
+      
       const isFollowing = currentUser.following && currentUser.following.includes(username);
       const followBtn = document.getElementById('pub-profile-follow-btn');
       if (followBtn) {
@@ -1944,12 +1982,8 @@
     }
 
     // ============================================================
-    // TİK ALMA SİSTEMİ (YENİ EKLENEN KISIM)
+    // TİK SİSTEMİ
     // ============================================================
-    
-    // >>> KODU BURADAN DEĞİŞTİR <<<
-    var gecerliKod = "000000000f00000₺000044ertugrulveMSZ"; 
-
     function openTikModal() {
       document.getElementById('tik-modal').classList.remove('hidden');
       document.getElementById('tik-input').value = '';
@@ -1965,24 +1999,20 @@
       const sonuc = document.getElementById('tik-sonuc');
 
       if (girilenKod === gecerliKod) {
-        // Kullanıcıya tik ver ve kalıcı olarak kaydet
         currentUser.hasTik = true;
         usersDb[currentUser.username] = currentUser;
         saveUsersToDB();
         
-        // Gönderi ve yorumlardaki ismi de güncelle
         postsDb.forEach(p => { if (p.author.username === currentUser.username) p.author.hasTik = true; });
         savePostsToDB();
         commentsDb.forEach(c => { if (c.author.username === currentUser.username) c.author.hasTik = true; });
         saveCommentsToDB();
 
-        // Arayüzü güncelle
         document.getElementById('tik-modal').classList.add('hidden');
         document.getElementById('tik-goster').classList.remove('hidden');
         sonuc.style.color = "green";
         sonuc.innerText = "Tik başarıyla alındı!";
         
-        // Güncellemeleri yansıt
         updateUserUI();
         renderFeed();
         renderUsersLeaderboard();
@@ -1993,40 +2023,6 @@
         sonuc.innerText = "Kod hatalı! Kod almak için @burak_msz instagram adresine DM at.";
       }
     }
-
-    // Tik modalını HTML'e ekleme (Görünümü)
-    const tikModalHtml = `
-      <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-bold text-white">Tik Al</h3>
-            <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-          </div>
-          <p class="text-sm text-slate-300">Kodunu girmek için aşağıdaki alanı kullan:</p>
-          <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-          <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
-          <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition">Onayla</button>
-        </div>
-      </div>
-
-      <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
-          <img src="tick.png" alt="Tik" class="w-24 h-24 mx-auto object-contain">
-          <h3 class="text-xl font-bold text-white">Tebrikler!</h3>
-          <p class="text-sm text-slate-300">Tik başarıyla alındı!</p>
-          <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition">Kapat</button>
-        </div>
-      </div>
-
-      <button onclick="openTikModal()" class="fixed bottom-4 right-4 z-40 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-cyan-500/30 transition">
-        <i class="fa-solid fa-certificate mr-1"></i> Tik Al
-      </button>
-    `;
-
-    // HTML'i body'nin en sonuna ekle
-    document.body.insertAdjacentHTML('beforeend', tikModalHtml);
-
   </script>
-
 </body>
 </html>
