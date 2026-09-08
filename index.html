@@ -75,6 +75,16 @@
         text-shadow: 0 0 10px currentColor, 0 0 25px currentColor, 0 0 50px currentColor;
       }
     }
+    
+    /* Tik rozeti stili */
+    .tik-rozet {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-left: 4px;
+      vertical-align: middle;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
@@ -178,7 +188,7 @@
     <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative z-10">
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
-          <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover" onerror="this.style.display='none'">
+          <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
         </div>
         <h1 class="text-2xl font-extrabold text-white tracking-tight">MSZ MEDYA</h1>
         <p class="text-xs text-slate-400 mt-1">Gerçek Zamanlı Sosyal Ağ</p>
@@ -231,7 +241,7 @@
       <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0" onclick="switchTab('feed')">
           <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-cyan-500/20 overflow-hidden shrink-0">
-            <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover" onerror="this.style.display='none'">
+            <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
           </div>
           <div class="hidden xs:block">
             <span class="font-bold text-sm sm:text-base text-white tracking-tight header-title">MSZ MEDYA</span>
@@ -841,6 +851,7 @@
         followers: [],
         following: [],
         neonColor: null, // Neon renk seçimi için
+        hasTik: false, // Tik durumu
         joinedAt: new Date().toISOString()
       };
 
@@ -1243,7 +1254,7 @@
     // ============================================================
     function sanitizeUserObj(u) {
       return { username: u.username, fullname: u.fullname, bio: u.bio, color: u.color, avatarUrl: u.avatarUrl,
-      followers: u.followers || [], following: u.following || [], neonColor: u.neonColor || null };
+      followers: u.followers || [], following: u.following || [], neonColor: u.neonColor || null, hasTik: u.hasTik || false };
     }
 
     function logSystem(msg) {
@@ -1314,6 +1325,14 @@
       return `<div class="${sizeClasses} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow">${letter}</div>`;
     }
 
+    // Tik rozeti gösteren fonksiyon (YENİ)
+    function showTikBadge(userObj) {
+      if (userObj && userObj.hasTik) {
+        return `<img src="tick.png" class="tik-rozet" alt="Tik">`;
+      }
+      return '';
+    }
+
     function getUserDisplayName(userObj) {
       if (!userObj) return '?';
       const followerCount = (userObj.followers || []).length;
@@ -1323,13 +1342,17 @@
       if (followerCount >= 10 && userObj.neonColor) {
         nameHtml = `<span class="neon-text" style="color: ${userObj.neonColor};">${nameHtml}</span>`;
       }
+
+      // Tik rozetini ekle
+      nameHtml += showTikBadge(userObj);
+
       return nameHtml;
     }
 
     function updateUserUI() {
       if (!currentUser) return;
       document.getElementById('header-avatar').innerHTML = renderAvatarElement(currentUser, "w-full h-full text-sm");
-      document.getElementById('header-username-display').innerText = '@' + currentUser.username;
+      document.getElementById('header-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
       document.getElementById('sidebar-avatar').innerHTML = renderAvatarElement(currentUser, "w-full h-full text-lg");
       document.getElementById('sidebar-username-display').innerHTML = getUserDisplayName(currentUser);
       document.getElementById('sidebar-bio').innerText = currentUser.bio;
@@ -1362,7 +1385,7 @@
         likes: [],
         comments: [],
         author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600',
-          avatarUrl: currentUser.avatarUrl || null }
+          avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false }
       };
 
       postsDb.unshift(newPost);
@@ -1399,7 +1422,7 @@
         id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
         postId, text,
         author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600',
-          avatarUrl: currentUser.avatarUrl || null },
+          avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false },
         createdAt: new Date().toISOString()
       };
 
@@ -1407,7 +1430,7 @@
       await saveCommentsToDB();
 
       const post = postsDb.find(p => p.id === postId);
-      if (post) { if (!post.comments) post.comments = [];
+      if (post) { if (!post.comments) post.comments = []; 
         post.comments.push(comment.id);
         await savePostsToDB(); }
 
@@ -1431,7 +1454,7 @@
             <div class="w-6 h-6 shrink-0">${renderAvatarElement(c.author, "w-6 h-6 text-xs")}</div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-bold text-xs text-white">${escapeHtml(c.author.fullname)}</span>
+                <span class="font-bold text-xs text-white">${escapeHtml(c.author.fullname)}${showTikBadge(c.author)}</span>
                 <span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span>
                 <span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span>
               </div>
@@ -1446,7 +1469,7 @@
       commentsDb = commentsDb.filter(c => c.id !== commentId);
       await saveCommentsToDB();
       const post = postsDb.find(p => p.id === postId);
-      if (post && post.comments) { post.comments = post.comments.filter(id => id !== commentId);
+      if (post && post.comments) { post.comments = post.comments.filter(id => id !== commentId); 
         await savePostsToDB(); }
       renderComments(postId);
       renderFeed();
@@ -1731,7 +1754,7 @@
 
     function updateUnreadBadge() {
       const badge = document.getElementById('unread-dm-badge');
-      if (badge) { let current = parseInt(badge.innerText) || 0;
+      if (badge) { let current = parseInt(badge.innerText) || 0; 
         badge.innerText = current + 1;
         badge.classList.remove('hidden'); }
     }
@@ -1744,7 +1767,7 @@
       document.getElementById('profile-main-avatar').innerHTML = renderAvatarElement(currentUser,
         "w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl");
       document.getElementById('profile-fullname').innerHTML = getUserDisplayName(currentUser);
-      document.getElementById('profile-username-display').innerText = '@' + currentUser.username;
+      document.getElementById('profile-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
       document.getElementById('profile-bio').innerText = currentUser.bio;
       const myPosts = postsDb.filter(p => p.author.username === currentUser.username);
       document.getElementById('profile-stat-posts').innerText = myPosts.length;
@@ -1780,7 +1803,7 @@
       document.getElementById('pub-profile-avatar').innerHTML = renderAvatarElement(u,
         "w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl");
       document.getElementById('pub-profile-fullname').innerHTML = getUserDisplayName(u);
-      document.getElementById('pub-profile-username').innerText = '@' + u.username;
+      document.getElementById('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u);
       document.getElementById('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
       const followers = u.followers || [];
       const following = u.following || [];
@@ -1837,8 +1860,8 @@
           const maxDim = 250;
           let width = img.width,
             height = img.height;
-          if (width > height) { if (width > maxDim) { height *= maxDim / width;
-              width = maxDim; } } else { if (height > maxDim) { width *= maxDim / height;
+          if (width > height) { if (width > maxDim) { height *= maxDim / width; 
+              width = maxDim; } } else { if (height > maxDim) { width *= maxDim / height; 
               height = maxDim; } }
           canvas.width = width;
           canvas.height = height;
@@ -1861,10 +1884,10 @@
       if (tempAvatarBase64) currentUser.avatarUrl = tempAvatarBase64;
       usersDb[currentUser.username] = currentUser;
       await saveUsersToDB();
-      postsDb.forEach(p => { if (p.author.username === currentUser.username) { p.author.fullname = newFullname;
+      postsDb.forEach(p => { if (p.author.username === currentUser.username) { p.author.fullname = newFullname; 
           p.author.avatarUrl = currentUser.avatarUrl; } });
       await savePostsToDB();
-      commentsDb.forEach(c => { if (c.author.username === currentUser.username) { c.author.fullname = newFullname;
+      commentsDb.forEach(c => { if (c.author.username === currentUser.username) { c.author.fullname = newFullname; 
           c.author.avatarUrl = currentUser.avatarUrl; } });
       await saveCommentsToDB();
       if (mqttClient && mqttClient.connected) {
@@ -1891,7 +1914,7 @@
       toast.innerText = message;
       container.appendChild(toast);
       setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
-      setTimeout(() => { toast.classList.add('opacity-0');
+      setTimeout(() => { toast.classList.add('opacity-0'); 
         setTimeout(() => toast.remove(), 300); }, 4000);
     }
 
@@ -1919,6 +1942,90 @@
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g,
         "&#039;");
     }
+
+    // ============================================================
+    // TİK ALMA SİSTEMİ (YENİ EKLENEN KISIM)
+    // ============================================================
+    
+    // >>> KODU BURADAN DEĞİŞTİR <<<
+    var gecerliKod = "7788ab"; 
+
+    function openTikModal() {
+      document.getElementById('tik-modal').classList.remove('hidden');
+      document.getElementById('tik-input').value = '';
+      document.getElementById('tik-sonuc').innerText = '';
+    }
+
+    function closeTikModal() {
+      document.getElementById('tik-modal').classList.add('hidden');
+    }
+
+    function tikKontrolEt() {
+      const girilenKod = document.getElementById('tik-input').value.trim();
+      const sonuc = document.getElementById('tik-sonuc');
+
+      if (girilenKod === gecerliKod) {
+        // Kullanıcıya tik ver ve kalıcı olarak kaydet
+        currentUser.hasTik = true;
+        usersDb[currentUser.username] = currentUser;
+        saveUsersToDB();
+        
+        // Gönderi ve yorumlardaki ismi de güncelle
+        postsDb.forEach(p => { if (p.author.username === currentUser.username) p.author.hasTik = true; });
+        savePostsToDB();
+        commentsDb.forEach(c => { if (c.author.username === currentUser.username) c.author.hasTik = true; });
+        saveCommentsToDB();
+
+        // Arayüzü güncelle
+        document.getElementById('tik-modal').classList.add('hidden');
+        document.getElementById('tik-goster').classList.remove('hidden');
+        sonuc.style.color = "green";
+        sonuc.innerText = "Tik başarıyla alındı!";
+        
+        // Güncellemeleri yansıt
+        updateUserUI();
+        renderFeed();
+        renderUsersLeaderboard();
+        renderDmUserList();
+        renderProfileTab();
+      } else {
+        sonuc.style.color = "red";
+        sonuc.innerText = "Kod hatalı! Kod almak için @burak_msz instagram adresine DM at.";
+      }
+    }
+
+    // Tik modalını HTML'e ekleme (Görünümü)
+    const tikModalHtml = `
+      <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white">Tik Al</h3>
+            <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+          </div>
+          <p class="text-sm text-slate-300">Kodunu girmek için aşağıdaki alanı kullan:</p>
+          <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+          <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
+          <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition">Onayla</button>
+        </div>
+      </div>
+
+      <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
+          <img src="tick.png" alt="Tik" class="w-24 h-24 mx-auto object-contain">
+          <h3 class="text-xl font-bold text-white">Tebrikler!</h3>
+          <p class="text-sm text-slate-300">Tik başarıyla alındı!</p>
+          <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition">Kapat</button>
+        </div>
+      </div>
+
+      <button onclick="openTikModal()" class="fixed bottom-4 right-4 z-40 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-cyan-500/30 transition">
+        <i class="fa-solid fa-certificate mr-1"></i> Tik Al
+      </button>
+    `;
+
+    // HTML'i body'nin en sonuna ekle
+    document.body.insertAdjacentHTML('beforeend', tikModalHtml);
+
   </script>
 
 </body>
