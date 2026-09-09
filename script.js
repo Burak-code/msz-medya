@@ -1,10 +1,4 @@
     // ============================================================
-    // TİK KONFIGURASYONU - BURADAN DEĞİŞTİR !!!
-    // ============================================================
-    const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
-    const tikRengi = "blue"; // "purple" veya "blue" - BURADAN DEĞİŞTİR!
-
-    // ============================================================
     // DİL DESTEĞİ
     // ============================================================
     const langData = {
@@ -2427,50 +2421,72 @@
       document.getElementById('tik-modal').classList.add('hidden');
     }
 
-    function tikKontrolEt() {
+async function tikKontrolEt() {
       const girilenKod = document.getElementById('tik-input').value.trim();
       const sonuc = document.getElementById('tik-sonuc');
 
-      if (girilenKod === gecerliKod) {
-        currentUser.hasTik = true;
-        currentUser.tikRengi = tikRengi;
-        usersDb[currentUser.username] = currentUser;
-        saveUsersToDB();
-        
-        postsDb.forEach(p => { 
-          if (p.author.username === currentUser.username) {
-            p.author.hasTik = true;
-            p.author.tikRengi = tikRengi;
-          }
-        });
-        savePostsToDB();
-        
-        commentsDb.forEach(c => { 
-          if (c.author.username === currentUser.username) {
-            c.author.hasTik = true;
-            c.author.tikRengi = tikRengi;
-          }
-        });
-        saveCommentsToDB();
+      if (!girilenKod) {
+          sonuc.style.color = "red";
+          sonuc.innerText = "❌ Lütfen bir kod girin!";
+          return;
+      }
 
-        document.getElementById('tik-modal').classList.add('hidden');
-        // Tik göster modalında doğru resmi göster
-        const tikImg = document.getElementById('tik-goster-img');
-        tikImg.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
-        document.getElementById('tik-goster').classList.remove('hidden');
-        sonuc.style.color = "green";
-        sonuc.innerText = "Tik başarıyla alındı!";
-        
-        updateUserUI();
-        renderFeed();
-        renderUsersLeaderboard();
-        renderDmUserList();
-        renderProfileTab();
-        renderGroups();
-        updateGroupCreateButton();
-      } else {
-        sonuc.style.color = "red";
-        sonuc.innerText = "❌ Kod hatalı! Kod almak için @burak_msz instagram adresine DM at.";
+      try {
+          // 📌 BURAYA RENDER'DAN ALDIĞIN LINKİ YAZ!
+          const response = await fetch('https://msz-backend.onrender.com/api/tik-kontrol', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ kod: girilenKod })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+              // ✅ Tik ver!
+              currentUser.hasTik = true;
+              currentUser.tikRengi = tikRengi;
+              usersDb[currentUser.username] = currentUser;
+              await saveUsersToDB();
+
+              postsDb.forEach(p => {
+                  if (p.author.username === currentUser.username) {
+                      p.author.hasTik = true;
+                      p.author.tikRengi = tikRengi;
+                  }
+              });
+              await savePostsToDB();
+
+              commentsDb.forEach(c => {
+                  if (c.author.username === currentUser.username) {
+                      c.author.hasTik = true;
+                      c.author.tikRengi = tikRengi;
+                  }
+              });
+              await saveCommentsToDB();
+
+              document.getElementById('tik-modal').classList.add('hidden');
+              const tikImg = document.getElementById('tik-goster-img');
+              tikImg.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+              document.getElementById('tik-goster').classList.remove('hidden');
+              sonuc.style.color = "green";
+              sonuc.innerText = "✅ Tik başarıyla alındı!";
+
+              updateUserUI();
+              renderFeed();
+              renderUsersLeaderboard();
+              renderDmUserList();
+              renderProfileTab();
+              renderGroups();
+              updateGroupCreateButton();
+
+          } else {
+              sonuc.style.color = "red";
+              sonuc.innerText = data.error || "❌ Kod hatalı!";
+          }
+      } catch (error) {
+          console.error('Backend hatası:', error);
+          sonuc.style.color = "red";
+          sonuc.innerText = "❌ Sunucuya bağlanılamadı!";
       }
     }
 
