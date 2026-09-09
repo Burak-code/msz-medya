@@ -1,7 +1,7 @@
 // ============================================================
 // BACKEND URL - DOĞRU! (BUNU KULLAN)
 // ============================================================
-const API_URL = 'https://msz-medya.onrender.com';
+const API_URL = 'https://msz-backend.onrender.com/api';
 
      // ============================================================
     // DİL DESTEĞİ
