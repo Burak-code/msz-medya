@@ -2549,7 +2549,6 @@ async function tikKontrolEt() {
 // ============================================================
 // PUBLIC PROFILE - HERKESİN PROFİLİNİ AÇ
 // ============================================================
-let viewingPublicUsername = null;
 
 function openPublicProfileModal(username) {
     // Eğer kendi profiline tıklarsa, kendi profiline git
