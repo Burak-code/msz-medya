@@ -1,14 +1,10 @@
-// ============================================================
-// TİK RENGİ - BURADAN DEĞİŞTİR!
-// ============================================================
-const tikRengi = "purple"; // "purple" veya "blue" yaz!
+    // ============================================================
+    // TİK KONFIGURASYONU - BURADAN DEĞİŞTİR !!!
+    // ============================================================
+    const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
+    const tikRengi = "blue"; // "purple" veya "blue" - BURADAN DEĞİŞTİR!
 
-// ============================================================
-// BACKEND URL - DOĞRU! (BUNU KULLAN)
-// ============================================================
-const API_URL = 'https://msz-medya.onrender.com';
-
-     // ============================================================
+    // ============================================================
     // DİL DESTEĞİ
     // ============================================================
     const langData = {
@@ -611,45 +607,85 @@ const API_URL = 'https://msz-medya.onrender.com';
       }
     }
 
-    async function handleRegister(e) {
-      e.preventDefault();
-      const username = document.getElementById('reg-username').value.trim().toLowerCase();
-      const password = document.getElementById('reg-password').value;
+async function handleRegister(e) {
+  e.preventDefault();
+  const username = document.getElementById('reg-username').value.trim().toLowerCase();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
 
-      if (usersDb[username]) {
-        showModal('Hata', 'Bu kullanıcı adı zaten başka bir üye tarafından alınmış!', 'error');
-        return;
-      }
+  if (!username || !email || !password) {
+    showModal('Hata', 'Tüm alanları doldurun.', 'error');
+    return;
+  }
 
-      const colors = ['bg-cyan-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-purple-600', 'bg-rose-600', 'bg-amber-600'];
-      const userColor = colors[Math.floor(Math.random() * colors.length)];
+  if (usersDb[username]) {
+    showModal('Hata', 'Bu kullanıcı adı zaten başka bir üye tarafından alınmış!', 'error');
+    return;
+  }
 
-      const newUser = {
-        username,
-        fullname: username,
-        bio: 'MSZ MEDYA üyesi.',
-        password,
-        color: userColor,
-        avatarUrl: null,
-        followers: [],
-        following: [],
-        neonColor: null,
-        hasTik: false,
-        tikRengi: null,
-        joinedAt: new Date().toISOString()
-      };
+  try {
+    // Firebase Auth ile kayıt
+    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+    const uid = userCredential.user.uid;
 
-      usersDb[username] = newUser;
-      await saveUsersToDB();
+    // Firestore'a kullanıcı yaz
+    await window.firebaseDb.collection('users').doc(uid).set({
+      username: username,
+      email: email,
+      fullname: username,
+      bio: 'MSZ MEDYA üyesi.',
+      hasTik: false,
+      tikRengi: null,
+      followers: [],
+      following: [],
+      neonColor: null,
+      createdAt: new Date().toISOString()
+    });
 
-      currentUser = newUser;
-      localStorage.setItem('sp_social_active_user', username);
-      localStorage.setItem('sp_social_username', username);
-      localStorage.setItem('sp_social_password', password);
+    // Eski sistemi de çalışır tut
+    const colors = ['bg-cyan-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-purple-600', 'bg-rose-600', 'bg-amber-600'];
+    const userColor = colors[Math.floor(Math.random() * colors.length)];
 
-      showToast('Kayıt başarılı! Hoş geldiniz.', 'success');
-      launchMainApp();
+    const newUser = {
+      username,
+      fullname: username,
+      bio: 'MSZ MEDYA üyesi.',
+      password,
+      color: userColor,
+      avatarUrl: null,
+      followers: [],
+      following: [],
+      neonColor: null,
+      hasTik: false,
+      tikRengi: null,
+      joinedAt: new Date().toISOString(),
+      uid: uid
+    };
+
+    usersDb[username] = newUser;
+    await saveUsersToDB();
+
+    currentUser = newUser;
+    localStorage.setItem('sp_social_active_user', username);
+    localStorage.setItem('sp_social_username', username);
+    localStorage.setItem('sp_social_password', password);
+
+    showToast('Kayıt başarılı! Hoş geldiniz.', 'success');
+    launchMainApp();
+
+  } catch (error) {
+    console.error(error);
+    if (error.code === 'auth/email-already-in-use') {
+      showModal('Hata', 'Bu e-posta adresi zaten kullanılıyor.', 'error');
+    } else if (error.code === 'auth/weak-password') {
+      showModal('Hata', 'Şifre en az 6 karakter olmalı.', 'error');
+    } else if (error.code === 'auth/invalid-email') {
+      showModal('Hata', 'Geçersiz e-posta adresi.', 'error');
+    } else {
+      showModal('Hata', 'Kayıt sırasında bir hata oluştu: ' + (error.message || error), 'error');
     }
+  }
+}
 
     async function handleLogin(e) {
       e.preventDefault();
@@ -681,11 +717,17 @@ const API_URL = 'https://msz-medya.onrender.com';
       launchMainApp();
     }
 
-    function logout() {
-      localStorage.removeItem('sp_social_active_user');
-      if (mqttClient) mqttClient.end();
-      location.reload();
-    }
+function logout() {
+  localStorage.removeItem('sp_social_active_user');
+  localStorage.removeItem('sp_social_username');
+  localStorage.removeItem('sp_social_password');
+  currentUser = null;
+  if (mqttClient) {
+    try { mqttClient.end(true); } catch(e) {}
+    mqttClient = null;
+  }
+  location.reload();
+}
 
     function launchMainApp() {
       document.getElementById('auth-screen').classList.add('hidden');
@@ -1608,22 +1650,14 @@ const API_URL = 'https://msz-medya.onrender.com';
       return `<div class="${sizeClasses} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow">${letter}</div>`;
     }
 
-function showTikBadge(userObj) {
-    if (userObj && userObj.hasTik) {
-        let tikDosya = 'tick-b.png'; // varsayılan mavi
-        
-        if (userObj.tikRengi === 'purple') {
-            tikDosya = 'tick-p.png';
-        } else if (userObj.tikRengi === 'red') {
-            tikDosya = 'tick-r.png'; // 🔴 KIRMIZI!
-        } else if (userObj.tikRengi === 'blue') {
-            tikDosya = 'tick-b.png';
-        }
-        
+    function showTikBadge(userObj) {
+      if (userObj && userObj.hasTik) {
+        // Kullanıcının tik rengine göre dosya seç
+        const tikDosya = userObj.tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
         return `<img src="${tikDosya}" class="tik-rozet" alt="Tik">`;
+      }
+      return '';
     }
-    return '';
-}
 
     function getUserDisplayName(userObj) {
       if (!userObj) return '?';
@@ -2439,68 +2473,52 @@ function showTikBadge(userObj) {
       document.getElementById('tik-modal').classList.add('hidden');
     }
 
-// ============================================================
-// TİK KONTROL - BACKEND'E SOR!
-// ============================================================
-async function tikKontrolEt() {
-    const girilenKod = document.getElementById('tik-input').value.trim();
-    const sonuc = document.getElementById('tik-sonuc');
+    function tikKontrolEt() {
+      const girilenKod = document.getElementById('tik-input').value.trim();
+      const sonuc = document.getElementById('tik-sonuc');
 
-    if (!girilenKod) {
-        sonuc.style.color = "red";
-        sonuc.innerText = "❌ Lütfen bir kod girin!";
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/tik-kontrol`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ kod: girilenKod })
+      if (girilenKod === gecerliKod) {
+        currentUser.hasTik = true;
+        currentUser.tikRengi = tikRengi;
+        usersDb[currentUser.username] = currentUser;
+        saveUsersToDB();
+        
+        postsDb.forEach(p => { 
+          if (p.author.username === currentUser.username) {
+            p.author.hasTik = true;
+            p.author.tikRengi = tikRengi;
+          }
         });
+        savePostsToDB();
+        
+        commentsDb.forEach(c => { 
+          if (c.author.username === currentUser.username) {
+            c.author.hasTik = true;
+            c.author.tikRengi = tikRengi;
+          }
+        });
+        saveCommentsToDB();
 
-        const data = await response.json();
-
-        if (data.success) {
-            // ✅ Tik ver!
-            currentUser.hasTik = true;
-            currentUser.tikRengi = tikRengi; // ⚠️ BU SATIRI EKLEDİM!
-            
-            // ✅ Veritabanını güncelle
-            usersDb[currentUser.username] = currentUser;
-            saveUsersToDB();
-            
-            // ✅ UI'ı güncelle (Tik'i göster!)
-            updateUserUI();
-            renderFeed();
-            renderUsersLeaderboard();
-            renderDmUserList();
-            renderProfileTab();
-            renderGroups();
-            updateGroupCreateButton();
-
-            // ✅ Modalı kapat
-            document.getElementById('tik-modal').classList.add('hidden');
-            
-            // ✅ Tik göster modalını aç
-            const tikImg = document.getElementById('tik-goster-img');
-            tikImg.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
-            document.getElementById('tik-goster').classList.remove('hidden');
-            
-            sonuc.style.color = "green";
-            sonuc.innerText = "✅ Tik başarıyla alındı!";
-            
-        } else {
-            sonuc.style.color = "red";
-            sonuc.innerText = data.error || "❌ Kod hatalı!";
-        }
-    } catch (error) {
-        console.error('Backend hatası:', error);
+        document.getElementById('tik-modal').classList.add('hidden');
+        // Tik göster modalında doğru resmi göster
+        const tikImg = document.getElementById('tik-goster-img');
+        tikImg.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+        document.getElementById('tik-goster').classList.remove('hidden');
+        sonuc.style.color = "green";
+        sonuc.innerText = "Tik başarıyla alındı!";
+        
+        updateUserUI();
+        renderFeed();
+        renderUsersLeaderboard();
+        renderDmUserList();
+        renderProfileTab();
+        renderGroups();
+        updateGroupCreateButton();
+      } else {
         sonuc.style.color = "red";
-        sonuc.innerText = "❌ Sunucuya bağlanılamadı!";
+        sonuc.innerText = "❌ Kod hatalı! Kod almak için @burak_msz instagram adresine DM at.";
+      }
     }
-}
-
 
     // ============================================================
     // UI HELPERS
