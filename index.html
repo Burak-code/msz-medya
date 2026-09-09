@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <link rel="icon" type="image/png" href="favicon.png" sizes="32x32">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MSZ MEDYA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- TOAST -->
+  <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 max-w-sm mx-auto pointer-events-none sm:left-auto sm:right-4"></div>
+
+  <!-- BİLDİRİM MODALI -->
+  <div id="notification-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-regular fa-bell text-amber-400"></i> <span id="notif-modal-title">Bildirimler</span>
+        </h3>
+        <button onclick="closeNotificationModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="notification-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+        <div class="text-center text-slate-500 text-sm py-8">Henüz bildirim yok.</div>
+      </div>
+      <button onclick="clearAllNotifications()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition touch-target">Tümünü Temizle</button>
+    </div>
+  </div>
+
+  <!-- MODAL (Hata/Uyarı) -->
+  <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center gap-3">
+        <div id="modal-icon-bg" class="w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500/10 text-cyan-400 shrink-0">
+          <i id="modal-icon" class="fa-solid fa-circle-info text-lg"></i>
+        </div>
+        <h3 id="modal-title" class="text-lg font-bold text-white">Bildirim</h3>
+      </div>
+      <p id="modal-body" class="text-slate-300 text-sm leading-relaxed"></p>
+      <div class="flex justify-end gap-3 pt-2">
+        <button id="modal-close-btn" onclick="closeModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition touch-target">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ŞİFRE DEĞİŞTİRME MODALI -->
+  <div id="change-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white"><span id="change-pass-title">Şifre Değiştir</span></h3>
+        <button onclick="closeChangePasswordModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form onsubmit="changePassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="current-pass-label">Mevcut Şifre</label>
+          <input type="password" id="current-password" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="new-pass-label">Yeni Şifre</label>
+          <input type="password" id="new-password" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="new-pass-confirm-label">Yeni Şifre (Tekrar)</label>
+          <input type="password" id="new-password-confirm" required minlength="4" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target" id="cancel-pass-btn">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target" id="update-pass-btn">Şifreyi Güncelle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ŞİFREMİ UNUTTUM MODALI -->
+  <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-amber-400"></i>
+          <span id="forgot-pass-title">Şifremi Unuttum</span>
+        </h3>
+        <button onclick="closeForgotPasswordModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-xs text-slate-400" id="forgot-pass-desc">Yeni şifreni belirle.</p>
+      <form onsubmit="resetPassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-username-label">Kullanıcı Adı</label>
+          <input type="text" id="forgot-username" disabled class="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-sm text-slate-400 cursor-not-allowed">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-new-pass-label">Yeni Şifre</label>
+          <input type="password" id="forgot-new-password" required minlength="4" placeholder="Yeni şifreni gir..." class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="forgot-new-pass-confirm-label">Yeni Şifre (Tekrar)</label>
+          <input type="password" id="forgot-new-password-confirm" required minlength="4" placeholder="Yeni şifreni tekrar gir..." class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeForgotPasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target" id="forgot-cancel-btn">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-xl shadow touch-target" id="forgot-reset-btn">Şifreyi Sıfırla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- HESAP SİLME MODALI -->
+  <div id="delete-account-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-rose-500 flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation"></i> <span id="delete-account-title">Hesabı Sil</span>
+        </h3>
+        <button onclick="closeDeleteAccountModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-xs text-slate-400" id="delete-warning-text">Bu işlem geri alınamaz! Tüm gönderileriniz, yorumlarınız ve mesajlarınız silinecektir.</p>
+      <form onsubmit="deleteAccount(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="delete-pass-label">Şifreniz</label>
+          <input type="password" id="delete-password" required placeholder="••••••••" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-rose-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="delete-confirm-label">Onaylamak için yazın: <span class="text-rose-400 font-bold">hesabımı sil</span></label>
+          <input type="text" id="delete-confirm-text" required placeholder="hesabımı sil" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-rose-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeDeleteAccountModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target" id="cancel-delete-btn">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow touch-target" id="confirm-delete-btn">
+            <i class="fa-solid fa-trash-can mr-1"></i> <span>Hesabı Sil</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TAKİPÇİ LİSTESİ MODALI -->
+  <div id="followers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-users text-indigo-400"></i>
+          <span id="followers-modal-title">Takipçiler</span>
+        </h3>
+        <button onclick="closeFollowersModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="followers-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+        <div class="text-center text-slate-500 text-sm py-8">Henüz takipçi yok.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAKİP EDİLEN LİSTESİ MODALI -->
+  <div id="following-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-cyan-400"></i>
+          <span id="following-modal-title">Takip Edilenler</span>
+        </h3>
+        <button onclick="closeFollowingModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="following-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+        <div class="text-center text-slate-500 text-sm py-8">Henüz kimse takip edilmiyor.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUP OLUŞTURMA MODALI -->
+  <div id="create-group-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-users text-cyan-400"></i>
+          <span id="create-group-title">Grup Oluştur</span>
+        </h3>
+        <button onclick="closeCreateGroupModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <form onsubmit="createGroup(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-name-label">Grup Adı *</label>
+            <input type="text" id="group-name" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-desc-label">Açıklama *</label>
+            <textarea id="group-desc" rows="2" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-type-label">Katılım Tipi *</label>
+            <select id="group-type" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+              <option value="public">Herkese Açık</option>
+              <option value="request">İstek Gönder</option>
+              <option value="followers">Sadece Takipçiler</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-password-label">Grup Şifresi (isteğe bağlı)</label>
+            <input type="text" id="group-password" placeholder="Şifre belirle" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-emoji-label">Grup Emojisi (isteğe bağlı)</label>
+            <input type="text" id="group-emoji" placeholder="🎮" maxlength="2" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-tag-label">Tag (isteğe bağlı)</label>
+            <input type="text" id="group-tag" placeholder="#grup" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1" id="group-photo-label">Grup Fotoğrafı (isteğe bağlı)</label>
+            <input type="file" id="group-photo" accept="image/*" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white file:text-xs hover:file:bg-cyan-400">
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="closeCreateGroupModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
+            <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Grubu Oluştur</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUP DETAY MODALI -->
+  <div id="group-detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2" id="group-detail-title">
+          <span id="group-detail-emoji">🎮</span>
+          <span id="group-detail-name">Grup Adı</span>
+        </h3>
+        <button onclick="closeGroupDetailModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+        <div class="flex items-center gap-3">
+          <div id="group-detail-photo" class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden">📁</div>
+          <div>
+            <p id="group-detail-desc" class="text-xs text-slate-300">Açıklama</p>
+            <p id="group-detail-owner" class="text-[10px] text-slate-500">Kurucu: @...</p>
+            <p id="group-detail-type" class="text-[10px] text-cyan-400">Herkese Açık</p>
+          </div>
+        </div>
+        <div id="group-detail-password-container" class="hidden">
+          <label class="block text-xs font-medium text-slate-400 mb-1">Grup Şifresi</label>
+          <input type="text" id="group-detail-password-input" placeholder="Şifreyi gir..." class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+        </div>
+        <button id="group-detail-join-btn" onclick="joinGroup()" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition touch-target">Gruba Katıl</button>
+        <button id="group-detail-leave-btn" onclick="leaveGroup()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold rounded-xl transition touch-target hidden">Gruptan Ayrıl</button>
+        <button id="group-detail-delete-btn" onclick="deleteGroup()" class="w-full py-2.5 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded-xl transition touch-target hidden">Grubu Sil</button>
+        <div class="pt-2 border-t border-slate-800">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Katılımcılar (<span id="group-detail-member-count">0</span>)</h4>
+          <div id="group-detail-members" class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+            <div class="text-xs text-slate-500 text-center py-4">Henüz katılımcı yok.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TİK ŞARTLARI MODALI -->
+  <div id="tik-terms-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-certificate"></i>
+          <span>Tik Alma Şartları</span>
+        </h3>
+        <button onclick="closeTikTermsModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 text-sm text-slate-300">
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">1.</span>
+            <span>Instagram adresini <span class="text-cyan-400 font-bold">@burak_msz</span>'ye vermek zorundasın. Yoksa tik alamazsın.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">2.</span>
+            <span>Tiki kötüye kullanmayacağına, can sıkacak troll yapmayacağına ve platforma ne gibi katkı sağlayacağına bakmam gerek.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">3.</span>
+            <span>İSTEĞE BAĞLI: Bağışla veya bağışsız tik alabilirsin.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">4.</span>
+            <span>Tik istedikten sonra bir kaç gün seni izleyeceğiz. Ne kadar aktifsin, platforma ne katıyorsun.</span>
+          </p>
+        </div>
+        <div class="bg-slate-950/50 p-3 rounded-xl border border-amber-800/50">
+          <p class="flex items-start gap-2">
+            <span class="text-amber-400 font-bold">5.</span>
+            <span>Şartlar sağlanınca tikin verilir.</span>
+          </p>
+        </div>
+      </div>
+      <button onclick="closeTikTermsAndContinue()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-xl transition touch-target">Şartları Kabul Et ve Devam Et</button>
+    </div>
+  </div>
+
+  <!-- TİK MODAL -->
+  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white" id="tik-modal-title">Tik Al</h3>
+        <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-slate-300" id="tik-modal-desc">Kodunu girmek için aşağıdaki alanı kullan:</p>
+      <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+      <p id="tik-sonuc" class="text-xs font-bold mt-2"></p>
+      <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition" id="tik-confirm-btn">Onayla</button>
+    </div>
+  </div>
+
+  <!-- TİK GÖSTER MODAL -->
+  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
+      <img src="tick-p.png" id="tik-goster-img" alt="Tik" class="w-24 h-24 mx-auto object-contain">
+      <h3 class="text-xl font-bold text-white" id="tik-congrats-title">Tebrikler!</h3>
+      <p class="text-sm text-slate-300" id="tik-congrats-desc">Tik başarıyla alındı!</p>
+      <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition" id="tik-close-btn">Kapat</button>
+    </div>
+  </div>
+
+  <!-- TİK AL BUTONU -->
+  <button onclick="openTikModal()" class="fixed bottom-4 right-4 z-40 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition">
+    <i class="fa-solid fa-certificate mr-1"></i> <span id="tik-get-btn">Tik Al</span>
+  </button>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative z-10">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
+          <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
+        </div>
+        <h1 class="text-2xl font-extrabold text-white tracking-tight">MSZ MEDYA</h1>
+        <p class="text-xs text-slate-400 mt-1" id="auth-subtitle">Gerçek Zamanlı Sosyal Ağ</p>
+        <div class="flex justify-center gap-2 mt-2">
+          <span class="flag-icon" onclick="setLanguage('tr')" title="Türkçe">🇹🇷</span>
+          <span class="flag-icon" onclick="setLanguage('en')" title="English">🇬🇧</span>
+        </div>
+      </div>
+      <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
+        <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target" id="auth-login-tab">Giriş Yap</button>
+        <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target" id="auth-register-tab">Kayıt Ol</button>
+      </div>
+      <div id="forgot-password-link-container" class="text-right mb-4">
+        <button onclick="openForgotPasswordModal()" class="text-xs text-amber-400 hover:text-amber-300 transition font-medium">Şifremi Unuttum</button>
+      </div>
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="login-username-label">Kullanıcı Adı</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-user text-xs"></i></span>
+            <input type="text" id="login-username" required placeholder="kullanici_adi" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="login-password-label">Şifre</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-key text-xs"></i></span>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="remember-me" checked class="w-4 h-4 rounded bg-slate-950 border-slate-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0">
+          <label for="remember-me" class="text-xs text-slate-400" id="remember-label">Beni Hatırla</label>
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition touch-target" id="login-submit-btn">Sisteme Giriş Yap</button>
+      </form>
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="reg-username-label">Kullanıcı Adı</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-user text-xs"></i></span>
+            <input type="text" id="reg-username" required placeholder="kullanici_adi" pattern="^[a-zA-Z0-9_]{3,20}$" title="3-20 karakter arası harf, rakam ve alt çizgi" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="reg-password-label">Şifre</label>
+          <input type="password" id="reg-password" required minlength="4" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-400 hover:to-cyan-400 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition touch-target" id="reg-submit-btn">Hesap Oluştur ve Giriş Yap</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="main-app" class="hidden min-h-screen flex flex-col">
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 safe-bottom">
+      <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0" onclick="switchTab('feed')">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-cyan-500/20 overflow-hidden shrink-0">
+            <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
+          </div>
+          <div class="hidden xs:block">
+            <span class="font-bold text-sm sm:text-base text-white tracking-tight header-title">MSZ MEDYA</span>
+            <div id="status-badge" class="flex items-center gap-1 text-[9px] sm:text-[10px] text-amber-400 font-medium">
+              <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span id="status-text">Bağlanıyor...</span>
+            </div>
+          </div>
+        </div>
+
+        <nav class="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar flex-1 justify-end">
+          <button onclick="switchTab('feed')" id="nav-feed" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50 touch-target whitespace-nowrap">
+            <i class="fa-solid fa-house text-sm sm:text-base"></i>
+            <span class="hidden sm:inline" id="nav-feed-label">Akış</span>
+          </button>
+          <button onclick="switchTab('messages')" id="nav-messages" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative touch-target whitespace-nowrap">
+            <i class="fa-solid fa-paper-plane text-sm sm:text-base"></i>
+            <span class="hidden sm:inline" id="nav-messages-label">Mesajlar</span>
+            <span id="unread-dm-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span>
+          </button>
+          <button onclick="switchTab('groups')" id="nav-groups" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
+            <i class="fa-solid fa-users text-emerald-400 text-sm sm:text-base"></i>
+            <span class="hidden sm:inline" id="nav-groups-label">Gruplar</span>
+          </button>
+          <button onclick="switchTab('users')" id="nav-users" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
+            <i class="fa-solid fa-trophy text-amber-400 text-sm sm:text-base"></i>
+            <span class="hidden sm:inline" id="nav-users-label">Topluluk</span>
+          </button>
+          <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target whitespace-nowrap">
+            <i class="fa-solid fa-user text-sm sm:text-base"></i>
+            <span class="hidden sm:inline" id="nav-profile-label">Profilim</span>
+          </button>
+          <button onclick="setLanguage('tr')" class="nav-btn px-1 sm:px-2 py-1 text-xs rounded-xl hover:bg-slate-800/60 transition" title="Türkçe">🇹🇷</button>
+          <button onclick="setLanguage('en')" class="nav-btn px-1 sm:px-2 py-1 text-xs rounded-xl hover:bg-slate-800/60 transition" title="English">🇬🇧</button>
+        </nav>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="openNotificationModal()" class="relative w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-target">
+            <i class="fa-regular fa-bell text-amber-400 text-sm sm:text-base"></i>
+            <span id="notification-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span>
+          </button>
+
+          <div class="flex items-center gap-1 sm:gap-2 cursor-pointer" onclick="switchTab('profile')">
+            <div id="header-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow overflow-hidden shrink-0">?</div>
+            <div class="hidden md:block text-left">
+              <div id="header-username-display" class="text-xs font-semibold text-white truncate max-w-[80px]">@...</div>
+            </div>
+          </div>
+          <div class="relative">
+            <button onclick="toggleSettingsDropdown()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target">
+              <i class="fa-solid fa-gear text-xs sm:text-sm"></i>
+            </button>
+            <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-52 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
+              <button onclick="openChangePasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 touch-target" id="settings-change-pass">
+                <i class="fa-solid fa-key text-cyan-400"></i> Şifre Değiştir
+              </button>
+              <button onclick="openForgotPasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-amber-400 hover:bg-amber-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target" id="settings-forgot-pass">
+                <i class="fa-solid fa-question-circle text-amber-400"></i> Şifremi Unuttum
+              </button>
+              <button onclick="openDeleteAccountModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target" id="settings-delete-account">
+                <i class="fa-solid fa-trash-can text-rose-400"></i> Hesabı Sil
+              </button>
+              <button onclick="logout(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 border-t border-slate-800 touch-target" id="settings-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+      <aside class="hidden lg:block lg:col-span-3 space-y-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
+          <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+            <div id="sidebar-avatar" class="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center font-bold text-lg shadow overflow-hidden shrink-0">?</div>
+            <div class="overflow-hidden">
+              <h4 id="sidebar-username-display" class="font-bold text-sm text-white truncate">@...</h4>
+            </div>
+          </div>
+          <p id="sidebar-bio" class="text-xs text-slate-300 leading-relaxed italic line-clamp-3">...</p>
+          <div class="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+              <div id="sidebar-post-count" class="font-bold text-cyan-400 text-base">0</div>
+              <div class="text-[10px] text-slate-500" id="sidebar-post-label">Gönderi</div>
+            </div>
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 clickable-stat" onclick="openFollowersModal(currentUser.username)">
+              <div id="sidebar-followers-count" class="font-bold text-indigo-400 text-base">0</div>
+              <div class="text-[10px] text-slate-500" id="sidebar-followers-label">Takipçi</div>
+            </div>
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 clickable-stat" onclick="openFollowingModal(currentUser.username)">
+              <div id="sidebar-user-count" class="font-bold text-emerald-400 text-base">0</div>
+              <div class="text-[10px] text-slate-500" id="sidebar-user-label">Takip</div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
+          <div class="text-xs font-semibold text-slate-400 mb-1" id="sidebar-social-title">Sosyal Bağlantılar</div>
+          <a href="https://burak-code.github.io/msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white touch-target">
+            <i class="fa-solid fa-globe text-cyan-400"></i>
+            <span id="sidebar-website">Web Sitem</span>
+          </a>
+          <a href="https://www.instagram.com/burak_msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white touch-target">
+            <i class="fa-brands fa-instagram text-pink-400"></i>
+            <span id="sidebar-instagram">Instagram</span>
+          </a>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
+            <span><i class="fa-solid fa-wifi mr-1 text-cyan-400"></i> <span id="sidebar-log-title">Sistem Akış Logu</span></span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <div id="system-log-box" class="h-36 bg-slate-950 rounded-xl p-2.5 font-mono text-[10px] text-slate-400 overflow-y-auto space-y-1.5 custom-scrollbar border border-slate-800/80">
+            <div class="text-slate-600">// Canlı akış aktif...</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="lg:col-span-9 space-y-4 sm:space-y-6">
+        <div id="tab-content-feed" class="space-y-4 sm:space-y-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
+            <div class="flex gap-3">
+              <div id="composer-avatar" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">?</div>
+              <div class="flex-1 space-y-2">
+                <textarea id="post-input" rows="3" placeholder="Neler oluyor? Dünyayla paylaş..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition resize-none min-h-[70px]"></textarea>
+                <div id="image-url-container" class="hidden">
+                  <input type="url" id="post-image-url" placeholder="Görsel Bağlantısı (https://...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800 gap-2 flex-wrap">
+              <div class="flex items-center gap-1 sm:gap-2 text-slate-400">
+                <button type="button" onclick="toggleImageInput()" title="Görsel Bağlantısı Ekle" class="p-2 hover:bg-slate-800 hover:text-cyan-400 rounded-lg text-xs transition touch-target">
+                  <i class="fa-solid fa-image text-sm"></i>
+                </button>
+                <span class="text-[10px] text-slate-500 font-mono" id="char-counter">0 / 280</span>
+              </div>
+              <button onclick="submitPost()" class="px-4 sm:px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2 touch-target" id="submit-post-btn">
+                <i class="fa-solid fa-paper-plane text-xs"></i>
+                <span id="submit-post-text">Paylaş</span>
+              </button>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between px-1">
+              <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-cyan-400"></i>
+                <span id="feed-title">Canlı Gönderi Akışı</span>
+              </h2>
+              <span class="text-xs text-slate-500" id="post-feed-count">0 Gönderi</span>
+            </div>
+            <div id="posts-container" class="space-y-4"></div>
+          </div>
+        </div>
+
+        <div id="tab-content-messages" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl min-h-[500px] flex flex-col md:flex-row">
+            <div class="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 flex flex-col">
+              <div class="p-3 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2" id="dm-chats-title">Sohbetler</h3>
+                <div class="relative">
+                  <input type="text" id="dm-user-search" oninput="filterDmUsers()" placeholder="Kullanıcı ara..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+                  <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
+                </div>
+              </div>
+              <div id="dm-users-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 max-h-[200px] md:max-h-none"></div>
+            </div>
+            <div class="flex-1 flex flex-col bg-slate-900 min-h-[300px]">
+              <div id="chat-header" class="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 gap-2 flex-wrap">
+                <div class="flex items-center gap-3 min-w-0 chat-header-clickable" onclick="openChatUserProfile()">
+                  <div id="chat-target-avatar" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center font-bold overflow-hidden shrink-0">?</div>
+                  <div class="min-w-0">
+                    <h4 id="chat-target-name" class="font-bold text-sm text-white truncate">Sohbet Seçin</h4>
+                    <p id="chat-target-handle" class="text-xs text-slate-500 truncate">Mesajlaşmak için soldan bir kullanıcı tıklayın</p>
+                  </div>
+                </div>
+                <button id="chat-view-profile-btn" onclick="openChatUserProfile()" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl transition touch-target shrink-0">
+                  <i class="fa-solid fa-user mr-1"></i> <span id="chat-profile-btn-text">Profil</span>
+                </button>
+              </div>
+              <div id="chat-messages-box" class="flex-1 p-3 sm:p-4 overflow-y-auto custom-scrollbar" style="display:flex; flex-direction:column; overflow-y:auto; max-height:400px; min-height:250px; height:350px;">
+                <div id="chat-messages-inner" class="flex flex-col min-h-full">
+                  <div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4" id="chat-placeholder">Sohbet başlatmak için listeden bir kullanıcı seçin.</div>
+                </div>
+              </div>
+              <div class="p-3 border-t border-slate-800 bg-slate-900">
+                <form id="dm-form" onsubmit="sendDirectMessage(event)" class="flex gap-2 flex-wrap">
+                  <input type="text" id="dm-input-text" disabled placeholder="Mesajınızı yazın..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50 min-h-[44px]">
+                  <div class="flex items-center gap-1">
+                    <button type="button" onclick="document.getElementById('dm-file-input').click()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-xl transition attachment-btn touch-target" title="Dosya Gönder">
+                      <i class="fa-solid fa-paperclip text-sm"></i>
+                    </button>
+                    <input type="file" id="dm-file-input" class="file-input-hidden" onchange="sendFileAttachment(event)">
+                    <button type="submit" id="dm-send-btn" disabled class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition touch-target min-w-[44px]">
+                      <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-content-groups" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+              <i class="fa-solid fa-users text-emerald-400"></i>
+              <span id="groups-title">Gruplar</span>
+            </h2>
+            <button onclick="openCreateGroupModal()" id="create-group-btn" class="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">
+              <i class="fa-solid fa-plus mr-1"></i> <span id="create-group-btn-text">Grup Oluştur</span>
+            </button>
+          </div>
+          <div id="groups-container" class="space-y-3">
+            <div class="text-center text-slate-500 text-sm py-8">Henüz hiç grup oluşturulmamış.</div>
+          </div>
+        </div>
+
+        <div id="tab-content-users" class="hidden space-y-4 sm:space-y-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-trophy text-amber-400"></i>
+                  <span id="users-title">Topluluk</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-1 hidden sm:block" id="users-subtitle">En çok takipçisi olan popüler kullanıcılar</p>
+              </div>
+              <div class="text-xs text-slate-500 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 whitespace-nowrap" id="total-users-badge">0 Kayıtlı Üye</div>
+            </div>
+
+            <div class="bg-slate-950/50 rounded-xl p-3 border border-slate-800">
+              <h3 class="text-xs font-bold text-amber-400 flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-star"></i> <span id="rewards-title">Ödüller</span>
+              </h3>
+              <div class="flex flex-wrap gap-3">
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-amber-400 text-sm">🏆</span>
+                  <span class="text-[10px] text-slate-300"><span id="reward-1">10 Takipçi → </span><span class="text-purple-400 font-bold">Neon Mor</span></span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-amber-400 text-sm">🌟</span>
+                  <span class="text-[10px] text-slate-300"><span id="reward-2">50 Takipçi → </span><span class="text-cyan-400 font-bold">Neon Mavi</span></span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-amber-400 text-sm">👑</span>
+                  <span class="text-[10px] text-slate-300"><span id="reward-3">100 Takipçi → </span><span class="text-amber-400 font-bold">Neon Altın</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div id="users-leaderboard-container" class="space-y-3 pt-2"></div>
+          </div>
+        </div>
+
+        <div id="tab-content-profile" class="hidden space-y-4 sm:space-y-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div class="h-24 sm:h-32 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative"></div>
+            <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 relative space-y-4">
+              <div class="flex items-end justify-between -mt-12 gap-2">
+                <div id="profile-main-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">?</div>
+                <button onclick="openEditProfileModal()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1 sm:gap-2 touch-target">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                  <span class="hidden xs:inline" id="profile-edit-btn">Profili Düzenle</span>
+                </button>
+              </div>
+              <div>
+                <h2 id="profile-fullname" class="text-lg sm:text-xl font-bold text-white">...</h2>
+                <p id="profile-username-display" class="text-xs text-cyan-400 font-mono">@...</p>
+              </div>
+              <p id="profile-bio" class="text-sm text-slate-300 leading-relaxed">...</p>
+              <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800 text-xs text-slate-400 flex-wrap">
+                <div class="clickable-stat" onclick="openFollowersModal(currentUser.username)"><strong id="profile-stat-followers" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-followers-label">Takipçi</span></div>
+                <div class="clickable-stat" onclick="openFollowingModal(currentUser.username)"><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-following-label">Takip</span></div>
+                <div><strong id="profile-stat-posts" class="text-white font-bold text-sm">0</strong> <span id="profile-stat-posts-label">Gönderi</span></div>
+                <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span id="profile-active-label">Aktif</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <h3 class="text-sm font-bold text-slate-300" id="profile-posts-title">Gönderilerim</h3>
+            <div id="profile-posts-container" class="space-y-4"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- PUBLIC PROFILE MODAL (BÜYÜK) -->
+  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl space-y-0 max-h-[90vh] flex flex-col mx-auto">
+      <div class="h-32 sm:h-40 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
+        <button onclick="closePublicProfileModal()" class="absolute top-3 right-3 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition touch-target">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+        <div class="flex items-end justify-between -mt-12 gap-2 flex-wrap">
+          <div id="pub-profile-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">?</div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">Takip Et</button>
+            <button id="pub-profile-dm-btn" onclick="messagePublicUser()" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target">
+              <i class="fa-solid fa-paper-plane mr-1"></i> <span id="pub-dm-btn-text">Mesaj</span>
+            </button>
+          </div>
+        </div>
+        <div>
+          <h3 id="pub-profile-fullname" class="text-xl sm:text-2xl font-bold text-white">...</h3>
+          <p id="pub-profile-username" class="text-sm text-cyan-400 font-mono">@...</p>
+        </div>
+        <p id="pub-profile-bio" class="text-sm text-slate-300 leading-relaxed">...</p>
+        <div class="flex items-center gap-6 py-3 border-y border-slate-800 text-sm text-slate-400 flex-wrap">
+          <div><strong id="pub-profile-posts-count" class="text-white font-bold text-lg">0</strong> <span id="pub-posts-label">Gönderi</span></div>
+          <div class="clickable-stat" onclick="openFollowersModalFromPublic()"><strong id="pub-profile-followers-count" class="text-white font-bold text-lg">0</strong> <span id="pub-followers-label">Takipçi</span></div>
+          <div class="clickable-stat" onclick="openFollowingModalFromPublic()"><strong id="pub-profile-following-count" class="text-white font-bold text-lg">0</strong> <span id="pub-following-label">Takip</span></div>
+          <div class="text-emerald-400 flex items-center gap-1 ml-auto"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span id="pub-active-label">Aktif</span></div>
+        </div>
+        <div class="space-y-3 pt-2">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider" id="pub-posts-title">Gönderileri</h4>
+          <div id="pub-profile-posts-list" class="space-y-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE MODAL -->
+  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 mx-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-base sm:text-lg font-bold text-white" id="edit-profile-title">Profili Düzenle</h3>
+        <button onclick="closeEditProfileModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form onsubmit="saveProfileChanges(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-2" id="edit-avatar-label">Profil Fotoğrafı Yükle</label>
+          <div class="flex items-center gap-4 flex-wrap">
+            <div id="edit-avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 text-white flex items-center justify-center font-bold text-xl overflow-hidden border border-slate-700 shrink-0">?</div>
+            <div class="flex-1 space-y-1 min-w-[120px]">
+              <input type="file" id="edit-avatar-input" accept="image/*" onchange="handleAvatarSelect(event)" class="hidden">
+              <button type="button" onclick="document.getElementById('edit-avatar-input').click()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition touch-target">
+                <i class="fa-solid fa-upload mr-1"></i> <span id="edit-avatar-btn-text">Fotoğraf Seç</span>
+              </button>
+              <p class="text-[10px] text-slate-500" id="edit-avatar-hint">Otomatik sıkıştırılır.</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="edit-fullname-label">Ad Soyad</label>
+          <input type="text" id="edit-fullname" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1" id="edit-bio-label">Biyografi</label>
+          <textarea id="edit-bio" rows="3" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2 flex-wrap">
+          <button type="button" onclick="closeEditProfileModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target" id="edit-cancel-btn">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target" id="edit-save-btn">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
