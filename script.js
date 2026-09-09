@@ -2545,3 +2545,87 @@ async function tikKontrolEt() {
     }
 
     setLanguage('tr');
+
+// ============================================================
+// PUBLIC PROFILE - HERKESİN PROFİLİNİ AÇ
+// ============================================================
+let viewingPublicUsername = null;
+
+function openPublicProfileModal(username) {
+    // Eğer kendi profiline tıklarsa, kendi profiline git
+    if (username === currentUser.username) {
+        switchTab('profile');
+        return;
+    }
+    
+    const user = usersDb[username];
+    if (!user) {
+        console.error('❌ Kullanıcı bulunamadı:', username);
+        showToast('❌ Kullanıcı bulunamadı!', 'error');
+        return;
+    }
+    
+    viewingPublicUsername = username;
+    renderPublicProfileModal(username);
+    document.getElementById('public-profile-modal').classList.remove('hidden');
+}
+
+function closePublicProfileModal() {
+    viewingPublicUsername = null;
+    document.getElementById('public-profile-modal').classList.add('hidden');
+}
+
+function renderPublicProfileModal(username) {
+    const u = usersDb[username];
+    if (!u) return;
+    
+    const groupEmoji = getGroupEmojiForUser(username);
+    
+    document.getElementById('pub-profile-avatar').innerHTML = renderAvatarElement(u, "w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl");
+    document.getElementById('pub-profile-fullname').innerHTML = groupEmoji + getUserDisplayName(u);
+    document.getElementById('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u);
+    document.getElementById('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
+    
+    const followers = u.followers || [];
+    const following = u.following || [];
+    
+    const userPosts = postsDb
+        .filter(p => p.author.username === username)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    document.getElementById('pub-profile-posts-count').innerText = userPosts.length;
+    document.getElementById('pub-profile-followers-count').innerText = followers.length;
+    document.getElementById('pub-profile-following-count').innerText = following.length;
+    
+    // Takip et butonunu güncelle
+    const isFollowing = currentUser.following && currentUser.following.includes(username);
+    const followBtn = document.getElementById('pub-profile-follow-btn');
+    if (followBtn) {
+        followBtn.innerText = isFollowing ? 'Takiptesin' : 'Takip Et';
+        followBtn.className = isFollowing ?
+            'px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target' :
+            'px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target';
+    }
+    
+    // Gönderileri listele
+    const postsList = document.getElementById('pub-profile-posts-list');
+    if (userPosts.length === 0) {
+        postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">Gönderi bulunmuyor.</div>`;
+    } else {
+        postsList.innerHTML = userPosts.map(p => createPostCardHtml(p)).join('');
+    }
+}
+
+// Takip et butonu için
+function toggleFollowPublicUser() {
+    if (viewingPublicUsername) {
+        toggleFollowUser(viewingPublicUsername);
+    }
+}
+
+// Mesaj at butonu için
+function messagePublicUser() {
+    if (viewingPublicUsername) {
+        startDirectMessageWith(viewingPublicUsername);
+    }
+}
