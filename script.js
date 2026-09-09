@@ -2,7 +2,7 @@
     // TİK KONFIGURASYONU - BURADAN DEĞİŞTİR !!!
     // ============================================================
     const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
-    const tikRengi = "purple"; // "purple" veya "blue" - BURADAN DEĞİŞTİR!
+    const tikRengi = "blue"; // "purple" veya "blue" - BURADAN DEĞİŞTİR!
 
     // ============================================================
     // DİL DESTEĞİ
