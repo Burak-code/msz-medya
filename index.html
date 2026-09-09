@@ -10,26 +10,6 @@
   <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAX73O_Cv7iCLXZ1PFUBvsu4qEwVd4g8mY",
-    authDomain: "msz-medya-5c8ba.firebaseapp.com",
-    projectId: "msz-medya-5c8ba",
-    storageBucket: "msz-medya-5c8ba.firebasestorage.app",
-    messagingSenderId: "867240437765",
-    appId: "1:867240437765:web:bbe174afeb9d75c45d146c",
-    measurementId: "G-2S9FXN2RH9"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  window.firebaseAuth = firebase.auth();
-  window.firebaseDb = firebase.firestore();
-  console.log("Firebase hazır");
-</script>
 </head>
 <body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
 
@@ -405,13 +385,6 @@
             <input type="text" id="reg-username" required placeholder="kullanici_adi" pattern="^[a-zA-Z0-9_]{3,20}$" title="3-20 karakter arası harf, rakam ve alt çizgi" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
           </div>
         </div>
-<div>
-  <label class="block text-xs font-medium text-slate-400 mb-1" id="reg-email-label">E-posta</label>
-  <div class="relative">
-    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-envelope text-xs"></i></span>
-    <input type="email" id="reg-email" required placeholder="ornek@email.com" class="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
-  </div>
-</div>
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1" id="reg-password-label">Şifre</label>
           <input type="password" id="reg-password" required minlength="4" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition">
