@@ -1604,14 +1604,17 @@
       return `<div class="${sizeClasses} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow">${letter}</div>`;
     }
 
-    function showTikBadge(userObj) {
-      if (userObj && userObj.hasTik) {
-        // Kullanıcının tik rengine göre dosya seç
-        const tikDosya = userObj.tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
-        return `<img src="${tikDosya}" class="tik-rozet" alt="Tik">`;
-      }
-      return '';
-    }
+function showTikBadge(userObj) {
+  if (userObj && userObj.hasTik) {
+    const tikDosya = userObj.tikRengi === 'purple'
+      ? 'tick-p.png'
+      : 'tick-b.png';
+
+    return `<img src="${tikDosya}" class="tik-rozet" alt="Tik">`;
+  }
+
+  return '';
+}
 
     function getUserDisplayName(userObj) {
       if (!userObj) return '?';
