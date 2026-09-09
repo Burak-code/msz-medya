@@ -6,7 +6,7 @@ const tikRengi = "blue"; // "purple" veya "blue" yaz!
 // ============================================================
 // BACKEND URL - DOĞRU! (BUNU KULLAN)
 // ============================================================
-const API_URL = 'https://msz-medya.onrender.com/api';
+const API_URL = 'https://msz-medya.onrender.com';
 
      // ============================================================
     // DİL DESTEĞİ
