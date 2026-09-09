@@ -2433,7 +2433,7 @@ async function tikKontrolEt() {
 
       try {
           // 📌 BURAYA RENDER'DAN ALDIĞIN LINKİ YAZ!
-          const response = await fetch('https://msz-backend.onrender.com/api/tik-kontrol', {
+          const response = await fetch('https://msz-medya.onrender.com', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ kod: girilenKod })
