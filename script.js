@@ -2453,7 +2453,6 @@ async function tikKontrolEt() {
     }
 
     try {
-        // ✅ DOĞRU URL!
         const response = await fetch(`${API_URL}/tik-kontrol`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2465,12 +2464,35 @@ async function tikKontrolEt() {
         if (data.success) {
             // ✅ Tik ver!
             currentUser.hasTik = true;
-            // ... devamı
-            sonuc.innerText = "✅ Tik başarıyla alındı!";
+            currentUser.tikRengi = tikRengi; // ⚠️ BU SATIRI EKLEDİM!
+            
+            // ✅ Veritabanını güncelle
+            usersDb[currentUser.username] = currentUser;
+            saveUsersToDB();
+            
+            // ✅ UI'ı güncelle (Tik'i göster!)
+            updateUserUI();
+            renderFeed();
+            renderUsersLeaderboard();
+            renderDmUserList();
+            renderProfileTab();
+            renderGroups();
+            updateGroupCreateButton();
+
+            // ✅ Modalı kapat
+            document.getElementById('tik-modal').classList.add('hidden');
+            
+            // ✅ Tik göster modalını aç
+            const tikImg = document.getElementById('tik-goster-img');
+            tikImg.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+            document.getElementById('tik-goster').classList.remove('hidden');
+            
             sonuc.style.color = "green";
+            sonuc.innerText = "✅ Tik başarıyla alındı!";
+            
         } else {
-            sonuc.innerText = data.error || "❌ Kod hatalı!";
             sonuc.style.color = "red";
+            sonuc.innerText = data.error || "❌ Kod hatalı!";
         }
     } catch (error) {
         console.error('Backend hatası:', error);
