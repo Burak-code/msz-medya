@@ -1,7 +1,7 @@
 // ============================================================
 // TİK RENGİ - BURADAN DEĞİŞTİR!
 // ============================================================
-const tikRengi = "blue"; // "purple" veya "blue" yaz!
+const tikRengi = "purple"; // "purple" veya "blue" yaz!
 
 // ============================================================
 // BACKEND URL - DOĞRU! (BUNU KULLAN)
