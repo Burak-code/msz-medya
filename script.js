@@ -1608,14 +1608,22 @@ const API_URL = 'https://msz-medya.onrender.com/api';
       return `<div class="${sizeClasses} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow">${letter}</div>`;
     }
 
-    function showTikBadge(userObj) {
-      if (userObj && userObj.hasTik) {
-        // Kullanıcının tik rengine göre dosya seç
-        const tikDosya = userObj.tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+function showTikBadge(userObj) {
+    if (userObj && userObj.hasTik) {
+        let tikDosya = 'tick-b.png'; // varsayılan mavi
+        
+        if (userObj.tikRengi === 'purple') {
+            tikDosya = 'tick-p.png';
+        } else if (userObj.tikRengi === 'red') {
+            tikDosya = 'tick-r.png'; // 🔴 KIRMIZI!
+        } else if (userObj.tikRengi === 'blue') {
+            tikDosya = 'tick-b.png';
+        }
+        
         return `<img src="${tikDosya}" class="tik-rozet" alt="Tik">`;
-      }
-      return '';
     }
+    return '';
+}
 
     function getUserDisplayName(userObj) {
       if (!userObj) return '?';
