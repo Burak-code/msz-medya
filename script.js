@@ -607,85 +607,45 @@
       }
     }
 
-async function handleRegister(e) {
-  e.preventDefault();
-  const username = document.getElementById('reg-username').value.trim().toLowerCase();
-  const email = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-password').value;
+    async function handleRegister(e) {
+      e.preventDefault();
+      const username = document.getElementById('reg-username').value.trim().toLowerCase();
+      const password = document.getElementById('reg-password').value;
 
-  if (!username || !email || !password) {
-    showModal('Hata', 'Tüm alanları doldurun.', 'error');
-    return;
-  }
+      if (usersDb[username]) {
+        showModal('Hata', 'Bu kullanıcı adı zaten başka bir üye tarafından alınmış!', 'error');
+        return;
+      }
 
-  if (usersDb[username]) {
-    showModal('Hata', 'Bu kullanıcı adı zaten başka bir üye tarafından alınmış!', 'error');
-    return;
-  }
+      const colors = ['bg-cyan-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-purple-600', 'bg-rose-600', 'bg-amber-600'];
+      const userColor = colors[Math.floor(Math.random() * colors.length)];
 
-  try {
-    // Firebase Auth ile kayıt
-    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
-    const uid = userCredential.user.uid;
+      const newUser = {
+        username,
+        fullname: username,
+        bio: 'MSZ MEDYA üyesi.',
+        password,
+        color: userColor,
+        avatarUrl: null,
+        followers: [],
+        following: [],
+        neonColor: null,
+        hasTik: false,
+        tikRengi: null,
+        joinedAt: new Date().toISOString()
+      };
 
-    // Firestore'a kullanıcı yaz
-    await window.firebaseDb.collection('users').doc(uid).set({
-      username: username,
-      email: email,
-      fullname: username,
-      bio: 'MSZ MEDYA üyesi.',
-      hasTik: false,
-      tikRengi: null,
-      followers: [],
-      following: [],
-      neonColor: null,
-      createdAt: new Date().toISOString()
-    });
+      usersDb[username] = newUser;
+      await saveUsersToDB();
 
-    // Eski sistemi de çalışır tut
-    const colors = ['bg-cyan-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-purple-600', 'bg-rose-600', 'bg-amber-600'];
-    const userColor = colors[Math.floor(Math.random() * colors.length)];
+      currentUser = newUser;
+      localStorage.setItem('sp_social_active_user', username);
+      localStorage.setItem('sp_social_username', username);
+      localStorage.setItem('sp_social_password', password);
 
-    const newUser = {
-      username,
-      fullname: username,
-      bio: 'MSZ MEDYA üyesi.',
-      password,
-      color: userColor,
-      avatarUrl: null,
-      followers: [],
-      following: [],
-      neonColor: null,
-      hasTik: false,
-      tikRengi: null,
-      joinedAt: new Date().toISOString(),
-      uid: uid
-    };
-
-    usersDb[username] = newUser;
-    await saveUsersToDB();
-
-    currentUser = newUser;
-    localStorage.setItem('sp_social_active_user', username);
-    localStorage.setItem('sp_social_username', username);
-    localStorage.setItem('sp_social_password', password);
-
-    showToast('Kayıt başarılı! Hoş geldiniz.', 'success');
-    launchMainApp();
-
-  } catch (error) {
-    console.error(error);
-    if (error.code === 'auth/email-already-in-use') {
-      showModal('Hata', 'Bu e-posta adresi zaten kullanılıyor.', 'error');
-    } else if (error.code === 'auth/weak-password') {
-      showModal('Hata', 'Şifre en az 6 karakter olmalı.', 'error');
-    } else if (error.code === 'auth/invalid-email') {
-      showModal('Hata', 'Geçersiz e-posta adresi.', 'error');
-    } else {
-      showModal('Hata', 'Kayıt sırasında bir hata oluştu: ' + (error.message || error), 'error');
+      showToast('Kayıt başarılı! Hoş geldiniz.', 'success');
+      launchMainApp();
     }
-  }
-}
 
     async function handleLogin(e) {
       e.preventDefault();
@@ -717,17 +677,11 @@ async function handleRegister(e) {
       launchMainApp();
     }
 
-function logout() {
-  localStorage.removeItem('sp_social_active_user');
-  localStorage.removeItem('sp_social_username');
-  localStorage.removeItem('sp_social_password');
-  currentUser = null;
-  if (mqttClient) {
-    try { mqttClient.end(true); } catch(e) {}
-    mqttClient = null;
-  }
-  location.reload();
-}
+    function logout() {
+      localStorage.removeItem('sp_social_active_user');
+      if (mqttClient) mqttClient.end();
+      location.reload();
+    }
 
     function launchMainApp() {
       document.getElementById('auth-screen').classList.add('hidden');
