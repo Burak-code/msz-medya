@@ -1,8 +1,63 @@
 // ============================================================
+// OYUNLAR LİSTESİ
+// ============================================================
+const OYUNLAR = [
+  {
+    id: 'stumble',
+    name: 'Stumble Color',
+    desc: 'Rengarenk karakterlerle battle royale! Son kalan kazanır.',
+    emoji: '🎨',
+    category: 'Battle',
+    categoryClass: 'cat-battle',
+    url: 'https://burak-code.github.io/stumble-boys/',
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)'
+  },
+  {
+    id: 'flaquiz',
+    name: 'Flaquiz V2',
+    desc: 'Bilgi yarışması! Rank atla, puan topla.',
+    emoji: '🧠',
+    category: 'Puzzle',
+    categoryClass: 'cat-puzzle',
+    url: 'https://burak-code.github.io/msz/html/oyun1.html',
+    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
+  },
+  {
+    id: 'oyun2',
+    name: 'MSZ Oyun 2',
+    desc: 'MSZ MEDYA özel oyunu.',
+    emoji: '🎮',
+    category: 'Arcade',
+    categoryClass: 'cat-arcade',
+    url: 'https://burak-code.github.io/msz/html/oyun2.html',
+    gradient: 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)'
+  },
+  {
+    id: 'neon',
+    name: 'Neon Kare',
+    desc: 'Kırmızı engellerden kaç, sarı yıldızları topla!',
+    emoji: '🟨',
+    category: 'Action',
+    categoryClass: 'cat-action',
+    url: 'https://burak-code.github.io/msz/html/plazma.html',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)'
+  },
+  {
+    id: 'team-manager',
+    name: 'National Team Manager',
+    desc: 'Dünya Kupası\'na giden yolda teknik direktör ol!',
+    emoji: '⚽',
+    category: 'Sports',
+    categoryClass: 'cat-sports',
+    url: 'https://burak-code.github.io/msz/html/team-menager.html',
+    gradient: 'linear-gradient(135deg, #3b82f6 0%, #059669 100%)'
+  }
+];
+
+// ============================================================
 // KONFIGURASYON
 // ============================================================
-const gecerliKod = "ııOOOııııuuu?1éııOOOııııuuu?1é";
-// tikRengi: "blue" (normal), "red" (mod), "purple" (süper mod)
+const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
 let tikRengi = "blue";
 const GUVENLIK_CEVABI = "msz-şifremi-unuttum";
 
@@ -65,7 +120,7 @@ let currentUser = null, mqttClient = null, activeTab = 'feed', selectedDmUser = 
 let tempAvatarBase64 = null, isMqttConnected = false, isDBReady = false, lastPostTime = 0, selectedGroupId = null;
 let usersDb = {}, postsDb = [], dmsDb = [], commentsDb = [], groupsDb = [];
 let dmRequestsDb = [];
-let bannedUsers = []; // { username, until, reason, by, bannedAt }
+let bannedUsers = [];
 let notifications = [], notificationCount = 0, dmUnreadCounts = {}, dmLastMessageTime = {};
 let db = null, followersModalTarget = null, followingModalTarget = null;
 let presenceInterval = null, banCheckInterval = null;
@@ -74,6 +129,7 @@ let replyToMessage = null;
 let emojiTargetInput = null;
 let mediaRecorder = null, audioChunks = [], recordingTimer = null, recordingSeconds = 0;
 let modBanTarget = null, modDeletePostTarget = null;
+let currentGameUrl = null, currentGameName = null, isGameFullscreen = false;
 
 // ============================================================
 // INDEXEDDB
@@ -153,14 +209,12 @@ function formatTimeAgo(iso) {
   if (diff < 86400) return Math.floor(diff/3600) + ' sa önce';
   return new Date(iso).toLocaleDateString('tr-TR');
 }
-
 function getTotalPostCount(username) {
   if (!username) return 0;
   const user = usersDb[username];
   if (user && typeof user.postCount === 'number') return user.postCount;
   return postsDb.filter(p => p.author.username === username).length;
 }
-
 async function incrementPostCount(username, delta = 1) {
   if (!username) return;
   const u = usersDb[username];
@@ -170,7 +224,6 @@ async function incrementPostCount(username, delta = 1) {
   usersDb[username] = u;
   await saveUsersToDB();
 }
-
 function sanitizeUserObj(u) {
   return {
     username: u.username, fullname: u.fullname, bio: u.bio, color: u.color, avatarUrl: u.avatarUrl,
@@ -179,7 +232,6 @@ function sanitizeUserObj(u) {
     postCount: typeof u.postCount === 'number' ? u.postCount : postsDb.filter(p => p.author.username === u.username).length
   };
 }
-
 function logSystem(msg) {
   const box = $('system-log-box');
   if (!box) return;
@@ -190,7 +242,6 @@ function logSystem(msg) {
   box.appendChild(entry);
   box.scrollTop = box.scrollHeight;
 }
-
 function showToast(message, type = 'info') {
   const container = $('toast-container');
   if (!container) return;
@@ -204,14 +255,12 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.classList.remove('translate-y-2','opacity-0'), 10);
   setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 4000);
 }
-
 function showModal(title, bodyText) {
   $('modal-title').innerText = title;
   $('modal-body').innerText = bodyText;
   $('modal-overlay').classList.remove('hidden');
 }
 function closeModal() { $('modal-overlay').classList.add('hidden'); }
-
 function ensureUserExists(username, partialData = {}) {
   if (!username) return null;
   if (usersDb[username]) {
@@ -233,18 +282,10 @@ function ensureUserExists(username, partialData = {}) {
 // ============================================================
 // YETKİ KONTROLLERİ
 // ============================================================
-function isMod() {
-  return currentUser && currentUser.hasTik && currentUser.tikRengi === 'red';
-}
-function isSuperMod() {
-  return currentUser && currentUser.hasTik && currentUser.tikRengi === 'purple';
-}
-function hasModPermission() {
-  return isMod() || isSuperMod();
-}
-function hasSuperModPermission() {
-  return isSuperMod();
-}
+function isMod() { return currentUser && currentUser.hasTik && currentUser.tikRengi === 'red'; }
+function isSuperMod() { return currentUser && currentUser.hasTik && currentUser.tikRengi === 'purple'; }
+function hasModPermission() { return isMod() || isSuperMod(); }
+function hasSuperModPermission() { return isSuperMod(); }
 
 // ============================================================
 // BAN SİSTEMİ
@@ -253,14 +294,10 @@ function isUserBanned(username) {
   if (!username) return null;
   const ban = bannedUsers.find(b => b.username === username);
   if (!ban) return null;
-  if (new Date(ban.until).getTime() <= Date.now()) return null; // süresi geçmiş
+  if (new Date(ban.until).getTime() <= Date.now()) return null;
   return ban;
 }
-
-function isBanned() {
-  return currentUser ? !!isUserBanned(currentUser.username) : false;
-}
-
+function isBanned() { return currentUser ? !!isUserBanned(currentUser.username) : false; }
 function getBanRemaining(ban) {
   const diff = new Date(ban.until).getTime() - Date.now();
   if (diff <= 0) return 'Süresi doldu';
@@ -269,41 +306,104 @@ function getBanRemaining(ban) {
   if (hours > 0) return `${hours}sa ${mins}dk`;
   return `${mins} dk`;
 }
-
-function showBanBanner(ban) {
-  const banner = $('ban-banner');
-  if (!banner) return;
-  if (!ban) { banner.classList.add('hidden'); return; }
-  banner.classList.remove('hidden');
-  $('ban-banner-info').innerText = `Süre: ${getBanRemaining(ban)} | Sebep: ${ban.reason} | Banlayan: @${ban.by}`;
-  updateBanBannerTimer(ban);
+function showBanUI(ban) {
+  if (!ban) { hideBanUI(); return; }
+  document.body.classList.add('is-banned');
+  const indicator = $('ban-indicator');
+  if (indicator) {
+    indicator.classList.remove('hidden');
+    indicator.classList.add('show');
+    updateBanTimers(ban);
+  }
+  updateBanRestrictions();
 }
-
-function updateBanBannerTimer(ban) {
-  const timer = $('ban-banner-timer');
-  if (!timer) return;
-  timer.innerText = getBanRemaining(ban);
+function hideBanUI() {
+  document.body.classList.remove('is-banned');
+  const indicator = $('ban-indicator');
+  if (indicator) {
+    indicator.classList.add('hidden');
+    indicator.classList.remove('show');
+  }
+  updateBanRestrictions();
 }
-
+function updateBanTimers(ban) {
+  if (!ban) return;
+  const remaining = getBanRemaining(ban);
+  const indicatorTimer = $('ban-indicator-timer');
+  if (indicatorTimer) indicatorTimer.innerText = remaining;
+  const modalTimer = $('ban-warning-timer');
+  if (modalTimer) modalTimer.innerText = remaining;
+}
+function handleBannedClick(target, event) {
+  const ban = isUserBanned(currentUser?.username);
+  if (ban) {
+    const el = event?.currentTarget || event?.target?.closest('.nav-btn') || event?.target?.closest('button');
+    if (el) {
+      el.classList.add('nav-btn-ban-pulse');
+      setTimeout(() => el.classList.remove('nav-btn-ban-pulse'), 400);
+    }
+    openBanWarningModal(ban);
+    return;
+  }
+  if (target === 'notifications') openNotificationModal();
+  else if (target === 'settings') toggleSettingsDropdown();
+  else if (target === 'followers') openFollowersModal(currentUser.username);
+  else if (target === 'following') openFollowingModal(currentUser.username);
+  else if (target === 'edit-profile') openEditProfileModal();
+  else switchTab(target);
+}
+function openBanWarningModal(ban) {
+  if (!ban) return;
+  const modal = $('ban-warning-modal');
+  if (!modal) return;
+  $('ban-warning-reason').innerText = `Sebep: ${ban.reason}`;
+  $('ban-warning-timer').innerText = getBanRemaining(ban);
+  modal.classList.remove('hidden');
+}
+function closeBanWarningModal() {
+  const modal = $('ban-warning-modal');
+  if (modal) modal.classList.add('hidden');
+}
+function handleTikButtonClick() {
+  if (isBanned()) { showToast('🚫 Banlıyken tik alamazsın!', 'error'); return; }
+  openTikModal();
+}
+function updateBanRestrictions() {
+  const banned = isBanned();
+  const postInput = $('post-input');
+  if (postInput) {
+    postInput.disabled = banned;
+    postInput.placeholder = banned ? '🚫 Banlıyken gönderi paylaşamazsın' : 'Neler oluyor? Dünyayla paylaş...';
+  }
+  const postMediaBtn = document.querySelector('[onclick*="post-media-input"]');
+  if (postMediaBtn) postMediaBtn.disabled = banned;
+  const postEmojiBtn = document.querySelector('[onclick*="openEmojiPanel(\'post-input\')"]');
+  if (postEmojiBtn) postEmojiBtn.disabled = banned;
+  const postSubmitBtn = document.querySelector('[onclick="submitPost()"]');
+  if (postSubmitBtn) postSubmitBtn.disabled = banned;
+  const dmInput = $('dm-input-text');
+  if (dmInput) dmInput.disabled = !selectedDmUser;
+  const dmEmojiBtn = document.querySelector('[onclick*="openEmojiPanel(\'dm-input-text\')"]');
+  if (dmEmojiBtn) { dmEmojiBtn.disabled = banned; dmEmojiBtn.classList.toggle('opacity-30', banned); dmEmojiBtn.classList.toggle('cursor-not-allowed', banned); }
+  const dmFileBtn = document.querySelector('[onclick*="dm-file-input"]');
+  if (dmFileBtn) { dmFileBtn.disabled = banned; dmFileBtn.classList.toggle('opacity-30', banned); dmFileBtn.classList.toggle('cursor-not-allowed', banned); }
+  const dmMicBtn = $('dm-mic-btn');
+  if (dmMicBtn) { dmMicBtn.disabled = banned; dmMicBtn.classList.toggle('opacity-30', banned); dmMicBtn.classList.toggle('cursor-not-allowed', banned); }
+}
 function startBanCheckInterval() {
   if (banCheckInterval) clearInterval(banCheckInterval);
   banCheckInterval = setInterval(async () => {
     if (!currentUser) return;
     const ban = isUserBanned(currentUser.username);
-    if (ban) {
-      showBanBanner(ban);
-      updateBanBannerTimer(ban);
-    } else {
-      // Ban kalkmış olabilir
-      const oldBanner = $('ban-banner');
-      if (oldBanner && !oldBanner.classList.contains('hidden')) {
-        oldBanner.classList.add('hidden');
+    if (ban) { showBanUI(ban); updateBanTimers(ban); }
+    else {
+      if (document.body.classList.contains('is-banned')) {
+        hideBanUI();
         showToast('✅ Banınız kaldırıldı!', 'success');
         renderFeed();
         updateUserUI();
       }
     }
-    // Süresi geçen banları temizle
     const now = Date.now();
     const beforeLen = bannedUsers.length;
     bannedUsers = bannedUsers.filter(b => new Date(b.until).getTime() > now);
@@ -313,52 +413,37 @@ function startBanCheckInterval() {
     }
   }, 30000);
 }
-
 async function modBanUser(targetUsername, hours, reason) {
   if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
   if (targetUsername === currentUser.username) { showToast('Kendini banlayamazsın.', 'warning'); return; }
-  if (isSuperMod() === false && isMod() === true) {
-    // Kırmızı mod, mor tikliyi banlayamaz
+  if (isMod() && !isSuperMod()) {
     const target = usersDb[targetUsername];
-    if (target && target.hasTik && target.tikRengi === 'purple') {
-      showToast('Mor tikli birini banlayamazsın.', 'error'); return;
-    }
+    if (target && target.hasTik && target.tikRengi === 'purple') { showToast('Mor tikli birini banlayamazsın.', 'error'); return; }
   }
   hours = Math.max(BAN_MIN_HOURS, Math.min(BAN_MAX_HOURS, hours));
   const until = new Date(Date.now() + hours * 3600000).toISOString();
-  // Önceki banı kaldır
   bannedUsers = bannedUsers.filter(b => b.username !== targetUsername);
   const ban = { id: 'ban_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), username: targetUsername, until, reason, by: currentUser.username, bannedAt: new Date().toISOString() };
   bannedUsers.push(ban);
   await saveBannedUsersToDB();
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'BAN_USER', ban }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'BAN_USER', ban }));
   showToast(`🔨 @${targetUsername} ${hours} saat banlandı.`, 'mod');
-  // Hedef kullanıcıya bildirim gönder (MQTT DM gibi özel topic)
   if (mqttClient?.connected) {
     const notifMsg = { id: 'notif_' + Date.now(), to: targetUsername, from: 'MOD', text: `Hesabınız ${hours} saat süreyle askıya alındı. Sebep: ${reason}`, type: 'mod_ban', timestamp: new Date().toISOString() };
     mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'MOD_NOTIFY', notif: notifMsg }));
   }
   renderModPanel();
 }
-
 async function modUnbanUser(targetUsername) {
   if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
   const ban = bannedUsers.find(b => b.username === targetUsername);
   if (!ban) return;
   bannedUsers = bannedUsers.filter(b => b.username !== targetUsername);
   await saveBannedUsersToDB();
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'UNBAN_USER', username: targetUsername }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'UNBAN_USER', username: targetUsername }));
   showToast(`✅ @${targetUsername} banı kaldırıldı.`, 'success');
   renderModPanel();
 }
-
-// ============================================================
-// TİK KALDIRMA (sadece süper mod)
-// ============================================================
 async function modRemoveTik(targetUsername) {
   if (!hasSuperModPermission()) { showToast('Sadece mor tikli kaldırabilir.', 'error'); return; }
   if (targetUsername === currentUser.username) { showToast('Kendi tikini kaldıramazsın.', 'warning'); return; }
@@ -382,10 +467,6 @@ async function modRemoveTik(targetUsername) {
   renderModPanel();
   renderUsersLeaderboard();
 }
-
-// ============================================================
-// MOD GÖNDERİ SİLME
-// ============================================================
 function openModDeletePostModal(postId) {
   if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
   const post = postsDb.find(p => p.id === postId);
@@ -406,7 +487,6 @@ function openModDeletePostModal(postId) {
   $('mod-delete-post-modal').classList.remove('hidden');
 }
 function closeModDeletePostModal() { $('mod-delete-post-modal').classList.add('hidden'); modDeletePostTarget = null; }
-
 async function confirmModDeletePost() {
   if (!modDeletePostTarget || !hasModPermission()) return;
   const reason = $('mod-delete-post-reason').value.trim();
@@ -415,38 +495,27 @@ async function confirmModDeletePost() {
   if (!post) { closeModDeletePostModal(); return; }
   const authorUsername = post.author.username;
   const postText = post.text || '';
-  
   commentsDb = commentsDb.filter(c => c.postId !== modDeletePostTarget);
   await saveCommentsToDB();
   postsDb = postsDb.filter(p => p.id !== modDeletePostTarget);
   await savePostsToDB();
   await incrementPostCount(authorUsername, -1);
-  
   if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.MOD, JSON.stringify({
-      type: 'MOD_DELETE_POST',
-      postId: modDeletePostTarget,
-      reason,
-      by: currentUser.username,
-      authorUsername,
-      postText: postText.substring(0, 80)
-    }));
+    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'MOD_DELETE_POST', postId: modDeletePostTarget, reason, by: currentUser.username, authorUsername, postText: postText.substring(0, 80) }));
   }
-  
   closeModDeletePostModal();
   renderFeed(); renderProfileTab(); updateUserUI();
   showToast(`✅ Gönderi silindi ve @${authorUsername} bilgilendirildi.`, 'mod');
 }
 
 // ============================================================
-// TİK KONTROLÜ
+// METİN / LİNK
 // ============================================================
 function containsForbidden(text) {
   const forbiddenWords = /\b(fuck|siktir|amk|orospu|piç|göt|yarrak|amcık|sik|kahpe|kaltak|şerefsiz|hain|döl|sperm|çük|yavşak|ibne|puşt|gavat|pezevenk|şişko|çomar|mal|embesil|gerizekalı|salak|aptal|dangalak|mankafa)\b/i;
   return forbiddenWords.test(text);
 }
 function censorText(text) { return containsForbidden(text) ? '****' : text; }
-
 function isTrustedUrl(url) {
   try {
     const urlObj = new URL(url.startsWith('http') ? url : 'https://' + url);
@@ -497,7 +566,7 @@ function renderText(text) {
 // EMOJI
 // ============================================================
 function openEmojiPanel(targetInputId) {
-  if (isBanned()) { showToast('Banlıyken emoji kullanamazsın.', 'warning'); return; }
+  if (isBanned()) { showToast('🚫 Banlıyken emoji kullanamazsın!', 'warning'); return; }
   emojiTargetInput = targetInputId;
   const panel = $('emoji-panel');
   const grid = $('emoji-grid');
@@ -531,7 +600,7 @@ function insertEmoji(emoji) {
 // MEDYA (POST)
 // ============================================================
 function handlePostMediaSelect(event) {
-  if (isBanned()) { showToast('Banlıyken medya yükleyemezsin.', 'warning'); event.target.value = ''; return; }
+  if (isBanned()) { showToast('🚫 Banlıyken medya yükleyemezsin!', 'warning'); event.target.value = ''; return; }
   const file = event.target.files[0];
   if (!file) return;
   const isImage = file.type.startsWith('image/');
@@ -566,7 +635,6 @@ function handlePostMediaSelect(event) {
   reader.readAsDataURL(file);
   event.target.value = '';
 }
-
 function renderPostMediaPreview() {
   const container = $('post-media-preview');
   if (!container) return;
@@ -580,7 +648,6 @@ function renderPostMediaPreview() {
   container.innerHTML = `<div class="space-y-2">${preview}<div class="flex items-center justify-between gap-2"><span class="text-[10px] text-slate-400 truncate flex-1">${escapeHtml(m.name)} (${(m.size/1024).toFixed(0)} KB)</span><button onclick="removePostMedia()" class="px-2 py-1 bg-rose-600/20 text-rose-400 text-[10px] font-semibold rounded-lg"><i class="fa-solid fa-xmark mr-1"></i>Kaldır</button></div></div>`;
 }
 function removePostMedia() { pendingPostMedia = null; renderPostMediaPreview(); }
-
 function openMediaLightbox(src, type) {
   const old = document.getElementById('media-lightbox');
   if (old) old.remove();
@@ -643,7 +710,7 @@ function getDmRequestStatus(targetUsername) {
 }
 function sendDmRequest(targetUsername) {
   if (!currentUser || !targetUsername) return;
-  if (isBanned()) { showToast('Banlıyken istek gönderemezsin.', 'warning'); return; }
+  if (isBanned()) { showToast('🚫 Banlıyken istek gönderemezsin.', 'warning'); return; }
   if (targetUsername === currentUser.username) { showToast('Kendine istek gönderemezsin.', 'warning'); return; }
   const existing = dmRequestsDb.find(r => (r.from === currentUser.username && r.to === targetUsername) || (r.from === targetUsername && r.to === currentUser.username));
   if (existing) {
@@ -769,9 +836,9 @@ function logout() {
   if (banCheckInterval) { clearInterval(banCheckInterval); banCheckInterval = null; }
   if (mqttClient) { try { mqttClient.end(true); } catch(e){} mqttClient = null; }
   currentUser = null; selectedDmUser = null; viewingPublicUsername = null;
+  hideBanUI();
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
-  $('ban-banner').classList.add('hidden');
   const lu = $('login-username'), lp = $('login-password');
   if (lu) lu.value = '';
   if (lp) lp.value = '';
@@ -782,20 +849,21 @@ function logout() {
 function launchMainApp() {
   $('auth-screen').classList.add('hidden');
   $('main-app').classList.remove('hidden');
-  console.log('🚀 MSZ MEDYA v4.0!', currentUser.username);
+  console.log('🚀 MSZ MEDYA v4.2!', currentUser.username);
   updateUserUI();
   updateModUI();
   initNetworkConnection();
   renderFeed();
+  renderGames();
   renderDmUserList();
   renderUsersLeaderboard();
   renderGroups();
   updateNotificationBadge();
   updateGroupCreateButton();
-  // Ban kontrolü
   const ban = isUserBanned(currentUser.username);
-  if (ban) showBanBanner(ban);
+  if (ban) showBanUI(ban);
   startBanCheckInterval();
+  updateBanRestrictions();
 }
 
 // ============================================================
@@ -904,7 +972,7 @@ function updateGroupCreateButton() {
   }
 }
 function openCreateGroupModal() {
-  if (isBanned()) { showToast('Banlıyken grup oluşturamazsın.', 'warning'); return; }
+  if (isBanned()) { showToast('🚫 Banlıyken grup oluşturamazsın.', 'warning'); return; }
   if (!currentUser?.hasTik) { showModal('Tik Gerekli', 'Grup oluşturmak için Tik sahibi olmalısın!'); return; }
   $('create-group-modal').classList.remove('hidden');
   ['group-name','group-desc','group-password','group-emoji','group-tag'].forEach(id => { const el = $(id); if (el) el.value = ''; });
@@ -914,7 +982,7 @@ function openCreateGroupModal() {
 function closeCreateGroupModal() { $('create-group-modal').classList.add('hidden'); }
 async function createGroup(e) {
   e.preventDefault();
-  if (isBanned()) { showToast('Banlıyken grup oluşturamazsın.', 'warning'); return; }
+  if (isBanned()) { showToast('🚫 Banlıyken grup oluşturamazsın.', 'warning'); return; }
   const name = $('group-name').value.trim();
   const desc = $('group-desc').value.trim();
   const type = $('group-type').value;
@@ -978,7 +1046,7 @@ function openGroupDetail(groupId) {
 function closeGroupDetailModal() { $('group-detail-modal').classList.add('hidden'); selectedGroupId = null; }
 async function joinGroup() {
   if (!selectedGroupId) return;
-  if (isBanned()) { showToast('Banlıyken katılamazsın.', 'warning'); return; }
+  if (isBanned()) { showToast('🚫 Banlıyken katılamazsın.', 'warning'); return; }
   const g = groupsDb.find(x => x.id === selectedGroupId);
   if (!g) return;
   if (g.password?.length > 0 && $('group-detail-password-input').value.trim() !== g.password) { showToast('❌ Şifre yanlış!', 'error'); return; }
@@ -1059,9 +1127,9 @@ async function deleteAccount(e) {
   if (banCheckInterval) clearInterval(banCheckInterval);
   if (mqttClient) { try { mqttClient.end(true); } catch(e){} mqttClient = null; }
   currentUser = null;
+  hideBanUI();
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
-  $('ban-banner').classList.add('hidden');
 }
 
 // ============================================================
@@ -1236,17 +1304,16 @@ async function handleIncomingNetworkData(topic, data) {
     return;
   }
   if (topic === TOPICS.GROUPS && data.type === 'DELETE_GROUP') { groupsDb = groupsDb.filter(g => g.id !== data.groupId); await saveGroupsToDB(); renderGroups(); return; }
-  
-  // MOD EVENTLERİ
   if (topic === TOPICS.MOD && data.type === 'BAN_USER') {
     const ban = data.ban;
     bannedUsers = bannedUsers.filter(b => b.username !== ban.username);
     bannedUsers.push(ban);
     await saveBannedUsersToDB();
     if (ban.username === currentUser.username) {
-      showBanBanner(ban);
+      showBanUI(ban);
       showToast(`🚫 ${ban.reason} nedeniyle ${getBanRemaining(ban)} süreyle askıya alındın!`, 'error');
       updateUserUI();
+      updateBanRestrictions();
     }
     if (activeTab === 'mod') renderModPanel();
     return;
@@ -1255,9 +1322,9 @@ async function handleIncomingNetworkData(topic, data) {
     bannedUsers = bannedUsers.filter(b => b.username !== data.username);
     await saveBannedUsersToDB();
     if (data.username === currentUser.username) {
-      $('ban-banner').classList.add('hidden');
+      hideBanUI();
       showToast('✅ Banınız kaldırıldı!', 'success');
-      updateUserUI(); renderFeed();
+      updateUserUI(); renderFeed(); updateBanRestrictions();
     }
     if (activeTab === 'mod') renderModPanel();
     return;
@@ -1303,7 +1370,7 @@ async function handleIncomingNetworkData(topic, data) {
 }
 
 // ============================================================
-// MOD BİLDİRİM (özel)
+// BİLDİRİM
 // ============================================================
 function addModNotification(text, meta) {
   const notif = { id: 'notif_' + Date.now(), text, timestamp: new Date().toISOString(), read: false, isMod: true, meta };
@@ -1312,10 +1379,6 @@ function addModNotification(text, meta) {
   updateNotificationBadge();
   showToast('🛡️ ' + text.replace(/\n/g, ' | '), 'mod');
 }
-
-// ============================================================
-// BİLDİRİM
-// ============================================================
 function addNotification(text) {
   notifications.unshift({ id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), text, timestamp: new Date().toISOString(), read: false });
   notificationCount = notifications.filter(n => !n.read).length;
@@ -1358,9 +1421,9 @@ function clearAllNotifications() { notifications = []; notificationCount = 0; up
 function switchTab(tab) {
   if (tab === 'mod' && !hasModPermission()) { showToast('Bu bölüme erişemezsin.', 'error'); return; }
   activeTab = tab;
-  const tabs = ['feed','messages','groups','users','mod','profile'];
-  const contentIds = ['tab-content-feed','tab-content-messages','tab-content-groups','tab-content-users','tab-content-mod','tab-content-profile'];
-  const navIds = ['nav-feed','nav-messages','nav-groups','nav-users','nav-mod','nav-profile'];
+  const tabs = ['feed','messages','groups','users','games','mod','profile'];
+  const contentIds = ['tab-content-feed','tab-content-messages','tab-content-groups','tab-content-users','tab-content-games','tab-content-mod','tab-content-profile'];
+  const navIds = ['nav-feed','nav-messages','nav-groups','nav-users','nav-games','nav-mod','nav-profile'];
   contentIds.forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
   navIds.forEach(id => {
     const el = $(id); if (!el) return;
@@ -1378,16 +1441,15 @@ function switchTab(tab) {
       else nEl.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
     }
   }
-  // MOD sekmesi her zaman yetkililere görünür
   updateModUI();
   if (tab === 'feed') renderFeed();
   else if (tab === 'messages') { $('unread-dm-badge').classList.add('hidden'); renderDmUserList(); if (selectedDmUser) renderChatMessages(); }
   else if (tab === 'groups') renderGroups();
   else if (tab === 'users') renderUsersLeaderboard();
+  else if (tab === 'games') renderGames();
   else if (tab === 'mod') renderModPanel();
   else if (tab === 'profile') renderProfileTab();
 }
-
 function updateModUI() {
   const modBtn = $('nav-mod');
   if (!modBtn) return;
@@ -1400,7 +1462,6 @@ function updateModUI() {
 // ============================================================
 function updateUserUI() {
   if (!currentUser) return;
-  const banned = isBanned();
   $('header-avatar').innerHTML = renderAvatar(currentUser, "w-full h-full text-sm");
   $('header-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
   $('sidebar-avatar').innerHTML = renderAvatar(currentUser, "w-full h-full text-lg");
@@ -1411,14 +1472,7 @@ function updateUserUI() {
   $('sidebar-followers-count').innerText = (currentUser.followers || []).length;
   $('sidebar-user-count').innerText = (currentUser.following || []).length;
   updateGroupCreateButton();
-  // Ban durumunda UI güncelle
-  const composer = $('post-input');
-  if (composer) {
-    composer.disabled = banned;
-    composer.placeholder = banned ? '🚫 Banlıyken gönderi paylaşamazsın' : 'Neler oluyor? Dünyayla paylaş...';
-  }
-  const dmInput = $('dm-input-text');
-  if (dmInput) dmInput.disabled = banned || !selectedDmUser;
+  updateBanRestrictions();
 }
 
 // ============================================================
@@ -1497,10 +1551,8 @@ async function deletePost(postId) {
   if (!post) return;
   const isOwner = post.author.username === currentUser.username;
   const isModAction = hasModPermission() && !isOwner;
-  
   if (isModAction) { openModDeletePostModal(postId); return; }
   if (!isOwner) { showToast('Bu gönderiyi silemezsin.', 'error'); return; }
-  
   commentsDb = commentsDb.filter(c => c.postId !== postId);
   await saveCommentsToDB();
   postsDb = postsDb.filter(p => p.id !== postId);
@@ -1573,6 +1625,139 @@ function renderFeed() {
   if (sorted.length === 0) { container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500"><i class="fa-solid fa-comments text-3xl text-slate-700 mb-2"></i><p class="text-sm">Henüz gönderi yok.</p></div>`; return; }
   container.innerHTML = sorted.map(p => createPostCard(p)).join('');
 }
+
+// ============================================================
+// OYUNLAR
+// ============================================================
+function renderGames() {
+  const container = document.getElementById('games-container');
+  if (!container) return;
+  const countEl = document.getElementById('games-count');
+  if (countEl) countEl.innerText = OYUNLAR.length + ' Oyun';
+  container.innerHTML = OYUNLAR.map(function(game) {
+    return '<div class="game-card" onclick="openGame(\'' + game.id + '\')">' +
+      '<div class="game-thumbnail" style="background: ' + game.gradient + ';">' +
+        '<span class="game-thumbnail-emoji">' + game.emoji + '</span>' +
+      '</div>' +
+      '<div class="game-info">' +
+        '<div class="game-title-row">' +
+          '<h4 class="game-title">' + escapeHtml(game.name) + '</h4>' +
+          '<span class="game-category-badge ' + game.categoryClass + '">' + game.category + '</span>' +
+        '</div>' +
+        '<p class="game-desc">' + escapeHtml(game.desc) + '</p>' +
+        '<button class="game-play-btn" onclick="event.stopPropagation(); openGame(\'' + game.id + '\')">' +
+          '<i class="fa-solid fa-play text-[10px]"></i> OYNA' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+function openGame(gameId) {
+  const game = OYUNLAR.find(function(g) { return g.id === gameId; });
+  if (!game) return;
+  currentGameUrl = game.url;
+  currentGameName = game.name;
+  const modal = document.getElementById('game-modal');
+  const iframeContainer = document.getElementById('game-iframe-container');
+  const loading = document.getElementById('game-loading');
+  const error = document.getElementById('game-error');
+  document.getElementById('game-modal-emoji').innerText = game.emoji;
+  document.getElementById('game-modal-emoji').style.background = game.gradient;
+  document.getElementById('game-modal-title').innerText = game.name;
+  document.getElementById('game-modal-category').innerText = game.category;
+  loading.classList.remove('hidden');
+  loading.classList.add('flex');
+  error.classList.add('hidden');
+  error.classList.remove('flex');
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  iframeContainer.innerHTML = '';
+  const iframe = document.createElement('iframe');
+  iframe.src = game.url;
+  iframe.allow = 'fullscreen; autoplay; encrypted-media; gyroscope; accelerometer';
+  iframe.allowFullscreen = true;
+  const loadTimeout = setTimeout(function() {
+    loading.classList.add('hidden');
+    loading.classList.remove('flex');
+    error.classList.remove('hidden');
+    error.classList.add('flex');
+  }, 10000);
+  iframe.onload = function() {
+    clearTimeout(loadTimeout);
+    setTimeout(function() {
+      loading.classList.add('hidden');
+      loading.classList.remove('flex');
+    }, 500);
+  };
+  iframe.onerror = function() {
+    clearTimeout(loadTimeout);
+    loading.classList.add('hidden');
+    loading.classList.remove('flex');
+    error.classList.remove('hidden');
+    error.classList.add('flex');
+  };
+  iframeContainer.appendChild(iframe);
+  logSystem('🎮 Oyun açıldı: ' + game.name);
+}
+function closeGameModal() {
+  const modal = document.getElementById('game-modal');
+  const iframeContainer = document.getElementById('game-iframe-container');
+  modal.classList.add('hidden');
+  modal.classList.remove('is-fullscreen');
+  isGameFullscreen = false;
+  iframeContainer.innerHTML = '';
+  document.body.style.overflow = '';
+  currentGameUrl = null;
+  currentGameName = null;
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(function() {});
+  }
+}
+function openGameInNewTab() {
+  if (!currentGameUrl) return;
+  window.open(currentGameUrl, '_blank', 'noopener,noreferrer');
+}
+function toggleGameFullscreen() {
+  const modal = document.getElementById('game-modal');
+  if (!document.fullscreenElement) {
+    if (modal.requestFullscreen) {
+      modal.requestFullscreen().then(function() {
+        modal.classList.add('is-fullscreen');
+        isGameFullscreen = true;
+      }).catch(function() {
+        modal.classList.add('is-fullscreen');
+        isGameFullscreen = true;
+      });
+    } else {
+      modal.classList.add('is-fullscreen');
+      isGameFullscreen = true;
+    }
+  } else {
+    document.exitFullscreen().catch(function() {});
+    modal.classList.remove('is-fullscreen');
+    isGameFullscreen = false;
+  }
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var modal = document.getElementById('game-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(function() {});
+      } else {
+        closeGameModal();
+      }
+    }
+  }
+});
+document.addEventListener('fullscreenchange', function() {
+  var modal = document.getElementById('game-modal');
+  if (!modal) return;
+  if (!document.fullscreenElement) {
+    modal.classList.remove('is-fullscreen');
+    isGameFullscreen = false;
+  }
+});
 
 // ============================================================
 // LEADERBOARD
@@ -1662,6 +1847,7 @@ function renderDmUserList() {
   }).join('');
 }
 function startDirectMessageWith(username) {
+  if (isBanned()) { showToast('🚫 Banlıyken mesaj isteği gönderemezsin.', 'warning'); return; }
   if (username === currentUser.username) { showToast('Kendine mesaj atamazsın.', 'warning'); return; }
   closePublicProfileModal(); closeNotificationModal();
   switchTab('messages');
@@ -1682,15 +1868,14 @@ function selectChatUser(username) {
   $('chat-target-name').innerHTML = getUserDisplayName(target);
   $('chat-target-handle').innerText = '@' + target.username;
   $('chat-view-profile-btn').classList.remove('hidden');
-  const banned = isBanned();
-  $('dm-input-text').disabled = banned;
-  $('dm-send-btn').disabled = banned;
+  $('dm-input-text').disabled = false;
+  $('dm-send-btn').disabled = false;
   cancelReply();
   renderDmUserList();
   renderChatMessages();
+  updateBanRestrictions();
 }
 function openChatUserProfile() { if (selectedDmUser) openPublicProfileModal(selectedDmUser); }
-
 function sendFileAttachment(event) {
   if (isBanned()) { showToast('🚫 Banlıyken dosya gönderemezsin!', 'error'); event.target.value = ''; return; }
   const file = event.target.files[0];
@@ -1732,7 +1917,6 @@ function sendFileAttachment(event) {
   reader.readAsDataURL(file);
   event.target.value = '';
 }
-
 async function toggleMicRecording() {
   if (isBanned()) { showToast('🚫 Banlıyken ses kaydedemezsin!', 'warning'); return; }
   if (!selectedDmUser) { showToast('Önce sohbet seç.', 'warning'); return; }
@@ -1785,10 +1969,8 @@ function stopAndSendMicRecording() {
   };
   mediaRecorder.stop();
 }
-
 async function sendDirectMessage(e) {
   e.preventDefault();
-  if (isBanned()) { showToast('🚫 Banlıyken mesaj gönderemezsin!', 'error'); return; }
   const input = $('dm-input-text');
   let text = input.value.trim();
   if (!text || !selectedDmUser) return;
@@ -1803,7 +1985,6 @@ async function sendDirectMessage(e) {
   cancelReply();
   renderChatMessages();
 }
-
 function startReply(msgId) {
   const msg = dmsDb.find(m => m.id === msgId);
   if (!msg) return;
@@ -1813,7 +1994,6 @@ function startReply(msgId) {
   $('reply-preview-bar').classList.remove('hidden');
 }
 function cancelReply() { replyToMessage = null; $('reply-preview-bar').classList.add('hidden'); }
-
 async function deleteDmMessage(msgId) {
   const msg = dmsDb.find(m => m.id === msgId);
   if (!msg) return;
@@ -1825,7 +2005,6 @@ async function deleteDmMessage(msgId) {
   renderChatMessages();
   showToast('Mesaj silindi.', 'info');
 }
-
 function renderChatMessages() {
   const container = $('chat-messages-inner');
   if (!container) return;
@@ -1999,7 +2178,7 @@ function tikKontrolEt() {
 }
 
 // ============================================================
-// MOD PANEL RENDER
+// MOD PANEL
 // ============================================================
 function renderModPanel() {
   if (!hasModPermission()) return;
