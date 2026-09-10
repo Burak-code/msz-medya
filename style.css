@@ -38,6 +38,7 @@ body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
 .chat-header-clickable:hover { background: rgba(255,255,255,0.05); border-radius: 8px; }
 .tik-purple { filter: hue-rotate(280deg) saturate(1.5); }
 .tik-blue { filter: hue-rotate(210deg) saturate(1.5); }
+.tik-red { filter: hue-rotate(0deg) saturate(2); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 #post-input { height: auto; min-height: 70px; max-height: 300px; overflow-y: auto; line-height: 1.5; resize: none; transition: height 0.1s ease-out; }
@@ -46,10 +47,61 @@ body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
 #media-lightbox { animation: fadeIn 0.2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 #media-lightbox img, #media-lightbox video { box-shadow: 0 0 40px rgba(0,0,0,0.8); }
-
-/* Emoji panel */
 #emoji-panel { animation: fadeIn 0.15s ease-out; }
 #emoji-grid button { cursor: pointer; }
-
-/* Mic recording */
 #mic-recording-bar { animation: fadeIn 0.2s ease-out; }
+
+/* BAN BANNER */
+#ban-banner { animation: banSlideDown 0.4s ease-out; }
+@keyframes banSlideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+/* Banlı kullanıcı - disabled hissi */
+.banned-disabled { opacity: 0.4; pointer-events: none; cursor: not-allowed; }
+.banned-input { position: relative; }
+.banned-input::after {
+  content: '🚫 Banlısınız';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.85);
+  color: #f43f5e;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Mod panel kartları */
+.mod-banned-card {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Mod bildirim (özel) */
+.notif-mod {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+}
+.notif-mod .notif-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+/* MOD sekme - sadece yetkililere */
+#nav-mod:not(.hidden) {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Ban banner süre sayacı */
+#ban-banner-timer {
+  animation: pulseTimer 1s ease-in-out infinite;
+}
+@keyframes pulseTimer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
