@@ -1,8 +1,9 @@
 // ============================================================
 // KONFIGURASYON
 // ============================================================
-const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
-const tikRengi = "blue";
+const gecerliKod = "ııOOOııııuuu?1éııOOOııııuuu?1é";
+// tikRengi: "blue" (normal), "red" (mod), "purple" (süper mod)
+let tikRengi = "red";
 const GUVENLIK_CEVABI = "msz-şifremi-unuttum";
 
 const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
@@ -15,15 +16,18 @@ const TOPICS = {
   DM: TOPIC_PREFIX + 'dm/',
   DM_REQUESTS: TOPIC_PREFIX + 'dm_requests',
   COMMENTS: TOPIC_PREFIX + 'comments',
-  GROUPS: TOPIC_PREFIX + 'groups'
+  GROUPS: TOPIC_PREFIX + 'groups',
+  MOD: TOPIC_PREFIX + 'mod'
 };
 const POST_COOLDOWN_MS = 180000;
 const MAX_POSTS = 100;
 const DB_NAME = 'MSZMedyaDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const NEON_COLORS = ['#b026ff','#9b00ff','#8b00cc','#7a00b3','#6a0099','#c44dff','#d580ff','#e6b3ff','#a64dff','#8000ff'];
 const USER_COLORS = ['bg-cyan-600','bg-indigo-600','bg-emerald-600','bg-purple-600','bg-rose-600','bg-amber-600'];
 const PRESENCE_INTERVAL_MS = 30000;
+const BAN_MIN_HOURS = 1;
+const BAN_MAX_HOURS = 50;
 
 const TRUSTED_DOMAINS = [
   'youtube.com','youtu.be','m.youtube.com','twitter.com','x.com','mobile.twitter.com',
@@ -49,8 +53,7 @@ const EMOJI_LIST = [
   '🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃',
   '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','👍',
   '👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤝','🙏','✍️',
-  '💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🦷','🦴','👀','👁️','👅','👄','🔥','✨','⭐','🌟','💫',
-  '⚡','☀️','🌤️','⛅','🌥️','☁️','🌦️','🌧️','⛈️','🌩️','🌨️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌈','☔'
+  '💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🦷','🦴','👀','👁️','👅','👄','🔥','✨','⭐','🌟','💫'
 ];
 
 let currentLang = 'tr';
@@ -61,17 +64,16 @@ let currentLang = 'tr';
 let currentUser = null, mqttClient = null, activeTab = 'feed', selectedDmUser = null, viewingPublicUsername = null;
 let tempAvatarBase64 = null, isMqttConnected = false, isDBReady = false, lastPostTime = 0, selectedGroupId = null;
 let usersDb = {}, postsDb = [], dmsDb = [], commentsDb = [], groupsDb = [];
-let dmRequestsDb = []; // { id, from, to, status, timestamp } status: 'pending','accepted','rejected'
+let dmRequestsDb = [];
+let bannedUsers = []; // { username, until, reason, by, bannedAt }
 let notifications = [], notificationCount = 0, dmUnreadCounts = {}, dmLastMessageTime = {};
 let db = null, followersModalTarget = null, followingModalTarget = null;
-let presenceInterval = null;
+let presenceInterval = null, banCheckInterval = null;
 let pendingPostMedia = null;
 let replyToMessage = null;
 let emojiTargetInput = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let recordingTimer = null;
-let recordingSeconds = 0;
+let mediaRecorder = null, audioChunks = [], recordingTimer = null, recordingSeconds = 0;
+let modBanTarget = null, modDeletePostTarget = null;
 
 // ============================================================
 // INDEXEDDB
@@ -83,7 +85,7 @@ function openDatabase() {
     req.onsuccess = () => { db = req.result; isDBReady = true; resolve(db); };
     req.onupgradeneeded = (e) => {
       const d = e.target.result;
-      ['users','posts','comments','messages','groups','dm_requests'].forEach(name => {
+      ['users','posts','comments','messages','groups','dm_requests','banned_users'].forEach(name => {
         if (!d.objectStoreNames.contains(name)) {
           const s = d.createObjectStore(name, { keyPath: name === 'users' ? 'username' : 'id' });
           if (name === 'posts') { s.createIndex('createdAt','createdAt'); s.createIndex('author','author.username'); }
@@ -96,30 +98,25 @@ function openDatabase() {
     };
   });
 }
-
 function tx(store, mode = 'readonly') {
   if (!db) throw new Error('Veritabanı açık değil');
   return db.transaction(store, mode).objectStore(store);
 }
-
 function saveToDB(store, data) {
   return new Promise((resolve, reject) => {
     try { const r = tx(store, 'readwrite').put(data); r.onsuccess = () => resolve(data); r.onerror = () => reject(r.error); } catch(e) { reject(e); }
   });
 }
-
 function getAllFromDB(store) {
   return new Promise((resolve, reject) => {
     try { const r = tx(store, 'readonly').getAll(); r.onsuccess = () => resolve(r.result || []); r.onerror = () => reject(r.error); } catch(e) { reject(e); }
   });
 }
-
 function clearDB(store) {
   return new Promise((resolve, reject) => {
     try { const r = tx(store, 'readwrite').clear(); r.onsuccess = () => resolve(); r.onerror = () => reject(r.error); } catch(e) { reject(e); }
   });
 }
-
 async function saveToDBAll(store, dataArray) {
   try { await clearDB(store); for (const item of dataArray) await saveToDB(store, item); } catch(e) { console.error(store + ' hatası:', e); }
 }
@@ -129,16 +126,18 @@ const saveMessagesToDB = () => saveToDBAll('messages', dmsDb);
 const saveUsersToDB = () => saveToDBAll('users', Object.values(usersDb));
 const saveGroupsToDB = () => saveToDBAll('groups', groupsDb);
 const saveDmRequestsToDB = () => saveToDBAll('dm_requests', dmRequestsDb);
+const saveBannedUsersToDB = () => saveToDBAll('banned_users', bannedUsers);
 
 async function loadAllFromDB() {
   try {
-    const [users, posts, comments, messages, groups, dmReqs] = await Promise.all([
+    const [users, posts, comments, messages, groups, dmReqs, bans] = await Promise.all([
       getAllFromDB('users'), getAllFromDB('posts'), getAllFromDB('comments'),
-      getAllFromDB('messages'), getAllFromDB('groups'), getAllFromDB('dm_requests')
+      getAllFromDB('messages'), getAllFromDB('groups'), getAllFromDB('dm_requests'),
+      getAllFromDB('banned_users')
     ]);
     const usersObj = {}; users.forEach(u => usersObj[u.username] = u);
-    return { users: usersObj, posts, comments, messages, groups, dmReqs };
-  } catch(e) { console.error('Veri yükleme hatası:', e); return null; }
+    return { users: usersObj, posts, comments, messages, groups, dmReqs, bans };
+  } catch(e) { console.error('Yükleme hatası:', e); return null; }
 }
 
 // ============================================================
@@ -173,9 +172,9 @@ async function incrementPostCount(username, delta = 1) {
 }
 
 function sanitizeUserObj(u) {
-  return { 
+  return {
     username: u.username, fullname: u.fullname, bio: u.bio, color: u.color, avatarUrl: u.avatarUrl,
-    followers: u.followers || [], following: u.following || [], 
+    followers: u.followers || [], following: u.following || [],
     neonColor: u.neonColor || null, hasTik: u.hasTik || false, tikRengi: u.tikRengi || null,
     postCount: typeof u.postCount === 'number' ? u.postCount : postsDb.filter(p => p.author.username === u.username).length
   };
@@ -197,7 +196,8 @@ function showToast(message, type = 'info') {
   if (!container) return;
   const toast = document.createElement('div');
   const colors = { success:'bg-emerald-950 border-emerald-800 text-emerald-200', error:'bg-rose-950 border-rose-800 text-rose-200',
-    warning:'bg-amber-950 border-amber-800 text-amber-200', info:'bg-cyan-950 border-cyan-800 text-cyan-200' };
+    warning:'bg-amber-950 border-amber-800 text-amber-200', info:'bg-cyan-950 border-cyan-800 text-cyan-200',
+    mod:'bg-gradient-to-r from-amber-950 to-rose-950 border-amber-600 text-amber-100' };
   toast.className = `p-3 rounded-xl border text-xs font-medium shadow-xl backdrop-blur-md pointer-events-auto transition-all transform duration-300 translate-y-2 opacity-0 ${colors[type]||colors.info}`;
   toast.innerText = message;
   container.appendChild(toast);
@@ -231,7 +231,215 @@ function ensureUserExists(username, partialData = {}) {
 }
 
 // ============================================================
-// FOTO/LINK/MEDYA HELPERS
+// YETKİ KONTROLLERİ
+// ============================================================
+function isMod() {
+  return currentUser && currentUser.hasTik && currentUser.tikRengi === 'red';
+}
+function isSuperMod() {
+  return currentUser && currentUser.hasTik && currentUser.tikRengi === 'purple';
+}
+function hasModPermission() {
+  return isMod() || isSuperMod();
+}
+function hasSuperModPermission() {
+  return isSuperMod();
+}
+
+// ============================================================
+// BAN SİSTEMİ
+// ============================================================
+function isUserBanned(username) {
+  if (!username) return null;
+  const ban = bannedUsers.find(b => b.username === username);
+  if (!ban) return null;
+  if (new Date(ban.until).getTime() <= Date.now()) return null; // süresi geçmiş
+  return ban;
+}
+
+function isBanned() {
+  return currentUser ? !!isUserBanned(currentUser.username) : false;
+}
+
+function getBanRemaining(ban) {
+  const diff = new Date(ban.until).getTime() - Date.now();
+  if (diff <= 0) return 'Süresi doldu';
+  const hours = Math.floor(diff / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  if (hours > 0) return `${hours}sa ${mins}dk`;
+  return `${mins} dk`;
+}
+
+function showBanBanner(ban) {
+  const banner = $('ban-banner');
+  if (!banner) return;
+  if (!ban) { banner.classList.add('hidden'); return; }
+  banner.classList.remove('hidden');
+  $('ban-banner-info').innerText = `Süre: ${getBanRemaining(ban)} | Sebep: ${ban.reason} | Banlayan: @${ban.by}`;
+  updateBanBannerTimer(ban);
+}
+
+function updateBanBannerTimer(ban) {
+  const timer = $('ban-banner-timer');
+  if (!timer) return;
+  timer.innerText = getBanRemaining(ban);
+}
+
+function startBanCheckInterval() {
+  if (banCheckInterval) clearInterval(banCheckInterval);
+  banCheckInterval = setInterval(async () => {
+    if (!currentUser) return;
+    const ban = isUserBanned(currentUser.username);
+    if (ban) {
+      showBanBanner(ban);
+      updateBanBannerTimer(ban);
+    } else {
+      // Ban kalkmış olabilir
+      const oldBanner = $('ban-banner');
+      if (oldBanner && !oldBanner.classList.contains('hidden')) {
+        oldBanner.classList.add('hidden');
+        showToast('✅ Banınız kaldırıldı!', 'success');
+        renderFeed();
+        updateUserUI();
+      }
+    }
+    // Süresi geçen banları temizle
+    const now = Date.now();
+    const beforeLen = bannedUsers.length;
+    bannedUsers = bannedUsers.filter(b => new Date(b.until).getTime() > now);
+    if (bannedUsers.length !== beforeLen) {
+      await saveBannedUsersToDB();
+      if (activeTab === 'mod') renderModPanel();
+    }
+  }, 30000);
+}
+
+async function modBanUser(targetUsername, hours, reason) {
+  if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
+  if (targetUsername === currentUser.username) { showToast('Kendini banlayamazsın.', 'warning'); return; }
+  if (isSuperMod() === false && isMod() === true) {
+    // Kırmızı mod, mor tikliyi banlayamaz
+    const target = usersDb[targetUsername];
+    if (target && target.hasTik && target.tikRengi === 'purple') {
+      showToast('Mor tikli birini banlayamazsın.', 'error'); return;
+    }
+  }
+  hours = Math.max(BAN_MIN_HOURS, Math.min(BAN_MAX_HOURS, hours));
+  const until = new Date(Date.now() + hours * 3600000).toISOString();
+  // Önceki banı kaldır
+  bannedUsers = bannedUsers.filter(b => b.username !== targetUsername);
+  const ban = { id: 'ban_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), username: targetUsername, until, reason, by: currentUser.username, bannedAt: new Date().toISOString() };
+  bannedUsers.push(ban);
+  await saveBannedUsersToDB();
+  if (mqttClient?.connected) {
+    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'BAN_USER', ban }));
+  }
+  showToast(`🔨 @${targetUsername} ${hours} saat banlandı.`, 'mod');
+  // Hedef kullanıcıya bildirim gönder (MQTT DM gibi özel topic)
+  if (mqttClient?.connected) {
+    const notifMsg = { id: 'notif_' + Date.now(), to: targetUsername, from: 'MOD', text: `Hesabınız ${hours} saat süreyle askıya alındı. Sebep: ${reason}`, type: 'mod_ban', timestamp: new Date().toISOString() };
+    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'MOD_NOTIFY', notif: notifMsg }));
+  }
+  renderModPanel();
+}
+
+async function modUnbanUser(targetUsername) {
+  if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
+  const ban = bannedUsers.find(b => b.username === targetUsername);
+  if (!ban) return;
+  bannedUsers = bannedUsers.filter(b => b.username !== targetUsername);
+  await saveBannedUsersToDB();
+  if (mqttClient?.connected) {
+    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'UNBAN_USER', username: targetUsername }));
+  }
+  showToast(`✅ @${targetUsername} banı kaldırıldı.`, 'success');
+  renderModPanel();
+}
+
+// ============================================================
+// TİK KALDIRMA (sadece süper mod)
+// ============================================================
+async function modRemoveTik(targetUsername) {
+  if (!hasSuperModPermission()) { showToast('Sadece mor tikli kaldırabilir.', 'error'); return; }
+  if (targetUsername === currentUser.username) { showToast('Kendi tikini kaldıramazsın.', 'warning'); return; }
+  const target = ensureUserExists(targetUsername);
+  if (!target) return;
+  if (!target.hasTik) { showToast('Bu kullanıcının tiki yok.', 'info'); return; }
+  if (!confirm(`@${targetUsername} kullanıcısının tikini kaldırmak istediğine emin misin?`)) return;
+  target.hasTik = false;
+  target.tikRengi = null;
+  usersDb[targetUsername] = target;
+  await saveUsersToDB();
+  postsDb.forEach(p => { if (p.author.username === targetUsername) { p.author.hasTik = false; p.author.tikRengi = null; } });
+  await savePostsToDB();
+  commentsDb.forEach(c => { if (c.author.username === targetUsername) { c.author.hasTik = false; c.author.tikRengi = null; } });
+  await saveCommentsToDB();
+  if (mqttClient?.connected) {
+    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'REMOVE_TIK', username: targetUsername, by: currentUser.username }));
+    mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'PRESENCE', user: sanitizeUserObj(target) }));
+  }
+  showToast(`✅ @${targetUsername} tikini kaldırdın.`, 'mod');
+  renderModPanel();
+  renderUsersLeaderboard();
+}
+
+// ============================================================
+// MOD GÖNDERİ SİLME
+// ============================================================
+function openModDeletePostModal(postId) {
+  if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
+  const post = postsDb.find(p => p.id === postId);
+  if (!post) return;
+  modDeletePostTarget = postId;
+  const author = ensureUserExists(post.author.username, post.author);
+  $('mod-delete-post-info').innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 shrink-0">${renderAvatar(author, "w-10 h-10 text-sm")}</div>
+      <div class="min-w-0">
+        <div class="font-bold text-xs text-white">${escapeHtml(author.fullname)}</div>
+        <div class="text-[10px] text-slate-500">@${author.username}</div>
+      </div>
+    </div>
+    <p class="text-xs text-slate-300 mt-2 line-clamp-2 italic">"${escapeHtml((post.text || '').substring(0, 120))}"</p>
+  `;
+  $('mod-delete-post-reason').value = '';
+  $('mod-delete-post-modal').classList.remove('hidden');
+}
+function closeModDeletePostModal() { $('mod-delete-post-modal').classList.add('hidden'); modDeletePostTarget = null; }
+
+async function confirmModDeletePost() {
+  if (!modDeletePostTarget || !hasModPermission()) return;
+  const reason = $('mod-delete-post-reason').value.trim();
+  if (!reason) { showToast('Sebep yazmak zorunlu!', 'warning'); return; }
+  const post = postsDb.find(p => p.id === modDeletePostTarget);
+  if (!post) { closeModDeletePostModal(); return; }
+  const authorUsername = post.author.username;
+  const postText = post.text || '';
+  
+  commentsDb = commentsDb.filter(c => c.postId !== modDeletePostTarget);
+  await saveCommentsToDB();
+  postsDb = postsDb.filter(p => p.id !== modDeletePostTarget);
+  await savePostsToDB();
+  await incrementPostCount(authorUsername, -1);
+  
+  if (mqttClient?.connected) {
+    mqttClient.publish(TOPICS.MOD, JSON.stringify({
+      type: 'MOD_DELETE_POST',
+      postId: modDeletePostTarget,
+      reason,
+      by: currentUser.username,
+      authorUsername,
+      postText: postText.substring(0, 80)
+    }));
+  }
+  
+  closeModDeletePostModal();
+  renderFeed(); renderProfileTab(); updateUserUI();
+  showToast(`✅ Gönderi silindi ve @${authorUsername} bilgilendirildi.`, 'mod');
+}
+
+// ============================================================
+// TİK KONTROLÜ
 // ============================================================
 function containsForbidden(text) {
   const forbiddenWords = /\b(fuck|siktir|amk|orospu|piç|göt|yarrak|amcık|sik|kahpe|kaltak|şerefsiz|hain|döl|sperm|çük|yavşak|ibne|puşt|gavat|pezevenk|şişko|çomar|mal|embesil|gerizekalı|salak|aptal|dangalak|mankafa)\b/i;
@@ -246,58 +454,40 @@ function isTrustedUrl(url) {
     return TRUSTED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
   } catch(e) { return false; }
 }
-
 function openSafeLink(url) {
   const href = url.startsWith('http') ? url : 'https://' + url;
   if (isTrustedUrl(href)) window.open(href, '_blank', 'noopener,noreferrer');
   else showLinkWarning(href);
 }
-
 function showLinkWarning(url) {
-  const oldModal = document.getElementById('link-warning-modal');
-  if (oldModal) oldModal.remove();
+  const old = document.getElementById('link-warning-modal');
+  if (old) old.remove();
   const modal = document.createElement('div');
   modal.id = 'link-warning-modal';
   modal.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4';
-  const safeUrl = escapeHtml(url);
-  modal.innerHTML = `
-    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-          <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl"></i>
-        </div>
-        <h3 class="text-lg font-bold text-amber-400">Güvenlik Uyarısı</h3>
-      </div>
-      <p class="text-sm text-slate-300 leading-relaxed">
-        <strong class="text-amber-300">Dikkat!</strong> Bu linkin nereden geldiği belirsiz.
-        Bu linke tıklarsan <strong class="text-white">sorumluluk platformumuzda değildir</strong>.
-      </p>
-      <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
-        <p class="text-xs text-cyan-400 font-mono break-all">${safeUrl}</p>
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="document.getElementById('link-warning-modal').remove()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl touch-target">Hayır</button>
-        <button id="link-warning-confirm" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Evet, Aç</button>
-      </div>
-    </div>`;
+  modal.innerHTML = `<div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0"><i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl"></i></div>
+      <h3 class="text-lg font-bold text-amber-400">Güvenlik Uyarısı</h3>
+    </div>
+    <p class="text-sm text-slate-300">Bu linkin nereden geldiği belirsiz. <strong class="text-white">Sorumluluk platformumuzda değildir</strong>.</p>
+    <div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-xs text-cyan-400 font-mono break-all">${escapeHtml(url)}</p></div>
+    <div class="flex justify-end gap-2 pt-2">
+      <button onclick="document.getElementById('link-warning-modal').remove()" class="px-4 py-2 bg-slate-800 text-slate-200 text-xs font-semibold rounded-xl">Hayır</button>
+      <button id="link-warning-confirm" class="px-4 py-2 bg-amber-500 text-white text-xs font-semibold rounded-xl">Evet, Aç</button>
+    </div>
+  </div>`;
   document.body.appendChild(modal);
-  modal.querySelector('#link-warning-confirm').addEventListener('click', () => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-    modal.remove();
-  });
+  modal.querySelector('#link-warning-confirm').addEventListener('click', () => { window.open(url, '_blank', 'noopener,noreferrer'); modal.remove(); });
 }
-
 function convertLinks(text) {
   return text.replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi, (url) => {
     const href = url.startsWith('http') ? url : 'https://' + url;
     const trusted = isTrustedUrl(href);
     const icon = trusted ? '' : ' <i class="fa-solid fa-shield-halved text-[10px] opacity-70"></i>';
-    const title = trusted ? 'Güvenli link' : 'Bilinmeyen link';
-    const displayUrl = escapeHtml(url);
-    return `<a href="javascript:void(0)" onclick="openSafeLink('${href.replace(/'/g, "\\'")}')" class="message-link ${trusted ? '' : 'link-untrusted'}" title="${title}">${displayUrl}${icon}</a>`;
+    return `<a href="javascript:void(0)" onclick="openSafeLink('${href.replace(/'/g, "\\'")}')" class="message-link ${trusted ? '' : 'link-untrusted'}" title="${trusted ? 'Güvenli' : 'Bilinmeyen'}">${escapeHtml(url)}${icon}</a>`;
   });
 }
-
 function renderText(text) {
   const censored = censorText(text);
   return censored === '****' ? '****' : convertLinks(censored);
@@ -307,30 +497,24 @@ function renderText(text) {
 // EMOJI
 // ============================================================
 function openEmojiPanel(targetInputId) {
+  if (isBanned()) { showToast('Banlıyken emoji kullanamazsın.', 'warning'); return; }
   emojiTargetInput = targetInputId;
   const panel = $('emoji-panel');
   const grid = $('emoji-grid');
   grid.innerHTML = EMOJI_LIST.map(e => `<button type="button" onclick="insertEmoji('${e}')" class="text-xl hover:bg-slate-800 rounded-lg p-1 transition">${e}</button>`).join('');
   panel.classList.remove('hidden');
-  setTimeout(() => {
-    document.addEventListener('click', closeEmojiPanelOutside);
-  }, 10);
+  setTimeout(() => document.addEventListener('click', closeEmojiPanelOutside), 10);
 }
-
 function closeEmojiPanelOutside(e) {
   const panel = $('emoji-panel');
   if (!panel) return;
-  if (!e.target.closest('#emoji-panel') && !e.target.closest('[onclick*="openEmojiPanel"]')) {
-    closeEmojiPanel();
-  }
+  if (!e.target.closest('#emoji-panel') && !e.target.closest('[onclick*="openEmojiPanel"]')) closeEmojiPanel();
 }
-
 function closeEmojiPanel() {
   const panel = $('emoji-panel');
   if (panel) panel.classList.add('hidden');
   document.removeEventListener('click', closeEmojiPanelOutside);
 }
-
 function insertEmoji(emoji) {
   if (!emojiTargetInput) return;
   const input = $(emojiTargetInput);
@@ -340,26 +524,22 @@ function insertEmoji(emoji) {
   input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
   input.focus();
   input.selectionStart = input.selectionEnd = start + emoji.length;
-  if (emojiTargetInput === 'post-input') {
-    input.dispatchEvent(new Event('input'));
-  }
+  if (emojiTargetInput === 'post-input') input.dispatchEvent(new Event('input'));
 }
 
 // ============================================================
 // MEDYA (POST)
 // ============================================================
 function handlePostMediaSelect(event) {
+  if (isBanned()) { showToast('Banlıyken medya yükleyemezsin.', 'warning'); event.target.value = ''; return; }
   const file = event.target.files[0];
   if (!file) return;
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
   const isAudio = file.type.startsWith('audio/');
-  if (!isImage && !isVideo && !isAudio) { showToast('Sadece foto, video veya ses!', 'error'); event.target.value = ''; return; }
-  const maxSize = isImage ? 2 * 1024 * 1024 : isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
-  if (file.size > maxSize) {
-    showToast(`Dosya çok büyük! Max ${maxSize / (1024*1024)}MB.`, 'error');
-    event.target.value = ''; return;
-  }
+  if (!isImage && !isVideo && !isAudio) { showToast('Sadece foto/video/ses!', 'error'); event.target.value = ''; return; }
+  const maxSize = isImage ? 2*1024*1024 : isVideo ? 5*1024*1024 : 2*1024*1024;
+  if (file.size > maxSize) { showToast(`Max ${maxSize/(1024*1024)}MB!`, 'error'); event.target.value = ''; return; }
   const reader = new FileReader();
   reader.onload = (e) => {
     let data = e.target.result;
@@ -397,18 +577,8 @@ function renderPostMediaPreview() {
   if (m.type === 'image') preview = `<img src="${m.data}" class="w-full max-h-60 object-contain rounded-lg bg-slate-900 mx-auto cursor-zoom-in" onclick="openMediaLightbox('${m.data}', 'image')">`;
   else if (m.type === 'video') preview = `<video src="${m.data}" controls class="w-full max-h-60 rounded-lg bg-slate-900"></video>`;
   else if (m.type === 'audio') preview = `<audio src="${m.data}" controls class="w-full"></audio>`;
-  container.innerHTML = `
-    <div class="space-y-2">
-      ${preview}
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-[10px] text-slate-400 truncate flex-1">${escapeHtml(m.name)} (${(m.size/1024).toFixed(0)} KB)</span>
-        <button onclick="removePostMedia()" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-[10px] font-semibold rounded-lg transition">
-          <i class="fa-solid fa-xmark mr-1"></i>Kaldır
-        </button>
-      </div>
-    </div>`;
+  container.innerHTML = `<div class="space-y-2">${preview}<div class="flex items-center justify-between gap-2"><span class="text-[10px] text-slate-400 truncate flex-1">${escapeHtml(m.name)} (${(m.size/1024).toFixed(0)} KB)</span><button onclick="removePostMedia()" class="px-2 py-1 bg-rose-600/20 text-rose-400 text-[10px] font-semibold rounded-lg"><i class="fa-solid fa-xmark mr-1"></i>Kaldır</button></div></div>`;
 }
-
 function removePostMedia() { pendingPostMedia = null; renderPostMediaPreview(); }
 
 function openMediaLightbox(src, type) {
@@ -436,21 +606,15 @@ function getUnlockedTiers() {
   const followerCount = (currentUser.followers || []).length;
   return REWARD_TIERS.filter(t => followerCount >= t.count);
 }
-
 async function applyNeonColor(colorHex) {
-  if (!currentUser) return;
+  if (!currentUser || isBanned()) return;
   currentUser.neonColor = colorHex;
   usersDb[currentUser.username] = currentUser;
   await saveUsersToDB();
   publishPresence();
-  updateUserUI();
-  renderProfileTab();
-  renderUsersLeaderboard();
-  renderFeed();
-  renderDmUserList();
-  showToast(colorHex ? '✨ Neon renginiz güncellendi!' : 'Neon renk kapatıldı.', colorHex ? 'success' : 'info');
+  updateUserUI(); renderProfileTab(); renderUsersLeaderboard(); renderFeed(); renderDmUserList();
+  showToast(colorHex ? '✨ Neon güncellendi!' : 'Neon kapatıldı.', colorHex ? 'success' : 'info');
 }
-
 function renderRewardSelector() {
   const container = document.getElementById('reward-selector-container');
   if (!container) return;
@@ -458,153 +622,69 @@ function renderRewardSelector() {
   const unlockedTiers = getUnlockedTiers();
   const activeColor = currentUser.neonColor || null;
   if (unlockedTiers.length === 0) {
-    container.innerHTML = `
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
-          <p class="text-[11px] text-slate-400">
-            <i class="fa-solid fa-lock text-slate-600 mr-1"></i>
-            <strong class="text-amber-400">Ödül almak için:</strong> 10 takipçiye ulaş → Neon Mor, 50 takipçiye ulaş → Neon Mavi, 100 takipçiye ulaş → Neon Altın
-          </p>
-        </div>
-      </div>`;
+    container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4"><div class="bg-slate-950/50 border border-slate-800 rounded-xl p-3"><p class="text-[11px] text-slate-400"><i class="fa-solid fa-lock text-slate-600 mr-1"></i><strong class="text-amber-400">Ödül:</strong> 10 takipçi → Neon Mor, 50 → Neon Mavi, 100 → Neon Altın</p></div></div>`;
     return;
   }
-  container.innerHTML = `
-    <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-lg">
-      <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
-        <h4 class="text-sm font-bold text-amber-400 flex items-center gap-2">
-          <i class="fa-solid fa-star"></i> Neon Renk Seçimi
-        </h4>
-        <span class="text-[10px] text-slate-400 bg-slate-950 px-2 py-1 rounded-lg">${followerCount} takipçi</span>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        <button onclick="applyNeonColor(null)" class="px-3 py-2 text-[11px] font-semibold rounded-lg transition ${!activeColor ? 'bg-slate-700 text-white ring-2 ring-slate-500' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-          <i class="fa-solid fa-ban mr-1"></i> Kapalı
-        </button>
-        ${unlockedTiers.map(t => `
-          <button onclick="applyNeonColor('${t.color}')" class="px-3 py-2 text-[11px] font-semibold rounded-lg transition ${activeColor === t.color ? 'ring-2 ring-white' : ''}" style="background: ${t.color}33; color: ${t.color}; border: 1px solid ${t.color}66;">
-            ${t.icon} ${t.name}
-          </button>
-        `).join('')}
-      </div>
-    </div>`;
+  container.innerHTML = `<div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-lg"><div class="flex items-center justify-between gap-2 flex-wrap mb-3"><h4 class="text-sm font-bold text-amber-400 flex items-center gap-2"><i class="fa-solid fa-star"></i> Neon Renk Seçimi</h4><span class="text-[10px] text-slate-400 bg-slate-950 px-2 py-1 rounded-lg">${followerCount} takipçi</span></div><div class="flex gap-2 flex-wrap"><button onclick="applyNeonColor(null)" class="px-3 py-2 text-[11px] font-semibold rounded-lg transition ${!activeColor ? 'bg-slate-700 text-white ring-2 ring-slate-500' : 'bg-slate-800 text-slate-300'}"><i class="fa-solid fa-ban mr-1"></i> Kapalı</button>${unlockedTiers.map(t => `<button onclick="applyNeonColor('${t.color}')" class="px-3 py-2 text-[11px] font-semibold rounded-lg transition ${activeColor === t.color ? 'ring-2 ring-white' : ''}" style="background: ${t.color}33; color: ${t.color}; border: 1px solid ${t.color}66;">${t.icon} ${t.name}</button>`).join('')}</div></div>`;
 }
 
 // ============================================================
-// DM REQUEST SİSTEMİ
+// DM REQUEST
 // ============================================================
 function canMessageUser(targetUsername) {
-  // Kendi kendine mesaj atılamaz
   if (targetUsername === currentUser.username) return false;
-  // Eğer zaten kabul edilmiş istek varsa veya zaten konuşma varsa evet
-  const existingDM = dmsDb.some(m => 
-    (m.sender === currentUser.username && m.recipient === targetUsername) ||
-    (m.sender === targetUsername && m.recipient === currentUser.username)
-  );
+  const existingDM = dmsDb.some(m => (m.sender === currentUser.username && m.recipient === targetUsername) || (m.sender === targetUsername && m.recipient === currentUser.username));
   if (existingDM) return true;
-  const accepted = dmRequestsDb.some(r => 
-    r.status === 'accepted' && 
-    ((r.from === currentUser.username && r.to === targetUsername) ||
-     (r.from === targetUsername && r.to === currentUser.username))
-  );
-  return accepted;
+  return dmRequestsDb.some(r => r.status === 'accepted' && ((r.from === currentUser.username && r.to === targetUsername) || (r.from === targetUsername && r.to === currentUser.username)));
 }
-
 function getDmRequestStatus(targetUsername) {
-  const req = dmRequestsDb.find(r => 
-    (r.from === currentUser.username && r.to === targetUsername) ||
-    (r.from === targetUsername && r.to === currentUser.username)
-  );
+  const req = dmRequestsDb.find(r => (r.from === currentUser.username && r.to === targetUsername) || (r.from === targetUsername && r.to === currentUser.username));
   return req ? req.status : null;
 }
-
 function sendDmRequest(targetUsername) {
   if (!currentUser || !targetUsername) return;
+  if (isBanned()) { showToast('Banlıyken istek gönderemezsin.', 'warning'); return; }
   if (targetUsername === currentUser.username) { showToast('Kendine istek gönderemezsin.', 'warning'); return; }
-  const existing = dmRequestsDb.find(r => 
-    (r.from === currentUser.username && r.to === targetUsername) ||
-    (r.from === targetUsername && r.to === currentUser.username)
-  );
+  const existing = dmRequestsDb.find(r => (r.from === currentUser.username && r.to === targetUsername) || (r.from === targetUsername && r.to === currentUser.username));
   if (existing) {
     if (existing.status === 'pending') showToast('Zaten bekleyen istek var.', 'info');
     else if (existing.status === 'accepted') showToast('Zaten arkadaşsınız.', 'info');
-    else if (existing.status === 'rejected') {
-      // Reddedildiyse tekrar deneyebilir mi? Hayır.
-      showToast('Bu kullanıcı isteğinizi reddetti.', 'warning');
-    }
+    else showToast('Bu kullanıcı isteğini reddetti.', 'warning');
     return;
   }
-  const newReq = {
-    id: 'dmreq_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
-    from: currentUser.username,
-    fromFullname: currentUser.fullname,
-    fromAvatar: currentUser.avatarUrl || null,
-    fromColor: currentUser.color || 'bg-indigo-600',
-    to: targetUsername,
-    status: 'pending',
-    timestamp: new Date().toISOString()
-  };
+  const newReq = { id: 'dmreq_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), from: currentUser.username, fromFullname: currentUser.fullname, fromAvatar: currentUser.avatarUrl || null, fromColor: currentUser.color || 'bg-indigo-600', to: targetUsername, status: 'pending', timestamp: new Date().toISOString() };
   dmRequestsDb.push(newReq);
   saveDmRequestsToDB();
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'NEW_DM_REQUEST', request: newReq }));
-  }
-  showToast(`✅ @${targetUsername} kullanıcısına mesaj isteği gönderildi!`, 'success');
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'NEW_DM_REQUEST', request: newReq }));
+  showToast(`✅ @${targetUsername} isteği gönderildi!`, 'success');
   renderDmSearchResults();
 }
-
 async function acceptDmRequest(requestId) {
   const req = dmRequestsDb.find(r => r.id === requestId);
   if (!req) return;
   req.status = 'accepted';
   await saveDmRequestsToDB();
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'accept' }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'accept' }));
   closeDmRequestModal();
-  showToast(`✅ @${req.from} ile artık mesajlaşabilirsiniz!`, 'success');
+  showToast(`✅ @${req.from} ile mesajlaşabilirsin!`, 'success');
   renderDmUserList();
   selectChatUser(req.from);
 }
-
 async function rejectDmRequest(requestId) {
   const req = dmRequestsDb.find(r => r.id === requestId);
   if (!req) return;
   req.status = 'rejected';
   await saveDmRequestsToDB();
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'reject' }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'reject' }));
   closeDmRequestModal();
-  showToast(`❌ @${req.from} isteği reddedildi.`, 'info');
+  showToast(`❌ @${req.from} reddedildi.`, 'info');
   renderDmUserList();
 }
-
 function openDmRequestModal(requestId) {
   const req = dmRequestsDb.find(r => r.id === requestId);
   if (!req) return;
   const fromUser = ensureUserExists(req.from, { fullname: req.fromFullname, avatarUrl: req.fromAvatar, color: req.fromColor });
-  const body = $('dm-request-modal-body');
-  body.innerHTML = `
-    <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-      <div class="w-12 h-12 shrink-0">${renderAvatar(fromUser, "w-12 h-12 text-base")}</div>
-      <div class="min-w-0">
-        <div class="font-bold text-sm text-white">${getUserDisplayName(fromUser)}</div>
-        <div class="text-xs text-slate-500">@${fromUser.username}</div>
-      </div>
-    </div>
-    <p class="text-xs text-slate-300 leading-relaxed">
-      <strong class="text-cyan-400">@${req.from}</strong> sana mesaj isteği gönderdi. Kabul edersen mesajlaşabilirsiniz.
-    </p>
-    <div class="flex justify-end gap-2 pt-2">
-      <button onclick="rejectDmRequest('${req.id}')" class="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-xs font-semibold rounded-xl touch-target">
-        <i class="fa-solid fa-xmark mr-1"></i> Reddet
-      </button>
-      <button onclick="acceptDmRequest('${req.id}')" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">
-        <i class="fa-solid fa-check mr-1"></i> Kabul Et
-      </button>
-    </div>
-  `;
+  $('dm-request-modal-body').innerHTML = `<div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800"><div class="w-12 h-12 shrink-0">${renderAvatar(fromUser, "w-12 h-12 text-base")}</div><div><div class="font-bold text-sm text-white">${getUserDisplayName(fromUser)}</div><div class="text-xs text-slate-500">@${fromUser.username}</div></div></div><p class="text-xs text-slate-300"><strong class="text-cyan-400">@${req.from}</strong> sana mesaj isteği gönderdi.</p><div class="flex justify-end gap-2 pt-2"><button onclick="rejectDmRequest('${req.id}')" class="px-4 py-2 bg-rose-600/20 text-rose-400 text-xs font-semibold rounded-xl"><i class="fa-solid fa-xmark mr-1"></i> Reddet</button><button onclick="acceptDmRequest('${req.id}')" class="px-4 py-2 bg-cyan-500 text-white text-xs font-semibold rounded-xl"><i class="fa-solid fa-check mr-1"></i> Kabul Et</button></div>`;
   $('dm-request-modal').classList.remove('hidden');
 }
 function closeDmRequestModal() { $('dm-request-modal').classList.add('hidden'); }
@@ -618,35 +698,23 @@ function renderAvatar(user, size = "w-10 h-10 text-sm") {
   const color = user?.color || 'bg-indigo-600';
   return `<div class="${size} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow">${letter}</div>`;
 }
-
 function showTikBadge(user) {
   if (user?.hasTik) {
-    const file = user.tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+    const file = user.tikRengi === 'purple' ? 'tick-p.png' : user.tikRengi === 'red' ? 'tick-r.png' : 'tick-b.png';
     return `<img src="${file}" class="tik-rozet" alt="Tik">`;
   }
   return '';
 }
-
 function getUserDisplayName(user) {
   if (!user) return '?';
   let name = escapeHtml(user.fullname || user.username);
-  if ((user.followers||[]).length >= 10 && user.neonColor) {
-    name = `<span class="neon-text" style="color:${user.neonColor}">${name}</span>`;
-  }
+  if ((user.followers||[]).length >= 10 && user.neonColor) name = `<span class="neon-text" style="color:${user.neonColor}">${name}</span>`;
   return name + showTikBadge(user);
 }
-
 function getGroupEmojiForUser(username) {
-  for (const g of groupsDb) {
-    if (g.members?.includes(username) && g.emoji) return g.emoji + ' ';
-  }
+  for (const g of groupsDb) if (g.members?.includes(username) && g.emoji) return g.emoji + ' ';
   return '';
 }
-
-// ============================================================
-// SET LANGUAGE
-// ============================================================
-function setLanguage(lang) { currentLang = lang; }
 
 // ============================================================
 // AUTH
@@ -665,18 +733,12 @@ function switchAuthTab(tab) {
     tabLogin.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white';
   }
 }
-
 async function handleRegister(e) {
   e.preventDefault();
   const username = $('reg-username').value.trim().toLowerCase();
   const password = $('reg-password').value;
-  if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı zaten alınmış!'); return; }
-  const newUser = {
-    username, fullname: username, bio: 'MSZ MEDYA üyesi.', password,
-    color: USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)],
-    avatarUrl: null, followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null,
-    postCount: 0, joinedAt: new Date().toISOString()
-  };
+  if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı alınmış!'); return; }
+  const newUser = { username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null, followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0, joinedAt: new Date().toISOString() };
   usersDb[username] = newUser;
   await saveUsersToDB();
   currentUser = newUser;
@@ -684,7 +746,6 @@ async function handleRegister(e) {
   showToast('Kayıt başarılı!', 'success');
   launchMainApp();
 }
-
 async function handleLogin(e) {
   e.preventDefault();
   const username = $('login-username').value.trim().toLowerCase();
@@ -697,24 +758,20 @@ async function handleLogin(e) {
   if (typeof user.postCount !== 'number') user.postCount = postsDb.filter(p => p.author.username === username).length;
   currentUser = user;
   sessionStorage.setItem('sp_social_active_user', username);
-  if (remember) {
-    localStorage.setItem('sp_social_username', username);
-    localStorage.setItem('sp_social_password', password);
-  } else {
-    localStorage.removeItem('sp_social_username');
-    localStorage.removeItem('sp_social_password');
-  }
+  if (remember) { localStorage.setItem('sp_social_username', username); localStorage.setItem('sp_social_password', password); }
+  else { localStorage.removeItem('sp_social_username'); localStorage.removeItem('sp_social_password'); }
   showToast(`Hoş geldin, ${user.fullname}!`, 'info');
   launchMainApp();
 }
-
 function logout() {
   sessionStorage.removeItem('sp_social_active_user');
   if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
+  if (banCheckInterval) { clearInterval(banCheckInterval); banCheckInterval = null; }
   if (mqttClient) { try { mqttClient.end(true); } catch(e){} mqttClient = null; }
   currentUser = null; selectedDmUser = null; viewingPublicUsername = null;
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
+  $('ban-banner').classList.add('hidden');
   const lu = $('login-username'), lp = $('login-password');
   if (lu) lu.value = '';
   if (lp) lp.value = '';
@@ -722,12 +779,12 @@ function logout() {
   if (savedU && lu) lu.value = savedU;
   showToast('Çıkış yapıldı.', 'info');
 }
-
 function launchMainApp() {
   $('auth-screen').classList.add('hidden');
   $('main-app').classList.remove('hidden');
-  console.log('🚀 MSZ MEDYA v3.0!', currentUser.username);
+  console.log('🚀 MSZ MEDYA v4.0!', currentUser.username);
   updateUserUI();
+  updateModUI();
   initNetworkConnection();
   renderFeed();
   renderDmUserList();
@@ -735,13 +792,17 @@ function launchMainApp() {
   renderGroups();
   updateNotificationBadge();
   updateGroupCreateButton();
+  // Ban kontrolü
+  const ban = isUserBanned(currentUser.username);
+  if (ban) showBanBanner(ban);
+  startBanCheckInterval();
 }
 
 // ============================================================
 // PASSWORD
 // ============================================================
 function openForgotPasswordModal() {
-  if (!currentUser) { showModal('Hata', 'Önce giriş yapmalısınız!'); return; }
+  if (!currentUser) { showModal('Hata', 'Önce giriş yapmalısın!'); return; }
   $('forgot-password-modal').classList.remove('hidden');
   $('forgot-username').value = currentUser.username;
   $('forgot-username').disabled = true;
@@ -750,13 +811,12 @@ function openForgotPasswordModal() {
   $('forgot-new-password-confirm').value = '';
 }
 function closeForgotPasswordModal() { $('forgot-password-modal').classList.add('hidden'); }
-
 async function resetPassword(e) {
   e.preventDefault();
   const answer = $('forgot-security-answer').value.trim().toLowerCase();
   const newPass = $('forgot-new-password').value;
   const confirmPass = $('forgot-new-password-confirm').value;
-  if (!currentUser) { showModal('Hata', 'Oturum açmış kullanıcı bulunamadı!'); return; }
+  if (!currentUser) return;
   if (answer !== GUVENLIK_CEVABI) { showModal('Hata', 'Güvenlik cevabı yanlış!'); return; }
   if (newPass.length < 4) { showModal('Hata', 'Şifre en az 4 karakter!'); return; }
   if (newPass !== confirmPass) { showModal('Hata', 'Şifreler eşleşmiyor!'); return; }
@@ -765,15 +825,13 @@ async function resetPassword(e) {
   await saveUsersToDB();
   if (localStorage.getItem('sp_social_username') === currentUser.username) localStorage.setItem('sp_social_password', newPass);
   closeForgotPasswordModal();
-  showToast('✅ Şifreniz sıfırlandı!', 'success');
+  showToast('✅ Şifre sıfırlandı!', 'success');
 }
-
 function openChangePasswordModal() {
   $('change-password-modal').classList.remove('hidden');
   $('current-password').value = ''; $('new-password').value = ''; $('new-password-confirm').value = '';
 }
 function closeChangePasswordModal() { $('change-password-modal').classList.add('hidden'); }
-
 async function changePassword(e) {
   e.preventDefault();
   const current = $('current-password').value;
@@ -804,22 +862,15 @@ function openFollowersModal(username) {
   else list.innerHTML = followers.map(f => {
     const fu = ensureUserExists(f);
     if (!fu) return '';
-    return `<div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition">
-      <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${fu.username}'); closeFollowersModal();">
-        <div class="w-8 h-8 shrink-0">${renderAvatar(fu, "w-8 h-8 text-xs")}</div>
-        <div><div class="font-bold text-xs text-white">${getGroupEmojiForUser(fu.username)}${getUserDisplayName(fu)}</div>
-        <div class="text-[10px] text-slate-500">@${fu.username}</div></div>
-      </div>
-    </div>`;
+    return `<div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition"><div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${fu.username}'); closeFollowersModal();"><div class="w-8 h-8 shrink-0">${renderAvatar(fu, "w-8 h-8 text-xs")}</div><div><div class="font-bold text-xs text-white">${getGroupEmojiForUser(fu.username)}${getUserDisplayName(fu)}</div><div class="text-[10px] text-slate-500">@${fu.username}</div></div></div></div>`;
   }).join('');
   $('followers-modal').classList.remove('hidden');
 }
 function closeFollowersModal() { $('followers-modal').classList.add('hidden'); followersModalTarget = null; }
-
 function openFollowingModal(username) {
   followingModalTarget = username;
   const user = usersDb[username];
-  if (!user) { showToast('Kullanıcı bulunamadı.', 'error'); return; }
+  if (!user) return;
   $('following-modal-title').innerText = `${user.fullname} Takip Ettikleri`;
   const list = $('following-list');
   const following = user.following || [];
@@ -827,13 +878,7 @@ function openFollowingModal(username) {
   else list.innerHTML = following.map(f => {
     const fu = ensureUserExists(f);
     if (!fu) return '';
-    return `<div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition">
-      <div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${fu.username}'); closeFollowingModal();">
-        <div class="w-8 h-8 shrink-0">${renderAvatar(fu, "w-8 h-8 text-xs")}</div>
-        <div><div class="font-bold text-xs text-white">${getGroupEmojiForUser(fu.username)}${getUserDisplayName(fu)}</div>
-        <div class="text-[10px] text-slate-500">@${fu.username}</div></div>
-      </div>
-    </div>`;
+    return `<div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-xl transition"><div class="flex items-center gap-3 cursor-pointer" onclick="openPublicProfileModal('${fu.username}'); closeFollowingModal();"><div class="w-8 h-8 shrink-0">${renderAvatar(fu, "w-8 h-8 text-xs")}</div><div><div class="font-bold text-xs text-white">${getGroupEmojiForUser(fu.username)}${getUserDisplayName(fu)}</div><div class="text-[10px] text-slate-500">@${fu.username}</div></div></div></div>`;
   }).join('');
   $('following-modal').classList.remove('hidden');
 }
@@ -842,23 +887,24 @@ function openFollowersModalFromPublic() { if (viewingPublicUsername) openFollowe
 function openFollowingModalFromPublic() { if (viewingPublicUsername) openFollowingModal(viewingPublicUsername); }
 
 // ============================================================
-// GROUP
+// GROUPS
 // ============================================================
 function updateGroupCreateButton() {
   const btn = $('create-group-btn');
   if (!btn) return;
-  if (!currentUser?.hasTik) {
+  const banned = isBanned();
+  if (!currentUser?.hasTik || banned) {
     btn.disabled = true;
     btn.className = 'px-3 py-1.5 bg-slate-700 text-slate-400 text-xs font-semibold rounded-xl cursor-not-allowed touch-target';
-    btn.innerHTML = `<i class="fa-solid fa-lock mr-1"></i> Tik Gerekli`;
+    btn.innerHTML = `<i class="fa-solid fa-lock mr-1"></i> ${banned ? 'Banlı' : 'Tik Gerekli'}`;
   } else {
     btn.disabled = false;
     btn.className = 'px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target';
     btn.innerHTML = `<i class="fa-solid fa-plus mr-1"></i> Grup Oluştur`;
   }
 }
-
 function openCreateGroupModal() {
+  if (isBanned()) { showToast('Banlıyken grup oluşturamazsın.', 'warning'); return; }
   if (!currentUser?.hasTik) { showModal('Tik Gerekli', 'Grup oluşturmak için Tik sahibi olmalısın!'); return; }
   $('create-group-modal').classList.remove('hidden');
   ['group-name','group-desc','group-password','group-emoji','group-tag'].forEach(id => { const el = $(id); if (el) el.value = ''; });
@@ -866,9 +912,9 @@ function openCreateGroupModal() {
   $('group-photo').value = '';
 }
 function closeCreateGroupModal() { $('create-group-modal').classList.add('hidden'); }
-
 async function createGroup(e) {
   e.preventDefault();
+  if (isBanned()) { showToast('Banlıyken grup oluşturamazsın.', 'warning'); return; }
   const name = $('group-name').value.trim();
   const desc = $('group-desc').value.trim();
   const type = $('group-type').value;
@@ -876,18 +922,13 @@ async function createGroup(e) {
   const emoji = $('group-emoji').value.trim() || '📁';
   const tag = $('group-tag').value.trim();
   const photoInput = $('group-photo');
-  if (!name || !desc) { showModal('Hata', 'Grup adı ve açıklama zorunlu!'); return; }
+  if (!name || !desc) { showModal('Hata', 'Ad ve açıklama zorunlu!'); return; }
   let photoData = null;
   if (photoInput.files?.[0]) {
     const reader = new FileReader();
     photoData = await new Promise(resolve => { reader.onload = e => resolve(e.target.result); reader.readAsDataURL(photoInput.files[0]); });
   }
-  const newGroup = {
-    id: 'group_' + Date.now() + '_' + Math.random().toString(36).substring(2,7),
-    name, description: desc, type, password: password || null, emoji, tag: tag || null,
-    photo: photoData || null, owner: currentUser.username, members: [currentUser.username],
-    joinRequests: [], createdAt: new Date().toISOString()
-  };
+  const newGroup = { id: 'group_' + Date.now() + '_' + Math.random().toString(36).substring(2,7), name, description: desc, type, password: password || null, emoji, tag: tag || null, photo: photoData || null, owner: currentUser.username, members: [currentUser.username], joinRequests: [], createdAt: new Date().toISOString() };
   groupsDb.push(newGroup);
   await saveGroupsToDB();
   closeCreateGroupModal();
@@ -895,7 +936,6 @@ async function createGroup(e) {
   showToast('✅ Grup oluşturuldu!', 'success');
   if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'NEW_GROUP', group: newGroup }));
 }
-
 function renderGroups() {
   const container = $('groups-container');
   if (!container) return;
@@ -904,33 +944,13 @@ function renderGroups() {
   container.innerHTML = sorted.map(g => {
     const isMember = g.members?.includes(currentUser.username);
     const isOwner = g.owner === currentUser.username;
-    return `<div class="group-card bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg cursor-pointer" onclick="openGroupDetail('${g.id}')">
-      <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden flex-shrink-0">
-          ${g.photo ? `<img src="${g.photo}" class="w-full h-full object-cover">` : (g.emoji || '📁')}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <h3 class="font-bold text-white text-sm truncate">${escapeHtml(g.name)}</h3>
-            ${isOwner ? '<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold">Kurucu</span>' : ''}
-            ${isMember ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Üye</span>' : ''}
-          </div>
-          <p class="text-xs text-slate-400 truncate">${escapeHtml(g.description)}</p>
-          <div class="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
-            <span>👥 ${g.members?.length || 0} üye</span>
-            ${g.tag ? `<span class="text-cyan-400">${escapeHtml(g.tag)}</span>` : ''}
-          </div>
-        </div>
-        <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
-      </div>
-    </div>`;
+    return `<div class="group-card bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg cursor-pointer" onclick="openGroupDetail('${g.id}')"><div class="flex items-center gap-4"><div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden flex-shrink-0">${g.photo ? `<img src="${g.photo}" class="w-full h-full object-cover">` : (g.emoji || '📁')}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold text-white text-sm truncate">${escapeHtml(g.name)}</h3>${isOwner ? '<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold">Kurucu</span>' : ''}${isMember ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Üye</span>' : ''}</div><p class="text-xs text-slate-400 truncate">${escapeHtml(g.description)}</p><div class="flex items-center gap-3 mt-1 text-[10px] text-slate-500"><span>👥 ${g.members?.length || 0} üye</span>${g.tag ? `<span class="text-cyan-400">${escapeHtml(g.tag)}</span>` : ''}</div></div><i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i></div></div>`;
   }).join('');
 }
-
 function openGroupDetail(groupId) {
   selectedGroupId = groupId;
   const g = groupsDb.find(x => x.id === groupId);
-  if (!g) { showToast('Grup bulunamadı.', 'error'); return; }
+  if (!g) return;
   $('group-detail-name').innerText = g.name;
   $('group-detail-emoji').innerText = g.emoji || '📁';
   $('group-detail-desc').innerText = g.description;
@@ -944,86 +964,53 @@ function openGroupDetail(groupId) {
   const isOwner = g.owner === currentUser.username;
   const hasPassword = g.password?.length > 0;
   const passContainer = $('group-detail-password-container');
-  if (hasPassword && !isMember) passContainer.classList.remove('hidden');
-  else passContainer.classList.add('hidden');
+  if (hasPassword && !isMember) passContainer.classList.remove('hidden'); else passContainer.classList.add('hidden');
   const joinBtn = $('group-detail-join-btn'), leaveBtn = $('group-detail-leave-btn'), deleteBtn = $('group-detail-delete-btn');
-  if (isMember) {
-    joinBtn.classList.add('hidden'); leaveBtn.classList.remove('hidden'); deleteBtn.classList.add('hidden');
-    if (isOwner) deleteBtn.classList.remove('hidden');
-  } else {
-    joinBtn.classList.remove('hidden'); leaveBtn.classList.add('hidden'); deleteBtn.classList.add('hidden');
-    joinBtn.innerText = g.type === 'request' ? 'Katılmak İste' : g.type === 'followers' ? 'Takip Et ve Katıl' : 'Gruba Katıl';
-  }
+  if (isMember) { joinBtn.classList.add('hidden'); leaveBtn.classList.remove('hidden'); deleteBtn.classList.add('hidden'); if (isOwner) deleteBtn.classList.remove('hidden'); }
+  else { joinBtn.classList.remove('hidden'); leaveBtn.classList.add('hidden'); deleteBtn.classList.add('hidden'); joinBtn.innerText = g.type === 'request' ? 'Katılmak İste' : g.type === 'followers' ? 'Takip Et ve Katıl' : 'Gruba Katıl'; }
   const members = g.members || [];
   $('group-detail-member-count').innerText = members.length;
   const membersContainer = $('group-detail-members');
-  if (members.length === 0) membersContainer.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">Henüz katılımcı yok.</div>`;
-  else membersContainer.innerHTML = members.map(u => {
-    const user = ensureUserExists(u);
-    if (!user) return '';
-    return `<div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${u}'); closeGroupDetailModal();">
-      <div class="w-6 h-6 shrink-0">${renderAvatar(user, "w-6 h-6 text-xs")}</div>
-      <span class="text-xs text-slate-200">${getGroupEmojiForUser(u)}${escapeHtml(user.fullname)}${u === g.owner ? ' 👑' : ''}</span>
-      <span class="text-[9px] text-slate-500">@${escapeHtml(u)}</span>
-    </div>`;
-  }).join('');
+  if (members.length === 0) membersContainer.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">Katılımcı yok.</div>`;
+  else membersContainer.innerHTML = members.map(u => { const user = ensureUserExists(u); if (!user) return ''; return `<div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${u}'); closeGroupDetailModal();"><div class="w-6 h-6 shrink-0">${renderAvatar(user, "w-6 h-6 text-xs")}</div><span class="text-xs text-slate-200">${getGroupEmojiForUser(u)}${escapeHtml(user.fullname)}${u === g.owner ? ' 👑' : ''}</span></div>`; }).join('');
   $('group-detail-modal').classList.remove('hidden');
 }
 function closeGroupDetailModal() { $('group-detail-modal').classList.add('hidden'); selectedGroupId = null; }
-
 async function joinGroup() {
   if (!selectedGroupId) return;
+  if (isBanned()) { showToast('Banlıyken katılamazsın.', 'warning'); return; }
   const g = groupsDb.find(x => x.id === selectedGroupId);
   if (!g) return;
-  if (g.password?.length > 0 && $('group-detail-password-input').value.trim() !== g.password) {
-    showToast('❌ Grup şifresi yanlış!', 'error'); return;
-  }
-  if (g.type === 'followers' && !currentUser.followers?.includes(g.owner)) {
-    showToast('❌ Kurucuyu takip etmelisin!', 'warning'); return;
-  }
+  if (g.password?.length > 0 && $('group-detail-password-input').value.trim() !== g.password) { showToast('❌ Şifre yanlış!', 'error'); return; }
+  if (g.type === 'followers' && !currentUser.followers?.includes(g.owner)) { showToast('❌ Kurucuyu takip et!', 'warning'); return; }
   if (g.type === 'request') {
     if (!g.joinRequests) g.joinRequests = [];
-    if (!g.joinRequests.includes(currentUser.username)) {
-      g.joinRequests.push(currentUser.username);
-      await saveGroupsToDB();
-      showToast('✅ İstek gönderildi!', 'success');
-      renderGroups();
-      openGroupDetail(selectedGroupId);
-    } else showToast('Zaten istek gönderdin.', 'info');
+    if (!g.joinRequests.includes(currentUser.username)) { g.joinRequests.push(currentUser.username); await saveGroupsToDB(); showToast('✅ İstek gönderildi!', 'success'); renderGroups(); openGroupDetail(selectedGroupId); }
     return;
   }
-  if (!g.members?.includes(currentUser.username)) {
-    g.members.push(currentUser.username);
-    await saveGroupsToDB();
-    showToast('✅ Gruba katıldın!', 'success');
-    renderGroups();
-    openGroupDetail(selectedGroupId);
-    updateUserUI();
-  }
+  if (!g.members?.includes(currentUser.username)) { g.members.push(currentUser.username); await saveGroupsToDB(); showToast('✅ Katıldın!', 'success'); renderGroups(); openGroupDetail(selectedGroupId); updateUserUI(); }
 }
-
 async function leaveGroup() {
   if (!selectedGroupId) return;
   const g = groupsDb.find(x => x.id === selectedGroupId);
   if (!g) return;
-  if (g.owner === currentUser.username) { showModal('Uyarı', 'Kurucusu olduğun gruptan ayrılamazsın.'); return; }
+  if (g.owner === currentUser.username) { showModal('Uyarı', 'Kurucu ayrılamaz.'); return; }
   g.members = g.members.filter(u => u !== currentUser.username);
   await saveGroupsToDB();
-  showToast('Gruptan ayrıldın.', 'info');
+  showToast('Ayrıldın.', 'info');
   renderGroups();
   closeGroupDetailModal();
   updateUserUI();
 }
-
 async function deleteGroup(groupId) {
   const id = groupId || selectedGroupId;
   if (!id) return;
   const g = groupsDb.find(x => x.id === id);
   if (!g || g.owner !== currentUser.username) return;
-  if (!confirm(`"${g.name}" grubunu silmek istediğine emin misin?`)) return;
+  if (!confirm(`"${g.name}" silinsin mi?`)) return;
   groupsDb = groupsDb.filter(x => x.id !== id);
   await saveGroupsToDB();
-  showToast('✅ Grup silindi.', 'success');
+  showToast('✅ Silindi.', 'success');
   renderGroups();
   closeGroupDetailModal();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'DELETE_GROUP', groupId: id }));
@@ -1032,12 +1019,8 @@ async function deleteGroup(groupId) {
 // ============================================================
 // DELETE ACCOUNT
 // ============================================================
-function openDeleteAccountModal() {
-  $('delete-account-modal').classList.remove('hidden');
-  $('delete-password').value = ''; $('delete-confirm-text').value = '';
-}
+function openDeleteAccountModal() { $('delete-account-modal').classList.remove('hidden'); $('delete-password').value = ''; $('delete-confirm-text').value = ''; }
 function closeDeleteAccountModal() { $('delete-account-modal').classList.add('hidden'); }
-
 async function deleteAccount(e) {
   e.preventDefault();
   const password = $('delete-password').value;
@@ -1047,20 +1030,15 @@ async function deleteAccount(e) {
   const deletedUsername = currentUser.username;
   if (mqttClient?.connected) mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'DELETE_ACCOUNT', username: deletedUsername }));
   const userPosts = postsDb.filter(p => p.author.username === deletedUsername);
-  for (const p of userPosts) {
-    postsDb = postsDb.filter(x => x.id !== p.id);
-    commentsDb = commentsDb.filter(c => c.postId !== p.id);
-  }
+  for (const p of userPosts) { postsDb = postsDb.filter(x => x.id !== p.id); commentsDb = commentsDb.filter(c => c.postId !== p.id); }
   await savePostsToDB(); await saveCommentsToDB();
   dmsDb = dmsDb.filter(m => m.sender !== deletedUsername && m.recipient !== deletedUsername);
   dmRequestsDb = dmRequestsDb.filter(r => r.from !== deletedUsername && r.to !== deletedUsername);
-  await saveMessagesToDB(); await saveDmRequestsToDB();
+  bannedUsers = bannedUsers.filter(b => b.username !== deletedUsername);
+  await saveMessagesToDB(); await saveDmRequestsToDB(); await saveBannedUsersToDB();
   const ownedGroups = groupsDb.filter(g => g.owner === deletedUsername);
   for (const g of ownedGroups) groupsDb = groupsDb.filter(x => x.id !== g.id);
-  groupsDb.forEach(g => {
-    if (g.members) g.members = g.members.filter(u => u !== deletedUsername);
-    if (g.joinRequests) g.joinRequests = g.joinRequests.filter(u => u !== deletedUsername);
-  });
+  groupsDb.forEach(g => { if (g.members) g.members = g.members.filter(u => u !== deletedUsername); if (g.joinRequests) g.joinRequests = g.joinRequests.filter(u => u !== deletedUsername); });
   await saveGroupsToDB();
   delete usersDb[deletedUsername];
   await saveUsersToDB();
@@ -1077,11 +1055,13 @@ async function deleteAccount(e) {
   sessionStorage.removeItem('sp_social_active_user');
   closeDeleteAccountModal();
   showToast('✅ Hesap silindi.', 'success');
-  if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
+  if (presenceInterval) clearInterval(presenceInterval);
+  if (banCheckInterval) clearInterval(banCheckInterval);
   if (mqttClient) { try { mqttClient.end(true); } catch(e){} mqttClient = null; }
   currentUser = null;
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
+  $('ban-banner').classList.add('hidden');
 }
 
 // ============================================================
@@ -1090,8 +1070,7 @@ async function deleteAccount(e) {
 function toggleSettingsDropdown() { $('settings-dropdown').classList.toggle('hidden'); }
 document.addEventListener('click', function(e) {
   const dropdown = $('settings-dropdown');
-  if (!dropdown) return;
-  if (!e.target.closest('.relative') && !dropdown.classList.contains('hidden')) dropdown.classList.add('hidden');
+  if (dropdown && !e.target.closest('.relative') && !dropdown.classList.contains('hidden')) dropdown.classList.add('hidden');
 });
 
 // ============================================================
@@ -1108,14 +1087,8 @@ function initNetworkConnection() {
       logSystem('Bağlantı kuruldu.');
       statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium';
       statusText.innerText = 'Canlı Bağlantı';
-      mqttClient.subscribe(TOPICS.POSTS);
-      mqttClient.subscribe(TOPICS.LIKES);
-      mqttClient.subscribe(TOPICS.USERS);
-      mqttClient.subscribe(TOPICS.FOLLOWS);
+      ['POSTS','LIKES','USERS','FOLLOWS','COMMENTS','GROUPS','DM_REQUESTS','MOD'].forEach(k => mqttClient.subscribe(TOPICS[k]));
       mqttClient.subscribe(TOPICS.DM + currentUser.username);
-      mqttClient.subscribe(TOPICS.DM_REQUESTS);
-      mqttClient.subscribe(TOPICS.COMMENTS);
-      mqttClient.subscribe(TOPICS.GROUPS);
       publishPresence();
       mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'REQUEST_USERS', from: currentUser.username }));
       if (presenceInterval) clearInterval(presenceInterval);
@@ -1124,19 +1097,10 @@ function initNetworkConnection() {
     mqttClient.on('message', (topic, payload) => {
       try { const data = JSON.parse(payload.toString()); handleIncomingNetworkData(topic, data); } catch(e) {}
     });
-    mqttClient.on('error', (err) => {
-      isMqttConnected = false;
-      statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-rose-400 font-medium';
-      statusText.innerText = 'Hata';
-    });
-    mqttClient.on('offline', () => {
-      isMqttConnected = false;
-      statusBadge.className = 'flex items-center gap-1.5 text-[10px] text-amber-400 font-medium';
-      statusText.innerText = 'Çevrimdışı';
-    });
+    mqttClient.on('error', () => { isMqttConnected = false; statusText.innerText = 'Hata'; });
+    mqttClient.on('offline', () => { isMqttConnected = false; statusText.innerText = 'Çevrimdışı'; });
   } catch(e) {}
 }
-
 function publishPresence() {
   if (!mqttClient?.connected || !currentUser) return;
   mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'PRESENCE', user: sanitizeUserObj(currentUser) }));
@@ -1163,12 +1127,9 @@ async function handleIncomingNetworkData(topic, data) {
   }
   if (topic === TOPICS.POSTS && data.type === 'DELETE_POST') {
     const deletedPost = postsDb.find(p => p.id === data.postId);
-    if (deletedPost) {
-      const authorName = deletedPost.author.username;
-      if (usersDb[authorName] && typeof usersDb[authorName].postCount === 'number' && usersDb[authorName].postCount > 0) {
-        usersDb[authorName].postCount--;
-        await saveUsersToDB();
-      }
+    if (deletedPost && usersDb[deletedPost.author.username] && typeof usersDb[deletedPost.author.username].postCount === 'number' && usersDb[deletedPost.author.username].postCount > 0) {
+      usersDb[deletedPost.author.username].postCount--;
+      await saveUsersToDB();
     }
     postsDb = postsDb.filter(p => p.id !== data.postId);
     commentsDb = commentsDb.filter(c => c.postId !== data.postId);
@@ -1191,10 +1152,7 @@ async function handleIncomingNetworkData(topic, data) {
     }
     return;
   }
-  if (topic === TOPICS.USERS && data.type === 'REQUEST_USERS') {
-    if (data.from !== currentUser.username) publishPresence();
-    return;
-  }
+  if (topic === TOPICS.USERS && data.type === 'REQUEST_USERS') { if (data.from !== currentUser.username) publishPresence(); return; }
   if (topic === TOPICS.USERS && data.type === 'DELETE_ACCOUNT') {
     const deleted = data.username;
     if (deleted === currentUser.username) return;
@@ -1202,17 +1160,15 @@ async function handleIncomingNetworkData(topic, data) {
     commentsDb = commentsDb.filter(c => c.author?.username !== deleted);
     dmsDb = dmsDb.filter(m => m.sender !== deleted && m.recipient !== deleted);
     dmRequestsDb = dmRequestsDb.filter(r => r.from !== deleted && r.to !== deleted);
-    groupsDb.forEach(g => {
-      if (g.members) g.members = g.members.filter(u => u !== deleted);
-      if (g.joinRequests) g.joinRequests = g.joinRequests.filter(u => u !== deleted);
-    });
+    bannedUsers = bannedUsers.filter(b => b.username !== deleted);
+    groupsDb.forEach(g => { if (g.members) g.members = g.members.filter(u => u !== deleted); if (g.joinRequests) g.joinRequests = g.joinRequests.filter(u => u !== deleted); });
     groupsDb = groupsDb.filter(g => g.owner !== deleted);
     delete usersDb[deleted];
     for (const [uname, user] of Object.entries(usersDb)) {
       if (user.following?.includes(deleted)) user.following = user.following.filter(u => u !== deleted);
       if (user.followers?.includes(deleted)) user.followers = user.followers.filter(u => u !== deleted);
     }
-    await saveUsersToDB(); await savePostsToDB(); await saveCommentsToDB(); await saveMessagesToDB(); await saveDmRequestsToDB(); await saveGroupsToDB();
+    await saveUsersToDB(); await savePostsToDB(); await saveCommentsToDB(); await saveMessagesToDB(); await saveDmRequestsToDB(); await saveBannedUsersToDB(); await saveGroupsToDB();
     renderFeed(); renderDmUserList(); renderUsersLeaderboard(); renderGroups();
     return;
   }
@@ -1221,10 +1177,6 @@ async function handleIncomingNetworkData(topic, data) {
     if (usersDb[data.followerUsername]) usersDb[data.followerUsername].following = data.following;
     await saveUsersToDB();
     if (data.targetUsername === currentUser.username) { currentUser.followers = data.followers; updateUserUI(); }
-    if (data.followerUsername !== currentUser.username && data.targetUsername === currentUser.username) {
-      const follower = usersDb[data.followerUsername];
-      if (follower) addNotification(`${follower.fullname} sizi takip etti! 🎉`);
-    }
     renderUsersLeaderboard();
     if (viewingPublicUsername) renderPublicProfileModal(viewingPublicUsername);
     return;
@@ -1238,11 +1190,9 @@ async function handleIncomingNetworkData(topic, data) {
     dmsDb.push(data.message);
     await saveMessagesToDB();
     dmLastMessageTime[data.message.sender] = Date.now();
-    addNotification(`@${data.message.sender} yeni mesaj gönderdi! 💬`);
-    if (activeTab === 'messages' && selectedDmUser === data.message.sender) {
-      dmUnreadCounts[data.message.sender] = 0;
-      renderChatMessages(); renderDmUserList();
-    } else { updateUnreadBadge(); renderDmUserList(); }
+    addNotification(`@${data.message.sender} yeni mesaj! 💬`);
+    if (activeTab === 'messages' && selectedDmUser === data.message.sender) { dmUnreadCounts[data.message.sender] = 0; renderChatMessages(); renderDmUserList(); }
+    else { updateUnreadBadge(); renderDmUserList(); }
     return;
   }
   if (topic === TOPICS.DM + currentUser.username && data.type === 'DELETE_DM') {
@@ -1268,12 +1218,8 @@ async function handleIncomingNetworkData(topic, data) {
     if (existing) existing.status = req.status;
     else dmRequestsDb.push(req);
     await saveDmRequestsToDB();
-    if (data.action === 'accept') {
-      showToast(`✅ @${req.to} isteğini kabul etti!`, 'success');
-      renderDmUserList();
-    } else if (data.action === 'reject') {
-      showToast(`❌ @${req.to} isteğini reddetti.`, 'warning');
-    }
+    if (data.action === 'accept') { showToast(`✅ @${req.to} kabul etti!`, 'success'); renderDmUserList(); }
+    else if (data.action === 'reject') showToast(`❌ @${req.to} reddetti.`, 'warning');
     return;
   }
   if (topic === TOPICS.COMMENTS && data.type === 'NEW_COMMENT') {
@@ -1286,26 +1232,92 @@ async function handleIncomingNetworkData(topic, data) {
     return;
   }
   if (topic === TOPICS.GROUPS && data.type === 'NEW_GROUP') {
-    if (!groupsDb.some(g => g.id === data.group.id)) {
-      groupsDb.push(data.group);
-      await saveGroupsToDB();
-      renderGroups();
+    if (!groupsDb.some(g => g.id === data.group.id)) { groupsDb.push(data.group); await saveGroupsToDB(); renderGroups(); }
+    return;
+  }
+  if (topic === TOPICS.GROUPS && data.type === 'DELETE_GROUP') { groupsDb = groupsDb.filter(g => g.id !== data.groupId); await saveGroupsToDB(); renderGroups(); return; }
+  
+  // MOD EVENTLERİ
+  if (topic === TOPICS.MOD && data.type === 'BAN_USER') {
+    const ban = data.ban;
+    bannedUsers = bannedUsers.filter(b => b.username !== ban.username);
+    bannedUsers.push(ban);
+    await saveBannedUsersToDB();
+    if (ban.username === currentUser.username) {
+      showBanBanner(ban);
+      showToast(`🚫 ${ban.reason} nedeniyle ${getBanRemaining(ban)} süreyle askıya alındın!`, 'error');
+      updateUserUI();
+    }
+    if (activeTab === 'mod') renderModPanel();
+    return;
+  }
+  if (topic === TOPICS.MOD && data.type === 'UNBAN_USER') {
+    bannedUsers = bannedUsers.filter(b => b.username !== data.username);
+    await saveBannedUsersToDB();
+    if (data.username === currentUser.username) {
+      $('ban-banner').classList.add('hidden');
+      showToast('✅ Banınız kaldırıldı!', 'success');
+      updateUserUI(); renderFeed();
+    }
+    if (activeTab === 'mod') renderModPanel();
+    return;
+  }
+  if (topic === TOPICS.MOD && data.type === 'REMOVE_TIK') {
+    const targetUser = usersDb[data.username];
+    if (targetUser) {
+      targetUser.hasTik = false; targetUser.tikRengi = null;
+      await saveUsersToDB();
+      postsDb.forEach(p => { if (p.author.username === data.username) { p.author.hasTik = false; p.author.tikRengi = null; } });
+      await savePostsToDB();
+      commentsDb.forEach(c => { if (c.author.username === data.username) { c.author.hasTik = false; c.author.tikRengi = null; } });
+      await saveCommentsToDB();
+      if (data.username === currentUser.username) {
+        showToast('🚫 Tikiniz bir mod tarafından kaldırıldı!', 'error');
+        updateUserUI(); updateModUI(); renderGroups();
+      }
+      renderFeed(); renderUsersLeaderboard();
     }
     return;
   }
-  if (topic === TOPICS.GROUPS && data.type === 'DELETE_GROUP') {
-    groupsDb = groupsDb.filter(g => g.id !== data.groupId);
-    await saveGroupsToDB();
-    renderGroups();
+  if (topic === TOPICS.MOD && data.type === 'MOD_DELETE_POST') {
+    postsDb = postsDb.filter(p => p.id !== data.postId);
+    commentsDb = commentsDb.filter(c => c.postId !== data.postId);
+    await savePostsToDB(); await saveCommentsToDB();
+    if (data.authorUsername && usersDb[data.authorUsername] && typeof usersDb[data.authorUsername].postCount === 'number' && usersDb[data.authorUsername].postCount > 0) {
+      usersDb[data.authorUsername].postCount--;
+      await saveUsersToDB();
+    }
+    if (data.authorUsername === currentUser.username) {
+      addModNotification(`⚠️ Gönderiniz modlar tarafından silindi!\n\nSilen: @${data.by}\nSebep: ${data.reason}`, data);
+    }
+    renderFeed(); renderProfileTab();
+    return;
+  }
+  if (topic === TOPICS.MOD && data.type === 'MOD_NOTIFY') {
+    const notif = data.notif;
+    if (notif.to === currentUser.username) {
+      addModNotification(notif.text, notif);
+    }
     return;
   }
 }
 
 // ============================================================
-// NOTIFICATIONS
+// MOD BİLDİRİM (özel)
+// ============================================================
+function addModNotification(text, meta) {
+  const notif = { id: 'notif_' + Date.now(), text, timestamp: new Date().toISOString(), read: false, isMod: true, meta };
+  notifications.unshift(notif);
+  notificationCount = notifications.filter(n => !n.read).length;
+  updateNotificationBadge();
+  showToast('🛡️ ' + text.replace(/\n/g, ' | '), 'mod');
+}
+
+// ============================================================
+// BİLDİRİM
 // ============================================================
 function addNotification(text) {
-  notifications.unshift({ id: 'notif_' + Date.now(), text, timestamp: new Date().toISOString(), read: false });
+  notifications.unshift({ id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), text, timestamp: new Date().toISOString(), read: false });
   notificationCount = notifications.filter(n => !n.read).length;
   updateNotificationBadge();
   showToast('🔔 ' + text, 'info');
@@ -1320,9 +1332,22 @@ function openNotificationModal() {
   const modal = $('notification-modal'), list = $('notification-list');
   modal.classList.remove('hidden');
   notifications.forEach(n => n.read = true);
-  notificationCount = 0; updateNotificationBadge();
+  notificationCount = 0;
+  updateNotificationBadge();
   if (notifications.length === 0) list.innerHTML = `<div class="text-center text-slate-500 text-sm py-8">Henüz bildirim yok.</div>`;
-  else list.innerHTML = notifications.map(n => `<div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-xs text-slate-200">${escapeHtml(n.text)}</p><span class="text-[9px] text-slate-500">${formatTimeAgo(n.timestamp)}</span></div>`).join('');
+  else list.innerHTML = notifications.map(n => {
+    if (n.isMod) {
+      return `<div class="notif-mod rounded-xl p-3 border space-y-1">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-6 h-6 rounded-full notif-icon flex items-center justify-center text-xs"><i class="fa-solid fa-shield-halved"></i></span>
+          <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">MOD Bildirimi</span>
+        </div>
+        <p class="text-xs text-amber-100 font-medium whitespace-pre-line">${escapeHtml(n.text)}</p>
+        <span class="text-[9px] text-amber-500/60 font-mono block">${formatTimeAgo(n.timestamp)}</span>
+      </div>`;
+    }
+    return `<div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-xs text-slate-200">${escapeHtml(n.text)}</p><span class="text-[9px] text-slate-500 font-mono">${formatTimeAgo(n.timestamp)}</span></div>`;
+  }).join('');
 }
 function closeNotificationModal() { $('notification-modal').classList.add('hidden'); }
 function clearAllNotifications() { notifications = []; notificationCount = 0; updateNotificationBadge(); closeNotificationModal(); }
@@ -1331,25 +1356,43 @@ function clearAllNotifications() { notifications = []; notificationCount = 0; up
 // TAB
 // ============================================================
 function switchTab(tab) {
+  if (tab === 'mod' && !hasModPermission()) { showToast('Bu bölüme erişemezsin.', 'error'); return; }
   activeTab = tab;
-  const tabs = ['feed','messages','groups','users','profile'];
-  const contentIds = ['tab-content-feed','tab-content-messages','tab-content-groups','tab-content-users','tab-content-profile'];
-  const navIds = ['nav-feed','nav-messages','nav-groups','nav-users','nav-profile'];
+  const tabs = ['feed','messages','groups','users','mod','profile'];
+  const contentIds = ['tab-content-feed','tab-content-messages','tab-content-groups','tab-content-users','tab-content-mod','tab-content-profile'];
+  const navIds = ['nav-feed','nav-messages','nav-groups','nav-users','nav-mod','nav-profile'];
   contentIds.forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
   navIds.forEach(id => {
     const el = $(id); if (!el) return;
-    el.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
+    const isModBtn = id === 'nav-mod';
+    el.className = isModBtn ? 
+      'nav-btn hidden px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition touch-target whitespace-nowrap border border-rose-500/30' :
+      'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
   });
   const idx = tabs.indexOf(tab);
   if (idx !== -1) {
     const cEl = $(contentIds[idx]); if (cEl) cEl.classList.remove('hidden');
-    const nEl = $(navIds[idx]); if (nEl) nEl.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+    const nEl = $(navIds[idx]);
+    if (nEl) {
+      if (nEl.id === 'nav-mod') nEl.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-rose-500/20 text-rose-300 border border-rose-500/50';
+      else nEl.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+    }
   }
+  // MOD sekmesi her zaman yetkililere görünür
+  updateModUI();
   if (tab === 'feed') renderFeed();
   else if (tab === 'messages') { $('unread-dm-badge').classList.add('hidden'); renderDmUserList(); if (selectedDmUser) renderChatMessages(); }
   else if (tab === 'groups') renderGroups();
   else if (tab === 'users') renderUsersLeaderboard();
+  else if (tab === 'mod') renderModPanel();
   else if (tab === 'profile') renderProfileTab();
+}
+
+function updateModUI() {
+  const modBtn = $('nav-mod');
+  if (!modBtn) return;
+  if (hasModPermission()) modBtn.classList.remove('hidden');
+  else modBtn.classList.add('hidden');
 }
 
 // ============================================================
@@ -1357,6 +1400,7 @@ function switchTab(tab) {
 // ============================================================
 function updateUserUI() {
   if (!currentUser) return;
+  const banned = isBanned();
   $('header-avatar').innerHTML = renderAvatar(currentUser, "w-full h-full text-sm");
   $('header-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
   $('sidebar-avatar').innerHTML = renderAvatar(currentUser, "w-full h-full text-lg");
@@ -1367,12 +1411,21 @@ function updateUserUI() {
   $('sidebar-followers-count').innerText = (currentUser.followers || []).length;
   $('sidebar-user-count').innerText = (currentUser.following || []).length;
   updateGroupCreateButton();
+  // Ban durumunda UI güncelle
+  const composer = $('post-input');
+  if (composer) {
+    composer.disabled = banned;
+    composer.placeholder = banned ? '🚫 Banlıyken gönderi paylaşamazsın' : 'Neler oluyor? Dünyayla paylaş...';
+  }
+  const dmInput = $('dm-input-text');
+  if (dmInput) dmInput.disabled = banned || !selectedDmUser;
 }
 
 // ============================================================
 // POSTS
 // ============================================================
 async function submitPost() {
+  if (isBanned()) { showToast('🚫 Banlıyken gönderi paylaşamazsın!', 'error'); return; }
   const input = $('post-input');
   if (!input) return;
   let text = input.value.trim();
@@ -1380,18 +1433,9 @@ async function submitPost() {
   if (text && containsForbidden(text)) { showToast('Yasaklı içerik!', 'error'); return; }
   text = text ? censorText(text) : '';
   const now = Date.now();
-  if (now - lastPostTime < POST_COOLDOWN_MS) {
-    showToast(`Lütfen ${Math.ceil((POST_COOLDOWN_MS - (now - lastPostTime)) / 1000)} sn bekleyin.`, 'warning'); return;
-  }
+  if (now - lastPostTime < POST_COOLDOWN_MS) { showToast(`Lütfen ${Math.ceil((POST_COOLDOWN_MS - (now - lastPostTime)) / 1000)} sn bekleyin.`, 'warning'); return; }
   lastPostTime = now;
-  const newPost = {
-    id: 'post_' + Date.now() + '_' + Math.random().toString(36).substring(2,7),
-    text, imageUrl: '',
-    media: pendingPostMedia ? { type: pendingPostMedia.type, data: pendingPostMedia.data, name: pendingPostMedia.name } : null,
-    createdAt: new Date().toISOString(), likes: [], comments: [],
-    author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600',
-      avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false, tikRengi: currentUser.tikRengi || null }
-  };
+  const newPost = { id: 'post_' + Date.now() + '_' + Math.random().toString(36).substring(2,7), text, imageUrl: '', media: pendingPostMedia ? { type: pendingPostMedia.type, data: pendingPostMedia.data, name: pendingPostMedia.name } : null, createdAt: new Date().toISOString(), likes: [], comments: [], author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600', avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false, tikRengi: currentUser.tikRengi || null } };
   postsDb.unshift(newPost);
   if (postsDb.length > MAX_POSTS) postsDb = postsDb.slice(0, MAX_POSTS);
   await savePostsToDB();
@@ -1404,26 +1448,16 @@ async function submitPost() {
   $('char-counter').innerText = '0 / 280';
   showToast('✅ Gönderi yayınlandı!', 'success');
 }
-
-function toggleComments(postId) {
-  const container = $('comments-container-' + postId);
-  if (container) { container.classList.toggle('hidden'); if (!container.classList.contains('hidden')) renderComments(postId); }
-}
-
+function toggleComments(postId) { const container = $('comments-container-' + postId); if (container) { container.classList.toggle('hidden'); if (!container.classList.contains('hidden')) renderComments(postId); } }
 async function submitComment(postId) {
+  if (isBanned()) { showToast('🚫 Banlıyken yorum yapamazsın!', 'error'); return; }
   const input = $('comment-input-' + postId);
   if (!input) return;
   let text = input.value.trim();
   if (!text) return;
   if (containsForbidden(text)) { showToast('Yasaklı içerik!', 'error'); return; }
   text = censorText(text);
-  const comment = {
-    id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2,7),
-    postId, text,
-    author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600',
-      avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false, tikRengi: currentUser.tikRengi || null },
-    createdAt: new Date().toISOString()
-  };
+  const comment = { id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2,7), postId, text, author: { username: currentUser.username, fullname: currentUser.fullname, color: currentUser.color || 'bg-cyan-600', avatarUrl: currentUser.avatarUrl || null, hasTik: currentUser.hasTik || false, tikRengi: currentUser.tikRengi || null }, createdAt: new Date().toISOString() };
   commentsDb.push(comment);
   await saveCommentsToDB();
   const post = postsDb.find(p => p.id === postId);
@@ -1432,28 +1466,13 @@ async function submitComment(postId) {
   renderComments(postId); renderFeed();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.COMMENTS, JSON.stringify({ type: 'NEW_COMMENT', comment }));
 }
-
 function renderComments(postId) {
   const container = $('comments-list-' + postId);
   if (!container) return;
   const postComments = commentsDb.filter(c => c.postId === postId);
   if (postComments.length === 0) { container.innerHTML = `<div class="text-xs text-slate-500 text-center py-2">Henüz yorum yok.</div>`; return; }
-  container.innerHTML = postComments.map(c => `
-    <div class="flex items-start gap-2 p-2 bg-slate-950 rounded-xl">
-      <div class="w-6 h-6 shrink-0">${renderAvatar(c.author, "w-6 h-6 text-xs")}</div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="font-bold text-xs text-white">${escapeHtml(c.author.fullname)}${showTikBadge(c.author)}</span>
-          <span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span>
-          <span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span>
-        </div>
-        <p class="text-xs text-slate-300 break-words">${renderText(c.text)}</p>
-      </div>
-      ${c.author.username === currentUser.username ? `<button onclick="deleteComment('${c.id}','${postId}')" class="text-slate-600 hover:text-rose-400 text-xs p-1"><i class="fa-solid fa-times"></i></button>` : ''}
-    </div>
-  `).join('');
+  container.innerHTML = postComments.map(c => `<div class="flex items-start gap-2 p-2 bg-slate-950 rounded-xl"><div class="w-6 h-6 shrink-0">${renderAvatar(c.author, "w-6 h-6 text-xs")}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-xs text-white">${escapeHtml(c.author.fullname)}${showTikBadge(c.author)}</span><span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span><span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span></div><p class="text-xs text-slate-300 break-words">${renderText(c.text)}</p></div>${(c.author.username === currentUser.username || hasModPermission()) ? `<button onclick="deleteComment('${c.id}','${postId}')" class="text-slate-600 hover:text-rose-400 text-xs p-1"><i class="fa-solid fa-times"></i></button>` : ''}</div>`).join('');
 }
-
 async function deleteComment(commentId, postId) {
   commentsDb = commentsDb.filter(c => c.id !== commentId);
   await saveCommentsToDB();
@@ -1461,8 +1480,8 @@ async function deleteComment(commentId, postId) {
   if (post?.comments) { post.comments = post.comments.filter(id => id !== commentId); await savePostsToDB(); }
   renderComments(postId); renderFeed();
 }
-
 async function toggleLike(postId) {
+  if (isBanned()) { showToast('🚫 Banlıyken beğenemezsin!', 'warning'); return; }
   const post = postsDb.find(p => p.id === postId);
   if (!post) return;
   const idx = post.likes.indexOf(currentUser.username);
@@ -1473,8 +1492,15 @@ async function toggleLike(postId) {
   if (activeTab === 'profile') renderProfileTab();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.LIKES, JSON.stringify({ type: 'TOGGLE_LIKE', postId, likes: post.likes }));
 }
-
 async function deletePost(postId) {
+  const post = postsDb.find(p => p.id === postId);
+  if (!post) return;
+  const isOwner = post.author.username === currentUser.username;
+  const isModAction = hasModPermission() && !isOwner;
+  
+  if (isModAction) { openModDeletePostModal(postId); return; }
+  if (!isOwner) { showToast('Bu gönderiyi silemezsin.', 'error'); return; }
+  
   commentsDb = commentsDb.filter(c => c.postId !== postId);
   await saveCommentsToDB();
   postsDb = postsDb.filter(p => p.id !== postId);
@@ -1485,7 +1511,6 @@ async function deletePost(postId) {
   showToast('Gönderi silindi.', 'info');
   if (mqttClient?.connected) mqttClient.publish(TOPICS.POSTS, JSON.stringify({ type: 'DELETE_POST', postId }));
 }
-
 function renderPostMedia(post) {
   if (post.media && post.media.data) {
     const m = post.media;
@@ -1496,7 +1521,6 @@ function renderPostMedia(post) {
   if (post.imageUrl) return `<div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center max-h-96"><img src="${escapeHtml(post.imageUrl)}" class="max-w-full max-h-96 object-contain cursor-zoom-in" onclick="openMediaLightbox(this.src, 'image')"></div>`;
   return '';
 }
-
 function createPostCard(post) {
   const isLiked = post.likes.includes(currentUser.username);
   const isOwner = post.author.username === currentUser.username;
@@ -1504,6 +1528,7 @@ function createPostCard(post) {
   const commentCount = commentsDb.filter(c => c.postId === post.id).length;
   const groupEmoji = getGroupEmojiForUser(author.username);
   const authorDisplay = getUserDisplayName(author);
+  const canDelete = isOwner || hasModPermission();
   return `<div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-lg space-y-3 post-card">
     <div class="flex items-start justify-between gap-3">
       <div class="flex items-center gap-3 cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(author.username)}')">
@@ -1517,7 +1542,7 @@ function createPostCard(post) {
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        ${isOwner ? `<button onclick="deletePost('${post.id}')" class="p-1.5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-lg text-xs touch-target"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+        ${canDelete ? `<button onclick="${hasModPermission() && !isOwner ? `openModDeletePostModal('${post.id}')` : `deletePost('${post.id}')`}" class="p-1.5 ${hasModPermission() && !isOwner ? 'hover:bg-amber-500/10 text-amber-500' : 'hover:bg-rose-500/10 text-slate-500 hover:text-rose-400'} rounded-lg text-xs touch-target" title="${hasModPermission() && !isOwner ? 'Mod olarak sil' : 'Sil'}"><i class="fa-solid fa-trash-can"></i></button>` : ''}
       </div>
     </div>
     ${post.text ? `<p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line break-words">${renderText(post.text)}</p>` : ''}
@@ -1533,20 +1558,19 @@ function createPostCard(post) {
     <div id="comments-container-${post.id}" class="hidden space-y-3 pt-2 border-t border-slate-800/40">
       <div id="comments-list-${post.id}" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar"></div>
       <div class="flex gap-2">
-        <input id="comment-input-${post.id}" type="text" placeholder="Yorum yaz..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-        <button onclick="submitComment('${post.id}')" class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-semibold touch-target"><i class="fa-solid fa-paper-plane"></i></button>
+        <input id="comment-input-${post.id}" type="text" placeholder="${isBanned() ? '🚫 Banlıyken yorum yapamazsın' : 'Yorum yaz...'}" ${isBanned() ? 'disabled' : ''} class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
+        <button onclick="submitComment('${post.id}')" ${isBanned() ? 'disabled' : ''} class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-semibold touch-target disabled:opacity-50"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
     </div>
   </div>`;
 }
-
 function renderFeed() {
   const container = $('posts-container');
   if (!container) return;
   const sorted = [...postsDb].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   const feedCount = $('post-feed-count');
   if (feedCount) feedCount.innerText = `${sorted.length} Gönderi`;
-  if (sorted.length === 0) { container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500"><i class="fa-solid fa-comments text-3xl text-slate-700 mb-2"></i><p class="text-sm">Henüz gönderi yok. İlk gönderiyi sen at!</p></div>`; return; }
+  if (sorted.length === 0) { container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500"><i class="fa-solid fa-comments text-3xl text-slate-700 mb-2"></i><p class="text-sm">Henüz gönderi yok.</p></div>`; return; }
   container.innerHTML = sorted.map(p => createPostCard(p)).join('');
 }
 
@@ -1570,26 +1594,11 @@ function renderUsersLeaderboard() {
     if (i === 0) rank = `<span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥇</span>`;
     if (i === 1) rank = `<span class="w-8 h-8 rounded-xl bg-slate-400/20 text-slate-300 border border-slate-400/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥈</span>`;
     if (i === 2) rank = `<span class="w-8 h-8 rounded-xl bg-amber-700/20 text-amber-600 border border-amber-700/40 font-extrabold text-sm flex items-center justify-center shrink-0">🥉</span>`;
-    return `<div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3 overflow-hidden min-w-0">
-        ${rank}
-        <div class="w-10 h-10 shrink-0 cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">${renderAvatar(u, "w-10 h-10 text-sm")}</div>
-        <div class="overflow-hidden cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">
-          <div class="flex items-center gap-2 flex-wrap">
-            <h4 class="font-bold text-sm text-white truncate">${groupEmoji}${getUserDisplayName(u)}</h4>
-            ${isMe ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold">Sen</span>` : ''}
-          </div>
-          <p class="text-xs text-slate-500 truncate">@${escapeHtml(u.username)} • ${followerCount} Takipçi</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 shrink-0">
-        ${!isMe ? `<button onclick="toggleFollowUser('${escapeHtml(u.username)}')" class="px-2 sm:px-3 py-1.5 text-xs font-semibold rounded-xl transition touch-target ${isFollowing ? 'bg-slate-800 text-slate-300' : 'bg-cyan-500 hover:bg-cyan-400 text-white shadow'}">${isFollowing ? 'Takiptesin' : 'Takip Et'}</button>` : `<button onclick="switchTab('profile')" class="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl touch-target">Profilim</button>`}
-      </div>
-    </div>`;
+    return `<div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-3 flex items-center justify-between gap-3"><div class="flex items-center gap-3 overflow-hidden min-w-0">${rank}<div class="w-10 h-10 shrink-0 cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">${renderAvatar(u, "w-10 h-10 text-sm")}</div><div class="overflow-hidden cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(u.username)}')"><div class="flex items-center gap-2 flex-wrap"><h4 class="font-bold text-sm text-white truncate">${groupEmoji}${getUserDisplayName(u)}</h4>${isMe ? `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-semibold">Sen</span>` : ''}</div><p class="text-xs text-slate-500 truncate">@${escapeHtml(u.username)} • ${followerCount} Takipçi</p></div></div><div class="flex items-center gap-2 shrink-0">${!isMe ? `<button onclick="toggleFollowUser('${escapeHtml(u.username)}')" class="px-2 sm:px-3 py-1.5 text-xs font-semibold rounded-xl transition touch-target ${isFollowing ? 'bg-slate-800 text-slate-300' : 'bg-cyan-500 hover:bg-cyan-400 text-white shadow'}">${isFollowing ? 'Takiptesin' : 'Takip Et'}</button>` : `<button onclick="switchTab('profile')" class="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl touch-target">Profilim</button>`}</div></div>`;
   }).join('');
 }
-
 async function toggleFollowUser(targetUsername) {
+  if (isBanned()) { showToast('🚫 Banlıyken takip edemezsin!', 'warning'); return; }
   if (targetUsername === currentUser.username) return;
   const target = ensureUserExists(targetUsername);
   if (!target) return;
@@ -1600,12 +1609,7 @@ async function toggleFollowUser(targetUsername) {
   if (idx === -1) {
     target.followers.push(currentUser.username);
     currentUser.following.push(targetUsername);
-    if (target.followers.length >= 10 && !target.neonColor) {
-      target.neonColor = '#b026ff';
-      usersDb[targetUsername] = target;
-      await saveUsersToDB();
-      showToast(`🎉 @${targetUsername} 10 takipçiye ulaştı!`, 'success');
-    }
+    if (target.followers.length >= 10 && !target.neonColor) { target.neonColor = '#b026ff'; showToast(`🎉 @${targetUsername} 10 takipçiye ulaştı!`, 'success'); }
     showToast(`@${targetUsername} takip edildi.`, 'info');
   } else {
     target.followers.splice(idx, 1);
@@ -1615,9 +1619,7 @@ async function toggleFollowUser(targetUsername) {
   usersDb[targetUsername] = target;
   usersDb[currentUser.username] = currentUser;
   await saveUsersToDB();
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.FOLLOWS, JSON.stringify({ type: 'FOLLOW_UPDATE', targetUsername, followerUsername: currentUser.username, followers: target.followers, following: currentUser.following }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.FOLLOWS, JSON.stringify({ type: 'FOLLOW_UPDATE', targetUsername, followerUsername: currentUser.username, followers: target.followers, following: currentUser.following }));
   renderUsersLeaderboard(); updateUserUI();
   if (viewingPublicUsername === targetUsername) renderPublicProfileModal(targetUsername);
 }
@@ -1630,83 +1632,49 @@ function filterDmSearch() {
   const results = $('dm-search-results');
   if (!q) { results.classList.add('hidden'); results.innerHTML = ''; return; }
   const matches = Object.values(usersDb).filter(u => u.username !== currentUser.username && (u.username.includes(q) || (u.fullname || '').toLowerCase().includes(q)));
-  if (matches.length === 0) { results.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">Kullanıcı bulunamadı.</div>`; results.classList.remove('hidden'); return; }
+  if (matches.length === 0) { results.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">Kullanıcı yok.</div>`; results.classList.remove('hidden'); return; }
   results.innerHTML = matches.slice(0, 8).map(u => {
     const status = getDmRequestStatus(u.username);
     const canMsg = canMessageUser(u.username);
     let actionBtn = '';
-    if (canMsg) actionBtn = `<button onclick="event.stopPropagation(); selectChatUser('${u.username}')" class="px-2 py-1 bg-cyan-500 hover:bg-cyan-400 text-white text-[10px] font-bold rounded-lg">Sohbet</button>`;
+    if (canMsg) actionBtn = `<button onclick="event.stopPropagation(); selectChatUser('${u.username}')" class="px-2 py-1 bg-cyan-500 text-white text-[10px] font-bold rounded-lg">Sohbet</button>`;
     else if (status === 'pending') actionBtn = `<span class="text-[10px] text-amber-400 font-semibold">Bekliyor</span>`;
     else if (status === 'rejected') actionBtn = `<span class="text-[10px] text-rose-400 font-semibold">Reddedildi</span>`;
-    else actionBtn = `<button onclick="event.stopPropagation(); sendDmRequest('${u.username}')" class="px-2 py-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[10px] font-bold rounded-lg">İstek Gönder</button>`;
-    return `<div class="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-slate-800 transition">
-      <div class="flex items-center gap-2 min-w-0 flex-1">
-        <div class="w-7 h-7 shrink-0">${renderAvatar(u, "w-7 h-7 text-[10px]")}</div>
-        <div class="min-w-0">
-          <div class="text-xs font-bold text-white truncate">${getUserDisplayName(u)}</div>
-          <div class="text-[9px] text-slate-500 truncate">@${u.username}</div>
-        </div>
-      </div>
-      ${actionBtn}
-    </div>`;
+    else actionBtn = `<button onclick="event.stopPropagation(); sendDmRequest('${u.username}')" class="px-2 py-1 bg-indigo-500 text-white text-[10px] font-bold rounded-lg">İstek Gönder</button>`;
+    return `<div class="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-slate-800 transition"><div class="flex items-center gap-2 min-w-0 flex-1"><div class="w-7 h-7 shrink-0">${renderAvatar(u, "w-7 h-7 text-[10px]")}</div><div class="min-w-0"><div class="text-xs font-bold text-white truncate">${getUserDisplayName(u)}</div><div class="text-[9px] text-slate-500 truncate">@${u.username}</div></div></div>${actionBtn}</div>`;
   }).join('');
   results.classList.remove('hidden');
 }
-
 function renderDmUserList() {
   const container = $('dm-users-list');
   if (!container) return;
-  // Sadece kabul edilmiş istekler veya mevcut DM'ler
   const activeUsers = new Set();
-  dmsDb.forEach(m => {
-    if (m.sender === currentUser.username) activeUsers.add(m.recipient);
-    if (m.recipient === currentUser.username) activeUsers.add(m.sender);
-  });
-  dmRequestsDb.forEach(r => {
-    if (r.status === 'accepted') {
-      if (r.from === currentUser.username) activeUsers.add(r.to);
-      if (r.to === currentUser.username) activeUsers.add(r.from);
-    }
-  });
-  // Kendi kendini çıkar
+  dmsDb.forEach(m => { if (m.sender === currentUser.username) activeUsers.add(m.recipient); if (m.recipient === currentUser.username) activeUsers.add(m.sender); });
+  dmRequestsDb.forEach(r => { if (r.status === 'accepted') { if (r.from === currentUser.username) activeUsers.add(r.to); if (r.to === currentUser.username) activeUsers.add(r.from); } });
   activeUsers.delete(currentUser.username);
-  
-  if (activeUsers.size === 0) {
-    container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Henüz sohbet yok. Yukarıdan kullanıcı arayıp istek gönder.</div>`;
-    return;
-  }
+  if (activeUsers.size === 0) { container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Henüz sohbet yok.</div>`; return; }
   const users = [...activeUsers].map(u => ensureUserExists(u)).filter(u => u);
   const sorted = users.sort((a,b) => (dmLastMessageTime[b.username]||0) - (dmLastMessageTime[a.username]||0));
   container.innerHTML = sorted.map(u => {
     const isSelected = selectedDmUser === u.username;
     const unread = dmUnreadCounts[u.username] || 0;
-    return `<div onclick="selectChatUser('${u.username}')" class="dm-item p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition ${isSelected ? 'dm-item-selected' : 'hover:bg-slate-900'}">
-      <div class="w-8 h-8 shrink-0">${renderAvatar(u, "w-8 h-8 text-xs")}</div>
-      <div class="overflow-hidden min-w-0 flex-1">
-        <div class="font-bold text-xs text-white truncate">${getUserDisplayName(u)}</div>
-        <div class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)}</div>
-      </div>
-      ${unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : ''}
-    </div>`;
+    return `<div onclick="selectChatUser('${u.username}')" class="dm-item p-2.5 rounded-xl flex items-center gap-3 cursor-pointer transition ${isSelected ? 'dm-item-selected' : 'hover:bg-slate-900'}"><div class="w-8 h-8 shrink-0">${renderAvatar(u, "w-8 h-8 text-xs")}</div><div class="overflow-hidden min-w-0 flex-1"><div class="font-bold text-xs text-white truncate">${getUserDisplayName(u)}</div><div class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)}</div></div>${unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : ''}</div>`;
   }).join('');
 }
-
 function startDirectMessageWith(username) {
   if (username === currentUser.username) { showToast('Kendine mesaj atamazsın.', 'warning'); return; }
-  closePublicProfileModal();
-  closeNotificationModal();
+  closePublicProfileModal(); closeNotificationModal();
   switchTab('messages');
   if (canMessageUser(username)) selectChatUser(username);
   else {
     const status = getDmRequestStatus(username);
-    if (status === 'pending') showToast('İstek zaten bekliyor.', 'info');
-    else if (status === 'rejected') showToast('Bu kullanıcı isteğini reddetti.', 'warning');
-    else { sendDmRequest(username); showToast('Mesaj isteği gönderildi.', 'success'); }
+    if (status === 'pending') showToast('İstek bekliyor.', 'info');
+    else if (status === 'rejected') showToast('Bu kullanıcı reddetti.', 'warning');
+    else { sendDmRequest(username); }
   }
 }
-
 function selectChatUser(username) {
-  if (!canMessageUser(username)) { showToast('Bu kullanıcıyla mesajlaşamazsın. Önce istek gönder.', 'warning'); return; }
+  if (!canMessageUser(username)) { showToast('Önce istek gönder.', 'warning'); return; }
   selectedDmUser = username;
   if (dmUnreadCounts[username]) { dmUnreadCounts[username] = 0; renderDmUserList(); }
   const target = ensureUserExists(username);
@@ -1714,40 +1682,37 @@ function selectChatUser(username) {
   $('chat-target-name').innerHTML = getUserDisplayName(target);
   $('chat-target-handle').innerText = '@' + target.username;
   $('chat-view-profile-btn').classList.remove('hidden');
-  $('dm-input-text').disabled = false;
-  $('dm-send-btn').disabled = false;
+  const banned = isBanned();
+  $('dm-input-text').disabled = banned;
+  $('dm-send-btn').disabled = banned;
   cancelReply();
   renderDmUserList();
   renderChatMessages();
 }
 function openChatUserProfile() { if (selectedDmUser) openPublicProfileModal(selectedDmUser); }
 
-// ============================================================
-// DM DOSYA
-// ============================================================
 function sendFileAttachment(event) {
+  if (isBanned()) { showToast('🚫 Banlıyken dosya gönderemezsin!', 'error'); event.target.value = ''; return; }
   const file = event.target.files[0];
   if (!file) return;
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
   const isAudio = file.type.startsWith('audio/');
-  if (!isImage && !isVideo && !isAudio) { showToast('Sadece foto, video veya ses!', 'error'); event.target.value = ''; return; }
-  const maxSize = isImage ? 2 * 1024 * 1024 : isVideo ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
-  if (file.size > maxSize) { showToast(`Dosya çok büyük! Max ${maxSize / (1024*1024)}MB.`, 'error'); event.target.value = ''; return; }
+  if (!isImage && !isVideo && !isAudio) { showToast('Sadece foto/video/ses!', 'error'); event.target.value = ''; return; }
+  const maxSize = isImage ? 2*1024*1024 : isVideo ? 5*1024*1024 : 2*1024*1024;
+  if (file.size > maxSize) { showToast(`Max ${maxSize/(1024*1024)}MB!`, 'error'); event.target.value = ''; return; }
   const reader = new FileReader();
   reader.onload = function(e) {
     let data = e.target.result;
     const finish = (finalData) => {
-      let text = isImage ? `📷 Resim: ${file.name}` : isVideo ? `🎥 Video: ${file.name}` : `🎵 Ses: ${file.name}`;
-      const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text, timestamp: new Date().toISOString(),
-        replyTo: replyToMessage, attachment: { data: finalData, type: file.type, name: file.name, size: file.size } };
+      const text = isImage ? `📷 Resim: ${file.name}` : isVideo ? `🎥 Video: ${file.name}` : `🎵 Ses: ${file.name}`;
+      const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text, timestamp: new Date().toISOString(), replyTo: replyToMessage, attachment: { data: finalData, type: file.type, name: file.name, size: file.size } };
       dmsDb.push(msg);
       saveMessagesToDB();
       dmLastMessageTime[selectedDmUser] = Date.now();
       if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
-      cancelReply();
-      renderChatMessages();
-      showToast('📎 Dosya gönderildi!', 'success');
+      cancelReply(); renderChatMessages();
+      showToast('📎 Gönderildi!', 'success');
     };
     if (isImage) {
       const img = new Image();
@@ -1768,19 +1733,16 @@ function sendFileAttachment(event) {
   event.target.value = '';
 }
 
-// ============================================================
-// MİKROFON
-// ============================================================
 async function toggleMicRecording() {
-  if (!selectedDmUser) { showToast('Önce bir sohbet seç.', 'warning'); return; }
+  if (isBanned()) { showToast('🚫 Banlıyken ses kaydedemezsin!', 'warning'); return; }
+  if (!selectedDmUser) { showToast('Önce sohbet seç.', 'warning'); return; }
   if (mediaRecorder && mediaRecorder.state === 'recording') return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    recordingSeconds = 0;
+    audioChunks = []; recordingSeconds = 0;
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = () => { stream.getTracks().forEach(t => t.stop()); };
+    mediaRecorder.onstop = () => stream.getTracks().forEach(t => t.stop());
     mediaRecorder.start();
     $('mic-recording-bar').classList.remove('hidden');
     $('mic-timer').innerText = '0:00';
@@ -1792,39 +1754,29 @@ async function toggleMicRecording() {
       $('mic-timer').innerText = `${m}:${s}`;
       if (recordingSeconds >= 120) stopAndSendMicRecording();
     }, 1000);
-  } catch(e) { showToast('Mikrofon erişimi reddedildi.', 'error'); }
+  } catch(e) { showToast('Mikrofon izni gerekli.', 'error'); }
 }
-
 function cancelMicRecording() {
   if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.onstop = null;
-    mediaRecorder.stop();
-  }
-  mediaRecorder = null;
-  audioChunks = [];
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.onstop = null; mediaRecorder.stop(); }
+  mediaRecorder = null; audioChunks = [];
   $('mic-recording-bar').classList.add('hidden');
-  showToast('Kayıt iptal edildi.', 'info');
+  showToast('Kayıt iptal.', 'info');
 }
-
 function stopAndSendMicRecording() {
   if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
   mediaRecorder.onstop = () => {
     if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
     const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    if (blob.size > 2 * 1024 * 1024) { showToast('Ses kaydı çok uzun!', 'error'); $('mic-recording-bar').classList.add('hidden'); return; }
+    if (blob.size > 2*1024*1024) { showToast('Kayıt çok uzun!', 'error'); $('mic-recording-bar').classList.add('hidden'); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
-      const data = e.target.result;
-      const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser,
-        text: '🎤 Sesli mesaj', timestamp: new Date().toISOString(), replyTo: replyToMessage,
-        attachment: { data, type: 'audio/webm', name: 'sesli-mesaj.webm', size: blob.size } };
+      const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text: '🎤 Sesli mesaj', timestamp: new Date().toISOString(), replyTo: replyToMessage, attachment: { data: e.target.result, type: 'audio/webm', name: 'sesli.webm', size: blob.size } };
       dmsDb.push(msg);
       saveMessagesToDB();
       dmLastMessageTime[selectedDmUser] = Date.now();
       if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
-      cancelReply();
-      renderChatMessages();
+      cancelReply(); renderChatMessages();
       showToast('🎤 Sesli mesaj gönderildi!', 'success');
     };
     reader.readAsDataURL(blob);
@@ -1834,11 +1786,9 @@ function stopAndSendMicRecording() {
   mediaRecorder.stop();
 }
 
-// ============================================================
-// DM MESAJ GÖNDER
-// ============================================================
 async function sendDirectMessage(e) {
   e.preventDefault();
+  if (isBanned()) { showToast('🚫 Banlıyken mesaj gönderemezsin!', 'error'); return; }
   const input = $('dm-input-text');
   let text = input.value.trim();
   if (!text || !selectedDmUser) return;
@@ -1854,30 +1804,21 @@ async function sendDirectMessage(e) {
   renderChatMessages();
 }
 
-// ============================================================
-// REPLY
-// ============================================================
 function startReply(msgId) {
   const msg = dmsDb.find(m => m.id === msgId);
   if (!msg) return;
-  replyToMessage = { id: msg.id, text: msg.text.substring(0, 60), sender: msg.sender };
+  replyToMessage = { id: msg.id, text: (msg.text || '').substring(0, 60), sender: msg.sender };
   $('reply-preview-text').innerText = replyToMessage.text;
   $('reply-preview-user').innerText = `@${msg.sender}`;
   $('reply-preview-bar').classList.remove('hidden');
 }
-function cancelReply() {
-  replyToMessage = null;
-  $('reply-preview-bar').classList.add('hidden');
-}
+function cancelReply() { replyToMessage = null; $('reply-preview-bar').classList.add('hidden'); }
 
-// ============================================================
-// DM MESAJ SİL
-// ============================================================
 async function deleteDmMessage(msgId) {
-  if (!confirm('Bu mesajı silmek istediğine emin misin?')) return;
   const msg = dmsDb.find(m => m.id === msgId);
   if (!msg) return;
-  if (msg.sender !== currentUser.username) { showToast('Sadece kendi mesajlarını silebilirsin.', 'warning'); return; }
+  if (msg.sender !== currentUser.username) { showToast('Sadece kendi mesajını silebilirsin.', 'warning'); return; }
+  if (!confirm('Bu mesajı silmek istediğine emin misin?')) return;
   dmsDb = dmsDb.filter(m => m.id !== msgId);
   await saveMessagesToDB();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + msg.recipient, JSON.stringify({ type: 'DELETE_DM', messageId: msgId }));
@@ -1885,42 +1826,29 @@ async function deleteDmMessage(msgId) {
   showToast('Mesaj silindi.', 'info');
 }
 
-// ============================================================
-// RENDER CHAT
-// ============================================================
 function renderChatMessages() {
   const container = $('chat-messages-inner');
   if (!container) return;
-  if (!selectedDmUser) {
-    container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">Sohbet başlatmak için listeden bir kullanıcı seçin.</div>`;
-    return;
-  }
+  if (!selectedDmUser) { container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">Sohbet seç.</div>`; return; }
   const convo = dmsDb.filter(m => (m.sender === currentUser.username && m.recipient === selectedDmUser) || (m.sender === selectedDmUser && m.recipient === currentUser.username)).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-  if (convo.length === 0) {
-    container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">@${selectedDmUser} ile hiç mesajın yok. Selam ver!</div>`;
-    return;
-  }
+  if (convo.length === 0) { container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">@${selectedDmUser} ile hiç mesajın yok.</div>`; return; }
   container.innerHTML = convo.map(m => {
     const isMe = m.sender === currentUser.username;
     const time = formatTimeAgo(m.timestamp);
     let content = '';
     if (m.replyTo) {
       const origMsg = dmsDb.find(x => x.id === m.replyTo.id);
-      const replyText = origMsg ? origMsg.text.substring(0, 60) : (m.replyTo.text || '');
-      content += `<div class="text-[10px] ${isMe ? 'bg-cyan-700/50 text-cyan-100' : 'bg-slate-700 text-slate-300'} rounded-lg p-1.5 mb-1.5 border-l-2 border-cyan-400">
-        <div class="font-bold">@${m.replyTo.sender}</div>
-        <div class="truncate">${escapeHtml(replyText)}</div>
-      </div>`;
+      const replyText = origMsg ? (origMsg.text || '').substring(0, 60) : (m.replyTo.text || '');
+      content += `<div class="text-[10px] ${isMe ? 'bg-cyan-700/50 text-cyan-100' : 'bg-slate-700 text-slate-300'} rounded-lg p-1.5 mb-1.5 border-l-2 border-cyan-400"><div class="font-bold">@${m.replyTo.sender}</div><div class="truncate">${escapeHtml(replyText)}</div></div>`;
     }
     content += renderText(m.text);
     if (m.attachment) {
       if (m.attachment.type?.startsWith('image/')) content += `<div class="mt-2 max-w-[240px] rounded-lg overflow-hidden border border-slate-700 bg-slate-950"><img src="${m.attachment.data}" class="w-full h-auto object-contain cursor-zoom-in" loading="lazy" onclick="openMediaLightbox('${m.attachment.data}', 'image')"></div>`;
       else if (m.attachment.type?.startsWith('audio/')) content += `<div class="mt-2"><audio controls class="w-full max-w-[240px] h-9"><source src="${m.attachment.data}" type="${m.attachment.type}"></audio></div>`;
       else if (m.attachment.type?.startsWith('video/')) content += `<div class="mt-2 max-w-[240px] rounded-lg overflow-hidden border border-slate-700 bg-slate-950"><video src="${m.attachment.data}" controls class="w-full h-auto max-h-60 object-contain"></video></div>`;
-      else content += `<div class="mt-1 text-[10px] text-slate-400">📎 ${m.attachment.name || 'Dosya'}</div>`;
     }
-    return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} group">
-      <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow break-words relative">${content}</div>
+    return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+      <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow break-words">${content}</div>
       <div class="flex items-center gap-1 mt-1 px-1">
         <span class="text-[9px] text-slate-500 font-mono">${time}</span>
         <button onclick="startReply('${m.id}')" class="text-[9px] text-slate-500 hover:text-cyan-400 p-0.5"><i class="fa-solid fa-reply"></i></button>
@@ -1931,15 +1859,11 @@ function renderChatMessages() {
   const box = $('chat-messages-box');
   if (box) box.scrollTop = box.scrollHeight;
 }
-
 function updateUnreadBadge() {
   const badge = $('unread-dm-badge');
   let total = 0;
   for (const key in dmUnreadCounts) total += dmUnreadCounts[key];
-  if (badge) {
-    if (total > 0) { badge.innerText = total > 99 ? '99+' : total; badge.classList.remove('hidden'); }
-    else badge.classList.add('hidden');
-  }
+  if (badge) { if (total > 0) { badge.innerText = total > 99 ? '99+' : total; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }
 }
 
 // ============================================================
@@ -1960,7 +1884,6 @@ function renderProfileTab() {
   if (myPosts.length === 0) container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-slate-500 text-xs">Henüz gönderin yok.</div>`;
   else container.innerHTML = myPosts.map(p => createPostCard(p)).join('');
 }
-
 function openPublicProfileModal(username) {
   if (username === currentUser.username) { switchTab('profile'); return; }
   viewingPublicUsername = username;
@@ -1969,7 +1892,6 @@ function openPublicProfileModal(username) {
   $('public-profile-modal').classList.remove('hidden');
 }
 function closePublicProfileModal() { viewingPublicUsername = null; $('public-profile-modal').classList.add('hidden'); }
-
 function renderPublicProfileModal(username) {
   const u = ensureUserExists(username);
   if (!u) return;
@@ -1986,13 +1908,10 @@ function renderPublicProfileModal(username) {
   $('pub-profile-following-count').innerText = following.length;
   const isFollowing = currentUser.following?.includes(username);
   const followBtn = $('pub-profile-follow-btn');
-  if (followBtn) {
-    followBtn.innerText = isFollowing ? 'Takiptesin' : 'Takip Et';
-    followBtn.className = isFollowing ? 'px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target' : 'px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target';
-  }
+  if (followBtn) { followBtn.innerText = isFollowing ? 'Takiptesin' : 'Takip Et'; followBtn.className = isFollowing ? 'px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target' : 'px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 text-white text-xs font-semibold rounded-xl shadow transition touch-target'; }
   const postsList = $('pub-profile-posts-list');
   if (userPosts.length === 0) {
-    if (totalPostCount > 0) postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl"><i class="fa-solid fa-lock text-slate-600 mb-2 text-lg"></i><br>Bu kullanıcının <strong class="text-cyan-400">${totalPostCount}</strong> gönderisi var ama arşivde.</div>`;
+    if (totalPostCount > 0) postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl"><i class="fa-solid fa-lock text-slate-600 mb-2 text-lg"></i><br>Bu kullanıcının <strong class="text-cyan-400">${totalPostCount}</strong> gönderisi arşivde.</div>`;
     else postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">Gönderi yok.</div>`;
   } else postsList.innerHTML = userPosts.map(p => createPostCard(p)).join('');
 }
@@ -2010,7 +1929,6 @@ function openEditProfileModal() {
   $('edit-profile-modal').classList.remove('hidden');
 }
 function closeEditProfileModal() { tempAvatarBase64 = null; $('edit-profile-modal').classList.add('hidden'); }
-
 function handleAvatarSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -2032,7 +1950,6 @@ function handleAvatarSelect(e) {
   };
   reader.readAsDataURL(file);
 }
-
 async function saveProfileChanges(e) {
   e.preventDefault();
   const newFullname = $('edit-fullname').value.trim();
@@ -2059,7 +1976,6 @@ function openTikModal() { $('tik-terms-modal').classList.remove('hidden'); }
 function closeTikTermsModal() { $('tik-terms-modal').classList.add('hidden'); }
 function closeTikTermsAndContinue() { $('tik-terms-modal').classList.add('hidden'); $('tik-modal').classList.remove('hidden'); $('tik-input').value = ''; $('tik-sonuc').innerText = ''; }
 function closeTikModal() { $('tik-modal').classList.add('hidden'); }
-
 function tikKontrolEt() {
   const code = $('tik-input').value.trim();
   const result = $('tik-sonuc');
@@ -2074,12 +1990,100 @@ function tikKontrolEt() {
     saveCommentsToDB();
     $('tik-modal').classList.add('hidden');
     const img = $('tik-goster-img');
-    img.src = tikRengi === 'purple' ? 'tick-p.png' : 'tick-b.png';
+    img.src = tikRengi === 'purple' ? 'tick-p.png' : tikRengi === 'red' ? 'tick-r.png' : 'tick-b.png';
     $('tik-goster').classList.remove('hidden');
     publishPresence();
-    updateUserUI(); renderFeed(); renderUsersLeaderboard(); renderDmUserList(); renderProfileTab(); renderGroups();
+    updateUserUI(); updateModUI(); renderFeed(); renderUsersLeaderboard(); renderDmUserList(); renderProfileTab(); renderGroups();
     updateGroupCreateButton();
-  } else { result.style.color = "red"; result.innerText = "❌ Kod hatalı! @burak_msz instagram DM at."; }
+  } else { result.style.color = "red"; result.innerText = "❌ Kod hatalı!"; }
+}
+
+// ============================================================
+// MOD PANEL RENDER
+// ============================================================
+function renderModPanel() {
+  if (!hasModPermission()) return;
+  renderModBannedList();
+  renderModUserSearch();
+}
+function renderModBannedList() {
+  const container = $('mod-banned-list');
+  if (!container) return;
+  const now = Date.now();
+  const activeBans = bannedUsers.filter(b => new Date(b.until).getTime() > now);
+  const count = $('mod-ban-count');
+  if (count) count.innerText = `${activeBans.length} kişi`;
+  if (activeBans.length === 0) { container.innerHTML = `<div class="text-center text-xs text-slate-500 py-4">Banlı kullanıcı yok.</div>`; return; }
+  container.innerHTML = activeBans.map(b => {
+    const u = ensureUserExists(b.username);
+    return `<div class="mod-banned-card rounded-xl p-3 flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <div class="w-8 h-8 shrink-0">${renderAvatar(u, "w-8 h-8 text-xs")}</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="font-bold text-xs text-rose-200">${getUserDisplayName(u)}</span>
+            <span class="text-[9px] text-slate-500">@${b.username}</span>
+          </div>
+          <p class="text-[10px] text-rose-300/70">Sebep: ${escapeHtml(b.reason)}</p>
+          <p class="text-[9px] text-slate-500">Banlayan: @${b.by} • Kalan: ${getBanRemaining(b)}</p>
+        </div>
+      </div>
+      <button onclick="modUnbanUser('${b.username}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg touch-target">
+        <i class="fa-solid fa-unlock mr-1"></i>Banı Kaldır
+      </button>
+    </div>`;
+  }).join('');
+}
+function filterModUserSearch() {
+  const q = $('mod-user-search').value.trim().toLowerCase();
+  const container = $('mod-user-search-results');
+  if (!q) { container.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">Kullanıcı ara...</div>`; return; }
+  const matches = Object.values(usersDb).filter(u => u.username !== currentUser.username && (u.username.includes(q) || (u.fullname || '').toLowerCase().includes(q)));
+  if (matches.length === 0) { container.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">Kullanıcı yok.</div>`; return; }
+  container.innerHTML = matches.slice(0, 15).map(u => {
+    const isBannedUser = isUserBanned(u.username);
+    const canRemoveTik = hasSuperModPermission() && u.hasTik && u.username !== currentUser.username;
+    const canBan = u.username !== currentUser.username && (!isMod() || (u.tikRengi !== 'purple'));
+    return `<div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onclick="openPublicProfileModal('${u.username}')">
+        <div class="w-8 h-8 shrink-0">${renderAvatar(u, "w-8 h-8 text-xs")}</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="font-bold text-xs text-white">${getUserDisplayName(u)}</span>
+            ${isBannedUser ? `<span class="text-[8px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded font-bold">BANLI</span>` : ''}
+          </div>
+          <p class="text-[9px] text-slate-500">@${u.username} • ${(u.followers||[]).length} takipçi</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 flex-wrap">
+        ${canRemoveTik ? `<button onclick="modRemoveTik('${u.username}')" class="px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold rounded-lg touch-target" title="Tikini Kaldır"><i class="fa-solid fa-certificate"></i> Tik Kaldır</button>` : ''}
+        ${isBannedUser ? `<button onclick="modUnbanUser('${u.username}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg touch-target"><i class="fa-solid fa-unlock"></i> Banı Kaldır</button>` : (canBan ? `<button onclick="openModBanModal('${u.username}')" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold rounded-lg touch-target"><i class="fa-solid fa-gavel"></i> Banla</button>` : '')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderModUserSearch() {
+  const container = $('mod-user-search-results');
+  if (container && !container.innerHTML.trim()) container.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">Kullanıcı ara...</div>`;
+}
+function openModBanModal(username) {
+  if (!hasModPermission()) return;
+  const u = ensureUserExists(username);
+  modBanTarget = username;
+  $('mod-ban-target-info').innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 shrink-0">${renderAvatar(u, "w-10 h-10 text-sm")}</div><div><div class="font-bold text-xs text-white">${escapeHtml(u.fullname)}</div><div class="text-[10px] text-slate-500">@${u.username}</div></div></div>`;
+  $('mod-ban-hours').value = 1;
+  $('mod-ban-reason').value = '';
+  $('mod-ban-modal').classList.remove('hidden');
+}
+function closeModBanModal() { $('mod-ban-modal').classList.add('hidden'); modBanTarget = null; }
+async function confirmModBan() {
+  if (!modBanTarget || !hasModPermission()) return;
+  const hours = parseInt($('mod-ban-hours').value) || 1;
+  const reason = $('mod-ban-reason').value.trim();
+  if (!reason) { showToast('Sebep zorunlu!', 'warning'); return; }
+  if (hours < BAN_MIN_HOURS || hours > BAN_MAX_HOURS) { showToast(`Süre ${BAN_MIN_HOURS}-${BAN_MAX_HOURS} saat arası olmalı!`, 'warning'); return; }
+  await modBanUser(modBanTarget, hours, reason);
+  closeModBanModal();
 }
 
 // ============================================================
@@ -2096,6 +2100,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       dmsDb = data.messages || [];
       groupsDb = data.groups || [];
       dmRequestsDb = data.dmReqs || [];
+      bannedUsers = data.bans || [];
       Object.values(usersDb).forEach(u => { if (typeof u.postCount !== 'number') u.postCount = postsDb.filter(p => p.author.username === u.username).length; });
       await saveUsersToDB();
     }
@@ -2113,21 +2118,18 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitPost(); }
     });
   }
-
   const dmInput = $('dm-input-text');
   if (dmInput) {
     dmInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('dm-form').dispatchEvent(new Event('submit')); }
     });
   }
-
   document.addEventListener('keydown', function(e) {
     if (e.target?.id?.startsWith('comment-input-') && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submitComment(e.target.id.replace('comment-input-', ''));
     }
   });
-
   document.addEventListener('click', function(e) {
     const dropdown = $('settings-dropdown');
     if (dropdown && !e.target.closest('.relative') && !dropdown.classList.contains('hidden')) dropdown.classList.add('hidden');
@@ -2136,14 +2138,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   const sessionUser = sessionStorage.getItem('sp_social_active_user');
   const savedUsername = localStorage.getItem('sp_social_username');
   const savedPassword = localStorage.getItem('sp_social_password');
-
   if (savedUsername) {
     const lu = $('login-username');
     if (lu) lu.value = savedUsername;
     const rm = $('remember-me');
     if (rm) rm.checked = true;
   }
-
   if (sessionUser && usersDb[sessionUser]) {
     currentUser = usersDb[sessionUser];
     if (!currentUser.followers) currentUser.followers = [];
