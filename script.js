@@ -147,10 +147,44 @@ function formatTimeAgo(iso) {
   if (diff < 86400) return Math.floor(diff/3600) + ' sa önce';
   return new Date(iso).toLocaleDateString('tr-TR');
 }
-function sanitizeUserObj(u) {
-  return { username:u.username, fullname:u.fullname, bio:u.bio, color:u.color, avatarUrl:u.avatarUrl,
-    followers:u.followers||[], following:u.following||[], neonColor:u.neonColor||null, hasTik:u.hasTik||false, tikRengi:u.tikRengi||null };
+
+// YENİ: postCount hesaplayıcı
+function getTotalPostCount(username) {
+  if (!username) return 0;
+  const user = usersDb[username];
+  if (user && typeof user.postCount === 'number') return user.postCount;
+  return postsDb.filter(p => p.author.username === username).length;
 }
+
+// YENİ: postCount güncelleyici
+async function incrementPostCount(username, delta = 1) {
+  if (!username) return;
+  const u = usersDb[username];
+  if (!u) return;
+  if (typeof u.postCount !== 'number') {
+    u.postCount = postsDb.filter(p => p.author.username === username).length;
+  }
+  u.postCount = Math.max(0, u.postCount + delta);
+  usersDb[username] = u;
+  await saveUsersToDB();
+}
+
+function sanitizeUserObj(u) {
+  return { 
+    username: u.username, 
+    fullname: u.fullname, 
+    bio: u.bio, 
+    color: u.color, 
+    avatarUrl: u.avatarUrl,
+    followers: u.followers || [], 
+    following: u.following || [], 
+    neonColor: u.neonColor || null, 
+    hasTik: u.hasTik || false, 
+    tikRengi: u.tikRengi || null,
+    postCount: typeof u.postCount === 'number' ? u.postCount : postsDb.filter(p => p.author.username === u.username).length
+  };
+}
+
 function logSystem(msg) {
   const box = $('system-log-box');
   if (!box) return;
@@ -187,7 +221,13 @@ function closeModal() { $('modal-overlay').classList.add('hidden'); }
 // ============================================================
 function ensureUserExists(username, partialData = {}) {
   if (!username) return null;
-  if (usersDb[username]) return usersDb[username];
+  if (usersDb[username]) {
+    // postCount yoksa hesapla
+    if (typeof usersDb[username].postCount !== 'number') {
+      usersDb[username].postCount = postsDb.filter(p => p.author.username === username).length;
+    }
+    return usersDb[username];
+  }
   const fallback = {
     username,
     fullname: partialData.fullname || username,
@@ -199,6 +239,7 @@ function ensureUserExists(username, partialData = {}) {
     neonColor: partialData.neonColor || null,
     hasTik: partialData.hasTik || false,
     tikRengi: partialData.tikRengi || null,
+    postCount: typeof partialData.postCount === 'number' ? partialData.postCount : 0,
     joinedAt: partialData.joinedAt || new Date().toISOString()
   };
   usersDb[username] = fallback;
@@ -310,6 +351,7 @@ async function handleRegister(e) {
     username, fullname: username, bio: 'MSZ MEDYA üyesi.', password,
     color: USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)],
     avatarUrl: null, followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null,
+    postCount: 0,
     joinedAt: new Date().toISOString()
   };
   usersDb[username] = newUser;
@@ -332,6 +374,9 @@ async function handleLogin(e) {
   }
   if (!user.followers) user.followers = [];
   if (!user.following) user.following = [];
+  if (typeof user.postCount !== 'number') {
+    user.postCount = postsDb.filter(p => p.author.username === username).length;
+  }
   currentUser = user;
   sessionStorage.setItem('sp_social_active_user', username);
   if (remember) {
@@ -352,10 +397,8 @@ function logout() {
   currentUser = null;
   selectedDmUser = null;
   viewingPublicUsername = null;
-  // Auth ekranına dön, sayfa yenilenmez
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
-  // Formu temizle
   const lu = $('login-username'), lp = $('login-password');
   if (lu) lu.value = '';
   if (lp) lp.value = '';
@@ -367,7 +410,7 @@ function logout() {
 function launchMainApp() {
   $('auth-screen').classList.add('hidden');
   $('main-app').classList.remove('hidden');
-  console.log('🚀 MSZ MEDYA v1.9 başlatıldı! Kullanıcı:', currentUser.username);
+  console.log('🚀 MSZ MEDYA v2.0 başlatıldı! Kullanıcı:', currentUser.username);
   updateUserUI();
   initNetworkConnection();
   renderFeed();
@@ -694,12 +737,10 @@ async function deleteAccount(e) {
   if (confirmText !== 'hesabımı sil') { showModal('Hata', 'Lütfen onaylamak için "hesabımı sil" yazın.'); return; }
   const deletedUsername = currentUser.username;
 
-  // Önce herkese haber ver
   if (mqttClient?.connected) {
     mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'DELETE_ACCOUNT', username: deletedUsername }));
   }
 
-  // Kendi DB'mizden temizle
   const userPosts = postsDb.filter(p => p.author.username === deletedUsername);
   for (const p of userPosts) {
     postsDb = postsDb.filter(x => x.id !== p.id);
@@ -730,7 +771,6 @@ async function deleteAccount(e) {
   if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
   if (mqttClient) { try { mqttClient.end(true); } catch(e){} mqttClient = null; }
   currentUser = null;
-  // Auth ekranına dön, reload yok
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
   const lu = $('login-username'), lp = $('login-password');
@@ -803,9 +843,7 @@ function initNetworkConnection() {
       mqttClient.subscribe(TOPICS.COMMENTS);
       mqttClient.subscribe(TOPICS.GROUPS);
       publishPresence();
-      // Tüm kullanıcı listesini iste
       mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'REQUEST_USERS', from: currentUser.username }));
-      // Periyodik presence
       if (presenceInterval) clearInterval(presenceInterval);
       presenceInterval = setInterval(publishPresence, PRESENCE_INTERVAL_MS);
     });
@@ -843,16 +881,34 @@ async function handleIncomingNetworkData(topic, data) {
       await savePostsToDB();
       if (data.post.author.username !== currentUser.username) {
         ensureUserExists(data.post.author.username, data.post.author);
+        // YENİ: postCount'u karşı tarafta arttır
+        if (typeof usersDb[data.post.author.username].postCount !== 'number') {
+          usersDb[data.post.author.username].postCount = 0;
+        }
+        usersDb[data.post.author.username].postCount++;
+        await saveUsersToDB();
+        renderUsersLeaderboard();
         addNotification(`${data.post.author.fullname} (@${data.post.author.username}) yeni bir gönderi paylaştı.`);
       }
     }
     renderFeed(); return;
   }
   if (topic === TOPICS.POSTS && data.type === 'DELETE_POST') {
+    const deletedPost = postsDb.find(p => p.id === data.postId);
+    if (deletedPost) {
+      const authorName = deletedPost.author.username;
+      if (usersDb[authorName] && typeof usersDb[authorName].postCount === 'number' && usersDb[authorName].postCount > 0) {
+        usersDb[authorName].postCount--;
+        await saveUsersToDB();
+      }
+    }
     postsDb = postsDb.filter(p => p.id !== data.postId);
     commentsDb = commentsDb.filter(c => c.postId !== data.postId);
     await savePostsToDB(); await saveCommentsToDB();
-    renderFeed(); renderProfileTab?.(); return;
+    renderFeed(); 
+    if (typeof renderProfileTab === 'function') renderProfileTab();
+    renderUsersLeaderboard();
+    return;
   }
   if (topic === TOPICS.LIKES && data.type === 'TOGGLE_LIKE') {
     const target = postsDb.find(p => p.id === data.postId);
@@ -866,7 +922,8 @@ async function handleIncomingNetworkData(topic, data) {
       usersDb[rxUser.username] = {
         ...(existing || {}), ...rxUser,
         followers: rxUser.followers || (existing?.followers || []),
-        following: rxUser.following || (existing?.following || [])
+        following: rxUser.following || (existing?.following || []),
+        postCount: typeof rxUser.postCount === 'number' ? rxUser.postCount : (existing?.postCount || 0)
       };
       await saveUsersToDB();
       renderDmUserList();
@@ -1045,8 +1102,8 @@ function updateUserUI() {
   $('sidebar-username-display').innerHTML = getUserDisplayName(currentUser);
   $('sidebar-bio').innerText = currentUser.bio;
   $('composer-avatar').innerHTML = renderAvatar(currentUser, "w-full h-full text-sm");
-  const myPosts = postsDb.filter(p => p.author.username === currentUser.username);
-  $('sidebar-post-count').innerText = myPosts.length;
+  // YENİ: postCount kullan
+  $('sidebar-post-count').innerText = getTotalPostCount(currentUser.username);
   $('sidebar-followers-count').innerText = (currentUser.followers || []).length;
   $('sidebar-user-count').innerText = (currentUser.following || []).length;
   updateGroupCreateButton();
@@ -1080,9 +1137,12 @@ async function submitPost() {
   postsDb.unshift(newPost);
   if (postsDb.length > MAX_POSTS) postsDb = postsDb.slice(0, MAX_POSTS);
   await savePostsToDB();
+  // YENİ: postCount arttır
+  await incrementPostCount(currentUser.username, 1);
   renderFeed();
   updateUserUI();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.POSTS, JSON.stringify({ type: 'NEW_POST', post: newPost }));
+  publishPresence();
   input.value = '';
   if (imgInput) imgInput.value = '';
   $('image-url-container').classList.add('hidden');
@@ -1174,9 +1234,12 @@ async function deletePost(postId) {
   await saveCommentsToDB();
   postsDb = postsDb.filter(p => p.id !== postId);
   await savePostsToDB();
+  // YENİ: postCount düşür
+  await incrementPostCount(currentUser.username, -1);
   renderFeed();
   renderProfileTab();
   updateUserUI();
+  publishPresence();
   showToast('Gönderi silindi.', 'info');
   if (mqttClient?.connected) mqttClient.publish(TOPICS.POSTS, JSON.stringify({ type: 'DELETE_POST', postId }));
 }
@@ -1485,7 +1548,8 @@ function renderProfileTab() {
   $('profile-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
   $('profile-bio').innerText = currentUser.bio;
   const myPosts = postsDb.filter(p => p.author.username === currentUser.username).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-  $('profile-stat-posts').innerText = myPosts.length;
+  // YENİ: postCount kullan
+  $('profile-stat-posts').innerText = getTotalPostCount(currentUser.username);
   $('profile-stat-followers').innerText = (currentUser.followers||[]).length;
   $('profile-stat-following').innerText = (currentUser.following||[]).length;
   const container = $('profile-posts-container');
@@ -1521,7 +1585,9 @@ function renderPublicProfileModal(username) {
   $('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
   const followers = u.followers || [], following = u.following || [];
   const userPosts = postsDb.filter(p => p.author.username === username).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-  $('pub-profile-posts-count').innerText = userPosts.length;
+  // YENİ: postCount kullan
+  const totalPostCount = getTotalPostCount(username);
+  $('pub-profile-posts-count').innerText = totalPostCount;
   $('pub-profile-followers-count').innerText = followers.length;
   $('pub-profile-following-count').innerText = following.length;
   const isFollowing = currentUser.following?.includes(username);
@@ -1534,7 +1600,15 @@ function renderPublicProfileModal(username) {
   }
   const postsList = $('pub-profile-posts-list');
   if (userPosts.length === 0) {
-    postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">Gönderi bulunmuyor.</div>`;
+    // YENİ: postCount varsa açıklayıcı mesaj göster
+    if (totalPostCount > 0) {
+      postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">
+        <i class="fa-solid fa-lock text-slate-600 mb-2 text-lg"></i><br>
+        Bu kullanıcının <strong class="text-cyan-400">${totalPostCount}</strong> gönderisi var ama eski gönderiler arşivde. Yeni gönderileri burada görünecek.
+      </div>`;
+    } else {
+      postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">Gönderi bulunmuyor.</div>`;
+    }
   } else {
     postsList.innerHTML = userPosts.map(p => createPostCard(p)).join('');
   }
@@ -1659,6 +1733,13 @@ window.addEventListener('DOMContentLoaded', async () => {
       commentsDb = data.comments || [];
       dmsDb = data.messages || [];
       groupsDb = data.groups || [];
+      // YENİ: Eski kullanıcıların postCount'unu hesapla
+      Object.values(usersDb).forEach(u => {
+        if (typeof u.postCount !== 'number') {
+          u.postCount = postsDb.filter(p => p.author.username === u.username).length;
+        }
+      });
+      await saveUsersToDB();
       console.log(`📊 ${postsDb.length} gönderi, ${commentsDb.length} yorum, ${dmsDb.length} mesaj, ${groupsDb.length} grup yüklendi`);
     }
   } catch(err) {
@@ -1671,7 +1752,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     showToast('⚠️ IndexedDB kullanılamıyor, localStorage kullanılıyor.', 'warning');
   }
 
-  // Event Listeners
   const postInput = $('post-input');
   if (postInput) {
     postInput.addEventListener('input', (e) => {
@@ -1705,12 +1785,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Oturum kontrolü: önce sessionStorage, sonra localStorage (Beni Hatırla)
   const sessionUser = sessionStorage.getItem('sp_social_active_user');
   const savedUsername = localStorage.getItem('sp_social_username');
   const savedPassword = localStorage.getItem('sp_social_password');
 
-  // Giriş formuna hatırlanan kullanıcı adını doldur
   if (savedUsername) {
     const lu = $('login-username');
     if (lu) lu.value = savedUsername;
@@ -1722,12 +1800,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     currentUser = usersDb[sessionUser];
     if (!currentUser.followers) currentUser.followers = [];
     if (!currentUser.following) currentUser.following = [];
+    if (typeof currentUser.postCount !== 'number') currentUser.postCount = postsDb.filter(p => p.author.username === currentUser.username).length;
     launchMainApp();
   } else if (savedUsername && savedPassword && usersDb[savedUsername] && usersDb[savedUsername].password === savedPassword) {
-    // Beni hatırla ile otomatik giriş
     currentUser = usersDb[savedUsername];
     if (!currentUser.followers) currentUser.followers = [];
     if (!currentUser.following) currentUser.following = [];
+    if (typeof currentUser.postCount !== 'number') currentUser.postCount = postsDb.filter(p => p.author.username === currentUser.username).length;
     sessionStorage.setItem('sp_social_active_user', savedUsername);
     launchMainApp();
   }
