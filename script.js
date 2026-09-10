@@ -3,7 +3,7 @@
 // ============================================================
 const gecerliKod = "ııOOOııııuuu?1éııOOOııııuuu?1é";
 // tikRengi: "blue" (normal), "red" (mod), "purple" (süper mod)
-let tikRengi = "red";
+let tikRengi = "blue";
 const GUVENLIK_CEVABI = "msz-şifremi-unuttum";
 
 const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
