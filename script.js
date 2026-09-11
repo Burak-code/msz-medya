@@ -280,6 +280,38 @@ function ensureUserExists(username, partialData = {}) {
 }
 
 // ============================================================
+// HAMBURGER MENÜ
+// ============================================================
+function toggleHamburgerMenu() {
+  const menu = $('hamburger-menu');
+  const panel = $('hamburger-panel');
+  if (!menu || !panel) return;
+  
+  if (menu.classList.contains('hidden')) {
+    menu.classList.remove('hidden');
+    setTimeout(() => {
+      panel.classList.remove('-translate-x-full');
+    }, 10);
+  } else {
+    panel.classList.add('-translate-x-full');
+    setTimeout(() => {
+      menu.classList.add('hidden');
+    }, 300);
+  }
+}
+
+function closeHamburgerMenu() {
+  const menu = $('hamburger-menu');
+  const panel = $('hamburger-panel');
+  if (!menu || !panel) return;
+  
+  panel.classList.add('-translate-x-full');
+  setTimeout(() => {
+    menu.classList.add('hidden');
+  }, 300);
+}
+
+// ============================================================
 // YETKİ KONTROLLERİ
 // ============================================================
 function isMod() { return currentUser && currentUser.hasTik && currentUser.tikRengi === 'red'; }
@@ -1428,22 +1460,24 @@ function switchTab(tab) {
   navIds.forEach(id => {
     const el = $(id); if (!el) return;
     const isModBtn = id === 'nav-mod';
-    el.className = isModBtn ? 
-      'nav-btn hidden px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition touch-target whitespace-nowrap border border-rose-500/30' :
-      'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative';
+    if (isModBtn) {
+      el.className = 'nav-btn hidden w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition touch-target border border-rose-500/30';
+    } else {
+      el.className = 'nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative touch-target';
+    }
   });
   const idx = tabs.indexOf(tab);
   if (idx !== -1) {
     const cEl = $(contentIds[idx]); if (cEl) cEl.classList.remove('hidden');
     const nEl = $(navIds[idx]);
     if (nEl) {
-      if (nEl.id === 'nav-mod') nEl.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-rose-500/20 text-rose-300 border border-rose-500/50';
-      else nEl.className = 'nav-btn px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 bg-slate-800 text-cyan-400 border border-slate-700/50';
+      if (nEl.id === 'nav-mod') nEl.className = 'nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 bg-rose-500/20 text-rose-300 border border-rose-500/50 touch-target';
+      else nEl.className = 'nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 bg-slate-800 text-cyan-400 border border-slate-700/50 touch-target';
     }
   }
   updateModUI();
   if (tab === 'feed') renderFeed();
-  else if (tab === 'messages') { $('unread-dm-badge').classList.add('hidden'); renderDmUserList(); if (selectedDmUser) renderChatMessages(); }
+  else if (tab === 'messages') { const b = $('unread-dm-badge'); if (b) b.classList.add('hidden'); renderDmUserList(); if (selectedDmUser) renderChatMessages(); }
   else if (tab === 'groups') renderGroups();
   else if (tab === 'users') renderUsersLeaderboard();
   else if (tab === 'games') renderGames();
@@ -1738,26 +1772,6 @@ function toggleGameFullscreen() {
     isGameFullscreen = false;
   }
 }
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    var modal = document.getElementById('game-modal');
-    if (modal && !modal.classList.contains('hidden')) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(function() {});
-      } else {
-        closeGameModal();
-      }
-    }
-  }
-});
-document.addEventListener('fullscreenchange', function() {
-  var modal = document.getElementById('game-modal');
-  if (!modal) return;
-  if (!document.fullscreenElement) {
-    modal.classList.remove('is-fullscreen');
-    isGameFullscreen = false;
-  }
-});
 
 // ============================================================
 // LEADERBOARD
@@ -1812,9 +1826,10 @@ async function toggleFollowUser(targetUsername) {
 // ============================================================
 // DM
 // ============================================================
-function filterDmSearch() {
-  const q = $('dm-user-search').value.trim().toLowerCase();
+function renderDmSearchResults() {
+  const q = $('dm-user-search')?.value.trim().toLowerCase();
   const results = $('dm-search-results');
+  if (!results) return;
   if (!q) { results.classList.add('hidden'); results.innerHTML = ''; return; }
   const matches = Object.values(usersDb).filter(u => u.username !== currentUser.username && (u.username.includes(q) || (u.fullname || '').toLowerCase().includes(q)));
   if (matches.length === 0) { results.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">Kullanıcı yok.</div>`; results.classList.remove('hidden'); return; }
@@ -1830,6 +1845,7 @@ function filterDmSearch() {
   }).join('');
   results.classList.remove('hidden');
 }
+function filterDmSearch() { renderDmSearchResults(); }
 function renderDmUserList() {
   const container = $('dm-users-list');
   if (!container) return;
