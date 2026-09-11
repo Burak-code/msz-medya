@@ -8,9 +8,7 @@ body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
 .touch-target { min-height: 44px; min-width: 44px; }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 @media (max-width: 640px) {
-  .nav-btn span { display: none; }
-  .nav-btn { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
-  .nav-btn i { font-size: 1rem; }
+  .nav-btn span { display: inline; }
 }
 @media (max-width: 480px) {
   .header-title { font-size: 0.9rem; }
@@ -105,6 +103,18 @@ body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ============================================ */
+/* HAMBURGER MENÜ */
+/* ============================================ */
+#hamburger-panel {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#hamburger-menu {
+  animation: fadeIn 0.2s ease-out;
+}
+
 /* ============================================ */
 /* OYUN KARTLARI */
 /* ============================================ */
