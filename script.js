@@ -2,56 +2,11 @@
 // OYUNLAR LİSTESİ
 // ============================================================
 const OYUNLAR = [
-  {
-    id: 'stumble',
-    name: 'Stumble Color',
-    desc: 'Rengarenk karakterlerle battle royale! Son kalan kazanır.',
-    emoji: '🎨',
-    category: 'Battle',
-    categoryClass: 'cat-battle',
-    url: 'https://burak-code.github.io/stumble-boys/',
-    gradient: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)'
-  },
-  {
-    id: 'flaquiz',
-    name: 'Flaquiz V2',
-    desc: 'Bilgi yarışması! Rank atla, puan topla.',
-    emoji: '🧠',
-    category: 'Puzzle',
-    categoryClass: 'cat-puzzle',
-    url: 'https://burak-code.github.io/msz/html/oyun1.html',
-    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
-  },
-  {
-    id: 'oyun2',
-    name: 'MSZ Oyun 2',
-    desc: 'MSZ MEDYA özel oyunu.',
-    emoji: '🎮',
-    category: 'Arcade',
-    categoryClass: 'cat-arcade',
-    url: 'https://burak-code.github.io/msz/html/oyun2.html',
-    gradient: 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)'
-  },
-  {
-    id: 'neon',
-    name: 'Neon Kare',
-    desc: 'Kırmızı engellerden kaç, sarı yıldızları topla!',
-    emoji: '🟨',
-    category: 'Action',
-    categoryClass: 'cat-action',
-    url: 'https://burak-code.github.io/msz/html/plazma.html',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)'
-  },
-  {
-    id: 'team-manager',
-    name: 'National Team Manager',
-    desc: 'Dünya Kupası\'na giden yolda teknik direktör ol!',
-    emoji: '⚽',
-    category: 'Sports',
-    categoryClass: 'cat-sports',
-    url: 'https://burak-code.github.io/msz/html/team-menager.html',
-    gradient: 'linear-gradient(135deg, #3b82f6 0%, #059669 100%)'
-  }
+  { id: 'stumble', name: 'Stumble Color', desc: 'Rengarenk karakterlerle battle royale! Son kalan kazanır.', emoji: '🎨', category: 'Battle', categoryClass: 'cat-battle', url: 'https://burak-code.github.io/stumble-boys/', gradient: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)' },
+  { id: 'flaquiz', name: 'Flaquiz V2', desc: 'Bilgi yarışması! Rank atla, puan topla.', emoji: '🧠', category: 'Puzzle', categoryClass: 'cat-puzzle', url: 'https://burak-code.github.io/msz/html/oyun1.html', gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' },
+  { id: 'oyun2', name: 'MSZ Oyun 2', desc: 'MSZ MEDYA özel oyunu.', emoji: '🎮', category: 'Arcade', categoryClass: 'cat-arcade', url: 'https://burak-code.github.io/msz/html/oyun2.html', gradient: 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)' },
+  { id: 'neon', name: 'Neon Kare', desc: 'Kırmızı engellerden kaç, sarı yıldızları topla!', emoji: '🟨', category: 'Action', categoryClass: 'cat-action', url: 'https://burak-code.github.io/msz/html/plazma.html', gradient: 'linear-gradient(135deg, #f59e0b 0%, #eab308 100%)' },
+  { id: 'team-manager', name: 'National Team Manager', desc: 'Dünya Kupası\'na giden yolda teknik direktör ol!', emoji: '⚽', category: 'Sports', categoryClass: 'cat-sports', url: 'https://burak-code.github.io/msz/html/team-menager.html', gradient: 'linear-gradient(135deg, #3b82f6 0%, #059669 100%)' }
 ];
 
 // ============================================================
@@ -112,6 +67,7 @@ const EMOJI_LIST = [
 ];
 
 let currentLang = 'tr';
+let animationsEnabled = true;
 
 // ============================================================
 // STATE
@@ -130,6 +86,7 @@ let emojiTargetInput = null;
 let mediaRecorder = null, audioChunks = [], recordingTimer = null, recordingSeconds = 0;
 let modBanTarget = null, modDeletePostTarget = null;
 let currentGameUrl = null, currentGameName = null, isGameFullscreen = false;
+let isAiPanelOpen = false;
 
 // ============================================================
 // INDEXEDDB
@@ -280,35 +237,108 @@ function ensureUserExists(username, partialData = {}) {
 }
 
 // ============================================================
+// ANİMASYON AYARLARI
+// ============================================================
+function loadAnimationSettings() {
+  const saved = localStorage.getItem('msz_animations_enabled');
+  if (saved !== null) animationsEnabled = saved === 'true';
+  updateAnimationToggleUI();
+}
+function toggleAnimations() {
+  animationsEnabled = !animationsEnabled;
+  localStorage.setItem('msz_animations_enabled', animationsEnabled);
+  updateAnimationToggleUI();
+  document.body.classList.toggle('no-animations', !animationsEnabled);
+  showToast(animationsEnabled ? '✨ Animasyonlar açıldı!' : '🔇 Animasyonlar kapatıldı.', animationsEnabled ? 'success' : 'info');
+}
+function updateAnimationToggleUI() {
+  const sw = $('animation-toggle-switch');
+  if (sw) {
+    if (animationsEnabled) sw.classList.add('active');
+    else sw.classList.remove('active');
+  }
+  const icon = $('animation-toggle-icon');
+  if (icon) {
+    icon.className = animationsEnabled ? 'fa-solid fa-wand-magic-sparkles text-amber-400' : 'fa-solid fa-wand-magic text-slate-500';
+  }
+  document.body.classList.toggle('no-animations', !animationsEnabled);
+}
+
+// ============================================================
+// TİK ANİMASYONU
+// ============================================================
+function playTikAnimation() {
+  if (!animationsEnabled) { openTikModal(); return; }
+  const overlay = $('tik-animation-overlay');
+  if (!overlay) { openTikModal(); return; }
+  overlay.classList.remove('hidden');
+  const lockIcon = $('tik-anim-lock');
+  const keyIcon = $('tik-anim-key');
+  const unlockIcon = $('tik-anim-unlock');
+  if (!lockIcon || !keyIcon || !unlockIcon) { overlay.classList.add('hidden'); openTikModal(); return; }
+  lockIcon.className = 'tik-anim-icon text-7xl opacity-0 scale-0 transition-all duration-500';
+  keyIcon.className = 'tik-anim-icon text-7xl opacity-0 scale-0 transition-all duration-500';
+  unlockIcon.className = 'tik-anim-icon text-7xl opacity-0 scale-0 transition-all duration-500';
+  setTimeout(() => { lockIcon.className = 'tik-anim-icon text-7xl opacity-100 scale-100 transition-all duration-500'; }, 100);
+  setTimeout(() => { keyIcon.className = 'tik-anim-icon text-7xl opacity-100 scale-100 transition-all duration-500'; }, 900);
+  setTimeout(() => {
+    lockIcon.className = 'tik-anim-icon text-7xl opacity-0 scale-0 transition-all duration-300';
+    keyIcon.className = 'tik-anim-icon text-7xl opacity-0 scale-0 transition-all duration-300';
+    unlockIcon.className = 'tik-anim-icon text-7xl opacity-100 scale-100 transition-all duration-500';
+  }, 1800);
+  setTimeout(() => { overlay.classList.add('hidden'); openTikModal(); }, 2800);
+}
+function handleTikButtonClick() {
+  if (isBanned()) { showToast('🚫 Banlıyken tik alamazsın!', 'error'); return; }
+  playTikAnimation();
+}
+
+// ============================================================
 // HAMBURGER MENÜ
 // ============================================================
 function toggleHamburgerMenu() {
   const menu = $('hamburger-menu');
   const panel = $('hamburger-panel');
   if (!menu || !panel) return;
-  
   if (menu.classList.contains('hidden')) {
     menu.classList.remove('hidden');
-    setTimeout(() => {
-      panel.classList.remove('-translate-x-full');
-    }, 10);
+    setTimeout(() => { panel.classList.remove('-translate-x-full'); }, 10);
   } else {
     panel.classList.add('-translate-x-full');
-    setTimeout(() => {
-      menu.classList.add('hidden');
-    }, 300);
+    setTimeout(() => { menu.classList.add('hidden'); }, 300);
   }
 }
-
 function closeHamburgerMenu() {
   const menu = $('hamburger-menu');
   const panel = $('hamburger-panel');
   if (!menu || !panel) return;
-  
   panel.classList.add('-translate-x-full');
-  setTimeout(() => {
-    menu.classList.add('hidden');
-  }, 300);
+  setTimeout(() => { menu.classList.add('hidden'); }, 300);
+}
+
+// ============================================================
+// MSZ AI PANEL
+// ============================================================
+function toggleAiPanel() {
+  const panel = $('ai-panel');
+  const frame = $('ai-frame');
+  if (!panel) return;
+  if (isAiPanelOpen) {
+    panel.classList.add('hidden');
+    isAiPanelOpen = false;
+    if (frame) frame.src = '';
+  } else {
+    panel.classList.remove('hidden');
+    isAiPanelOpen = true;
+    if (frame) frame.src = 'https://burak-code.github.io/msz_ai/';
+  }
+}
+function closeAiPanel() {
+  const panel = $('ai-panel');
+  const frame = $('ai-frame');
+  if (panel) panel.classList.add('hidden');
+  isAiPanelOpen = false;
+  if (frame) frame.src = '';
 }
 
 // ============================================================
@@ -342,38 +372,26 @@ function showBanUI(ban) {
   if (!ban) { hideBanUI(); return; }
   document.body.classList.add('is-banned');
   const indicator = $('ban-indicator');
-  if (indicator) {
-    indicator.classList.remove('hidden');
-    indicator.classList.add('show');
-    updateBanTimers(ban);
-  }
+  if (indicator) { indicator.classList.remove('hidden'); indicator.classList.add('show'); updateBanTimers(ban); }
   updateBanRestrictions();
 }
 function hideBanUI() {
   document.body.classList.remove('is-banned');
   const indicator = $('ban-indicator');
-  if (indicator) {
-    indicator.classList.add('hidden');
-    indicator.classList.remove('show');
-  }
+  if (indicator) { indicator.classList.add('hidden'); indicator.classList.remove('show'); }
   updateBanRestrictions();
 }
 function updateBanTimers(ban) {
   if (!ban) return;
   const remaining = getBanRemaining(ban);
-  const indicatorTimer = $('ban-indicator-timer');
-  if (indicatorTimer) indicatorTimer.innerText = remaining;
-  const modalTimer = $('ban-warning-timer');
-  if (modalTimer) modalTimer.innerText = remaining;
+  const it = $('ban-indicator-timer'); if (it) it.innerText = remaining;
+  const mt = $('ban-warning-timer'); if (mt) mt.innerText = remaining;
 }
 function handleBannedClick(target, event) {
   const ban = isUserBanned(currentUser?.username);
   if (ban) {
     const el = event?.currentTarget || event?.target?.closest('.nav-btn') || event?.target?.closest('button');
-    if (el) {
-      el.classList.add('nav-btn-ban-pulse');
-      setTimeout(() => el.classList.remove('nav-btn-ban-pulse'), 400);
-    }
+    if (el) { el.classList.add('nav-btn-ban-pulse'); setTimeout(() => el.classList.remove('nav-btn-ban-pulse'), 400); }
     openBanWarningModal(ban);
     return;
   }
@@ -392,14 +410,7 @@ function openBanWarningModal(ban) {
   $('ban-warning-timer').innerText = getBanRemaining(ban);
   modal.classList.remove('hidden');
 }
-function closeBanWarningModal() {
-  const modal = $('ban-warning-modal');
-  if (modal) modal.classList.add('hidden');
-}
-function handleTikButtonClick() {
-  if (isBanned()) { showToast('🚫 Banlıyken tik alamazsın!', 'error'); return; }
-  openTikModal();
-}
+function closeBanWarningModal() { const m = $('ban-warning-modal'); if (m) m.classList.add('hidden'); }
 function updateBanRestrictions() {
   const banned = isBanned();
   const postInput = $('post-input');
@@ -407,14 +418,10 @@ function updateBanRestrictions() {
     postInput.disabled = banned;
     postInput.placeholder = banned ? '🚫 Banlıyken gönderi paylaşamazsın' : 'Neler oluyor? Dünyayla paylaş...';
   }
-  const postMediaBtn = document.querySelector('[onclick*="post-media-input"]');
-  if (postMediaBtn) postMediaBtn.disabled = banned;
-  const postEmojiBtn = document.querySelector('[onclick*="openEmojiPanel(\'post-input\')"]');
-  if (postEmojiBtn) postEmojiBtn.disabled = banned;
-  const postSubmitBtn = document.querySelector('[onclick="submitPost()"]');
-  if (postSubmitBtn) postSubmitBtn.disabled = banned;
-  const dmInput = $('dm-input-text');
-  if (dmInput) dmInput.disabled = !selectedDmUser;
+  const postMediaBtn = document.querySelector('[onclick*="post-media-input"]'); if (postMediaBtn) postMediaBtn.disabled = banned;
+  const postEmojiBtn = document.querySelector('[onclick*="openEmojiPanel(\'post-input\')"]'); if (postEmojiBtn) postEmojiBtn.disabled = banned;
+  const postSubmitBtn = document.querySelector('[onclick="submitPost()"]'); if (postSubmitBtn) postSubmitBtn.disabled = banned;
+  const dmInput = $('dm-input-text'); if (dmInput) dmInput.disabled = !selectedDmUser;
   const dmEmojiBtn = document.querySelector('[onclick*="openEmojiPanel(\'dm-input-text\')"]');
   if (dmEmojiBtn) { dmEmojiBtn.disabled = banned; dmEmojiBtn.classList.toggle('opacity-30', banned); dmEmojiBtn.classList.toggle('cursor-not-allowed', banned); }
   const dmFileBtn = document.querySelector('[onclick*="dm-file-input"]');
@@ -432,8 +439,7 @@ function startBanCheckInterval() {
       if (document.body.classList.contains('is-banned')) {
         hideBanUI();
         showToast('✅ Banınız kaldırıldı!', 'success');
-        renderFeed();
-        updateUserUI();
+        renderFeed(); updateUserUI();
       }
     }
     const now = Date.now();
@@ -483,8 +489,7 @@ async function modRemoveTik(targetUsername) {
   if (!target) return;
   if (!target.hasTik) { showToast('Bu kullanıcının tiki yok.', 'info'); return; }
   if (!confirm(`@${targetUsername} kullanıcısının tikini kaldırmak istediğine emin misin?`)) return;
-  target.hasTik = false;
-  target.tikRengi = null;
+  target.hasTik = false; target.tikRengi = null;
   usersDb[targetUsername] = target;
   await saveUsersToDB();
   postsDb.forEach(p => { if (p.author.username === targetUsername) { p.author.hasTik = false; p.author.tikRengi = null; } });
@@ -496,8 +501,7 @@ async function modRemoveTik(targetUsername) {
     mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'PRESENCE', user: sanitizeUserObj(target) }));
   }
   showToast(`✅ @${targetUsername} tikini kaldırdın.`, 'mod');
-  renderModPanel();
-  renderUsersLeaderboard();
+  renderModPanel(); renderUsersLeaderboard();
 }
 function openModDeletePostModal(postId) {
   if (!hasModPermission()) { showToast('Yetkiniz yok.', 'error'); return; }
@@ -505,16 +509,7 @@ function openModDeletePostModal(postId) {
   if (!post) return;
   modDeletePostTarget = postId;
   const author = ensureUserExists(post.author.username, post.author);
-  $('mod-delete-post-info').innerHTML = `
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 shrink-0">${renderAvatar(author, "w-10 h-10 text-sm")}</div>
-      <div class="min-w-0">
-        <div class="font-bold text-xs text-white">${escapeHtml(author.fullname)}</div>
-        <div class="text-[10px] text-slate-500">@${author.username}</div>
-      </div>
-    </div>
-    <p class="text-xs text-slate-300 mt-2 line-clamp-2 italic">"${escapeHtml((post.text || '').substring(0, 120))}"</p>
-  `;
+  $('mod-delete-post-info').innerHTML = `<div class="flex items-center gap-3"><div class="w-10 h-10 shrink-0">${renderAvatar(author, "w-10 h-10 text-sm")}</div><div class="min-w-0"><div class="font-bold text-xs text-white">${escapeHtml(author.fullname)}</div><div class="text-[10px] text-slate-500">@${author.username}</div></div></div><p class="text-xs text-slate-300 mt-2 line-clamp-2 italic">"${escapeHtml((post.text || '').substring(0, 120))}"</p>`;
   $('mod-delete-post-reason').value = '';
   $('mod-delete-post-modal').classList.remove('hidden');
 }
@@ -532,9 +527,7 @@ async function confirmModDeletePost() {
   postsDb = postsDb.filter(p => p.id !== modDeletePostTarget);
   await savePostsToDB();
   await incrementPostCount(authorUsername, -1);
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'MOD_DELETE_POST', postId: modDeletePostTarget, reason, by: currentUser.username, authorUsername, postText: postText.substring(0, 80) }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'MOD_DELETE_POST', postId: modDeletePostTarget, reason, by: currentUser.username, authorUsername, postText: postText.substring(0, 80) }));
   closeModDeletePostModal();
   renderFeed(); renderProfileTab(); updateUserUI();
   showToast(`✅ Gönderi silindi ve @${authorUsername} bilgilendirildi.`, 'mod');
@@ -566,18 +559,7 @@ function showLinkWarning(url) {
   const modal = document.createElement('div');
   modal.id = 'link-warning-modal';
   modal.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4';
-  modal.innerHTML = `<div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-    <div class="flex items-center gap-3">
-      <div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0"><i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl"></i></div>
-      <h3 class="text-lg font-bold text-amber-400">Güvenlik Uyarısı</h3>
-    </div>
-    <p class="text-sm text-slate-300">Bu linkin nereden geldiği belirsiz. <strong class="text-white">Sorumluluk platformumuzda değildir</strong>.</p>
-    <div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-xs text-cyan-400 font-mono break-all">${escapeHtml(url)}</p></div>
-    <div class="flex justify-end gap-2 pt-2">
-      <button onclick="document.getElementById('link-warning-modal').remove()" class="px-4 py-2 bg-slate-800 text-slate-200 text-xs font-semibold rounded-xl">Hayır</button>
-      <button id="link-warning-confirm" class="px-4 py-2 bg-amber-500 text-white text-xs font-semibold rounded-xl">Evet, Aç</button>
-    </div>
-  </div>`;
+  modal.innerHTML = `<div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0"><i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl"></i></div><h3 class="text-lg font-bold text-amber-400">Güvenlik Uyarısı</h3></div><p class="text-sm text-slate-300">Bu linkin nereden geldiği belirsiz. <strong class="text-white">Sorumluluk platformumuzda değildir</strong>.</p><div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-xs text-cyan-400 font-mono break-all">${escapeHtml(url)}</p></div><div class="flex justify-end gap-2 pt-2"><button onclick="document.getElementById('link-warning-modal').remove()" class="px-4 py-2 bg-slate-800 text-slate-200 text-xs font-semibold rounded-xl">Hayır</button><button id="link-warning-confirm" class="px-4 py-2 bg-amber-500 text-white text-xs font-semibold rounded-xl">Evet, Aç</button></div></div>`;
   document.body.appendChild(modal);
   modal.querySelector('#link-warning-confirm').addEventListener('click', () => { window.open(url, '_blank', 'noopener,noreferrer'); modal.remove(); });
 }
@@ -728,7 +710,7 @@ function renderRewardSelector() {
 }
 
 // ============================================================
-// DM REQUEST
+// DM İSTEK SİSTEMİ
 // ============================================================
 function canMessageUser(targetUsername) {
   if (targetUsername === currentUser.username) return false;
@@ -882,6 +864,7 @@ function launchMainApp() {
   $('auth-screen').classList.add('hidden');
   $('main-app').classList.remove('hidden');
   console.log('🚀 MSZ MEDYA v4.2!', currentUser.username);
+  loadAnimationSettings();
   updateUserUI();
   updateModUI();
   initNetworkConnection();
@@ -1307,7 +1290,7 @@ async function handleIncomingNetworkData(topic, data) {
       dmRequestsDb.push(req);
       await saveDmRequestsToDB();
       ensureUserExists(req.from, { fullname: req.fromFullname, avatarUrl: req.fromAvatar, color: req.fromColor });
-      addNotification(`@${req.from} sana mesaj isteği gönderdi!`);
+      addNotification(`@${req.from} sana mesaj isteği gönderdi! 💬`);
       openDmRequestModal(req.id);
     }
     return;
@@ -1432,14 +1415,7 @@ function openNotificationModal() {
   if (notifications.length === 0) list.innerHTML = `<div class="text-center text-slate-500 text-sm py-8">Henüz bildirim yok.</div>`;
   else list.innerHTML = notifications.map(n => {
     if (n.isMod) {
-      return `<div class="notif-mod rounded-xl p-3 border space-y-1">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="w-6 h-6 rounded-full notif-icon flex items-center justify-center text-xs"><i class="fa-solid fa-shield-halved"></i></span>
-          <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">MOD Bildirimi</span>
-        </div>
-        <p class="text-xs text-amber-100 font-medium whitespace-pre-line">${escapeHtml(n.text)}</p>
-        <span class="text-[9px] text-amber-500/60 font-mono block">${formatTimeAgo(n.timestamp)}</span>
-      </div>`;
+      return `<div class="notif-mod rounded-xl p-3 border space-y-1"><div class="flex items-center gap-2 mb-1"><span class="w-6 h-6 rounded-full notif-icon flex items-center justify-center text-xs"><i class="fa-solid fa-shield-halved"></i></span><span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">MOD Bildirimi</span></div><p class="text-xs text-amber-100 font-medium whitespace-pre-line">${escapeHtml(n.text)}</p><span class="text-[9px] text-amber-500/60 font-mono block">${formatTimeAgo(n.timestamp)}</span></div>`;
     }
     return `<div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-xs text-slate-200">${escapeHtml(n.text)}</p><span class="text-[9px] text-slate-500 font-mono">${formatTimeAgo(n.timestamp)}</span></div>`;
   }).join('');
@@ -1853,7 +1829,7 @@ function renderDmUserList() {
   dmsDb.forEach(m => { if (m.sender === currentUser.username) activeUsers.add(m.recipient); if (m.recipient === currentUser.username) activeUsers.add(m.sender); });
   dmRequestsDb.forEach(r => { if (r.status === 'accepted') { if (r.from === currentUser.username) activeUsers.add(r.to); if (r.to === currentUser.username) activeUsers.add(r.from); } });
   activeUsers.delete(currentUser.username);
-  if (activeUsers.size === 0) { container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Henüz sohbet yok.</div>`; return; }
+  if (activeUsers.size === 0) { container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Henüz sohbet yok.<br><span class="text-[10px] text-slate-600 mt-1 block">Topluluktan birine istek gönder.</span></div>`; return; }
   const users = [...activeUsers].map(u => ensureUserExists(u)).filter(u => u);
   const sorted = users.sort((a,b) => (dmLastMessageTime[b.username]||0) - (dmLastMessageTime[a.username]||0));
   container.innerHTML = sorted.map(u => {
@@ -2085,13 +2061,18 @@ function openPublicProfileModal(username) {
   ensureUserExists(username);
   renderPublicProfileModal(username);
   $('public-profile-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
-function closePublicProfileModal() { viewingPublicUsername = null; $('public-profile-modal').classList.add('hidden'); }
+function closePublicProfileModal() { 
+  viewingPublicUsername = null; 
+  $('public-profile-modal').classList.add('hidden'); 
+  document.body.style.overflow = '';
+}
 function renderPublicProfileModal(username) {
   const u = ensureUserExists(username);
   if (!u) return;
   const groupEmoji = getGroupEmojiForUser(username);
-  $('pub-profile-avatar').innerHTML = renderAvatar(u, "w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl");
+  $('pub-profile-avatar').innerHTML = renderAvatar(u, "w-24 h-24 sm:w-28 sm:h-28 text-3xl sm:text-4xl");
   $('pub-profile-fullname').innerHTML = groupEmoji + getUserDisplayName(u);
   $('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u);
   $('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
@@ -2103,11 +2084,11 @@ function renderPublicProfileModal(username) {
   $('pub-profile-following-count').innerText = following.length;
   const isFollowing = currentUser.following?.includes(username);
   const followBtn = $('pub-profile-follow-btn');
-  if (followBtn) { followBtn.innerText = isFollowing ? 'Takiptesin' : 'Takip Et'; followBtn.className = isFollowing ? 'px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition touch-target' : 'px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 text-white text-xs font-semibold rounded-xl shadow transition touch-target'; }
+  if (followBtn) { followBtn.innerText = isFollowing ? 'Takiptesin' : 'Takip Et'; followBtn.className = isFollowing ? 'px-4 py-2 bg-slate-800 text-slate-300 text-sm font-semibold rounded-xl border border-slate-700 transition touch-target' : 'px-4 py-2 bg-cyan-500 text-white text-sm font-semibold rounded-xl shadow transition touch-target'; }
   const postsList = $('pub-profile-posts-list');
   if (userPosts.length === 0) {
-    if (totalPostCount > 0) postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl"><i class="fa-solid fa-lock text-slate-600 mb-2 text-lg"></i><br>Bu kullanıcının <strong class="text-cyan-400">${totalPostCount}</strong> gönderisi arşivde.</div>`;
-    else postsList.innerHTML = `<div class="p-4 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">Gönderi yok.</div>`;
+    if (totalPostCount > 0) postsList.innerHTML = `<div class="p-6 text-center text-sm text-slate-500 bg-slate-950 rounded-xl"><i class="fa-solid fa-lock text-slate-600 mb-2 text-xl"></i><br>Bu kullanıcının <strong class="text-cyan-400">${totalPostCount}</strong> gönderisi arşivde.</div>`;
+    else postsList.innerHTML = `<div class="p-6 text-center text-sm text-slate-500 bg-slate-950 rounded-xl">Gönderi yok.</div>`;
   } else postsList.innerHTML = userPosts.map(p => createPostCard(p)).join('');
 }
 function toggleFollowPublicUser() { if (viewingPublicUsername) toggleFollowUser(viewingPublicUsername); }
@@ -2300,6 +2281,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       await saveUsersToDB();
     }
   } catch(err) { console.error('DB hatası:', err); }
+
+  loadAnimationSettings();
 
   const postInput = $('post-input');
   if (postInput) {
