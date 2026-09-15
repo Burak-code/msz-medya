@@ -12,8 +12,8 @@ const OYUNLAR = [
 // ============================================================
 // KONFIGURASYON
 // ============================================================
-const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
-let tikRengi = "red";
+const gecerliKod = "ııOOOııııuuu?1éııOOOııııuuu?1é";
+let tikRengi = "blue";
 const GUVENLIK_CEVABI = "msz-şifremi-unuttum";
 
 const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
