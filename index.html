@@ -13,8 +13,8 @@
 </head>
 <body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
 
-  <!-- TİK ANİMASYONU OVERLAY -->
-  <div id="tik-animation-overlay" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center">
+  <!-- TİK ANİMASYON OVERLAY -->
+  <div id="tik-animation-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] items-center justify-center" style="display:none;">
     <div class="flex items-center justify-center gap-6">
       <span id="tik-anim-lock" class="tik-anim-icon text-7xl opacity-0 scale-0">🔒</span>
       <span id="tik-anim-key" class="tik-anim-icon text-7xl opacity-0 scale-0">🔑</span>
@@ -22,8 +22,8 @@
     </div>
   </div>
 
-  <!-- BAN UYARI MODALI -->
-  <div id="ban-warning-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4" onclick="closeBanWarningModal()">
+  <!-- BAN UYARI MODAL -->
+  <div id="ban-warning-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] items-center justify-center p-4" style="display:none;" onclick="closeBanWarningModal()">
     <div class="bg-rose-950 border-2 border-rose-500 rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4" onclick="event.stopPropagation()">
       <div class="w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto animate-pulse">
         <i class="fa-solid fa-ban text-rose-400 text-4xl"></i>
@@ -48,7 +48,7 @@
   <div id="toast-container" class="fixed top-4 left-4 right-4 z-[70] flex flex-col gap-2 max-w-sm mx-auto pointer-events-none sm:left-auto sm:right-4"></div>
 
   <!-- MSZ AI PANEL -->
-  <div id="ai-panel" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[80] flex flex-col p-2 sm:p-4">
+  <div id="ai-panel" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[80] p-2 sm:p-4 flex-col" style="display:none;">
     <div class="flex items-center justify-between mb-2 px-2">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
@@ -60,13 +60,13 @@
         <i class="fa-solid fa-xmark text-sm"></i>
       </button>
     </div>
-    <div class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-      <iframe id="ai-frame" src="" allow="clipboard-write; autoplay" class="w-full h-full"></iframe>
+    <div class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl" style="min-height: 0;">
+      <iframe id="ai-frame" src="" allow="clipboard-write; autoplay" class="w-full h-full" style="border:0;"></iframe>
     </div>
   </div>
 
-  <!-- HAMBURGER MENÜ PANELİ -->
-  <div id="hamburger-menu" class="hidden fixed inset-0 z-[60] pointer-events-none">
+  <!-- HAMBURGER MENÜ -->
+  <div id="hamburger-menu" class="fixed inset-0 z-[60] pointer-events-none" style="display:none;">
     <div id="hamburger-panel" class="absolute left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col pointer-events-auto">
       <div class="flex items-center justify-between p-4 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -115,8 +115,8 @@
     </div>
   </div>
 
-  <!-- BİLDİRİM MODALI -->
-  <div id="notification-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- BİLDİRİM MODAL -->
+  <div id="notification-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -132,7 +132,7 @@
   </div>
 
   <!-- MODAL -->
-  <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500/10 text-cyan-400 shrink-0">
@@ -147,8 +147,8 @@
     </div>
   </div>
 
-  <!-- MOD: BAN SEBEP MODALI -->
-  <div id="mod-ban-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+  <!-- MOD: BAN MODAL -->
+  <div id="mod-ban-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border-2 border-rose-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-rose-400 flex items-center gap-2">
@@ -160,7 +160,6 @@
       <div>
         <label class="block text-xs font-medium text-slate-400 mb-1">Ban Süresi (saat) <span class="text-rose-400">*</span></label>
         <input type="number" id="mod-ban-hours" min="1" max="50" value="1" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-rose-500">
-        <p class="text-[10px] text-slate-500 mt-1">1 ile 50 saat arası</p>
       </div>
       <div>
         <label class="block text-xs font-medium text-slate-400 mb-1">Ban Sebebi <span class="text-rose-400">*</span></label>
@@ -175,8 +174,8 @@
     </div>
   </div>
 
-  <!-- MOD: GÖNDERİ SİLME MODALI -->
-  <div id="mod-delete-post-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+  <!-- MOD: GÖNDERİ SİL -->
+  <div id="mod-delete-post-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border-2 border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
@@ -187,7 +186,7 @@
       <div id="mod-delete-post-info" class="bg-slate-950 rounded-xl p-3 border border-slate-800"></div>
       <div>
         <label class="block text-xs font-medium text-slate-400 mb-1">Silme Sebebi <span class="text-amber-400">*</span></label>
-        <textarea id="mod-delete-post-reason" rows="3" required placeholder="Neden siliyorsun? (Gönderi sahibine iletilecek)" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+        <textarea id="mod-delete-post-reason" rows="3" required placeholder="Neden siliyorsun?" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 resize-none"></textarea>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" onclick="closeModDeletePostModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
@@ -198,8 +197,8 @@
     </div>
   </div>
 
-  <!-- DM İSTEK MODALI -->
-  <div id="dm-request-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+  <!-- DM İSTEK MODAL -->
+  <div id="dm-request-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -211,8 +210,8 @@
     </div>
   </div>
 
-  <!-- ŞİFRE DEĞİŞTİRME -->
-  <div id="change-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- ŞİFRE DEĞİŞTİR -->
+  <div id="change-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white">Şifre Değiştir</h3>
@@ -240,7 +239,7 @@
   </div>
 
   <!-- ŞİFREMİ UNUTTUM -->
-  <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -252,7 +251,7 @@
         <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
           <p class="text-[11px] text-amber-300 leading-relaxed">
             <i class="fa-solid fa-envelope mr-1"></i>
-            Kayıtlı e-posta adresine şifre sıfırlama linki gönderilecek.
+            Kayıtlı e-posta adresine şifre sıfırlama linki gönderilecek. (Google ile giriş yapanlar için çalışır)
           </p>
         </div>
         <div>
@@ -267,8 +266,8 @@
     </div>
   </div>
 
-  <!-- HESAP SİLME -->
-  <div id="delete-account-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- HESAP SİL -->
+  <div id="delete-account-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-rose-500 flex items-center gap-2">
@@ -276,7 +275,7 @@
         </h3>
         <button onclick="closeDeleteAccountModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
-      <p class="text-xs text-slate-400">Bu işlem geri alınamaz! Tüm verileriniz silinecektir.</p>
+      <p class="text-xs text-slate-400">Bu işlem geri alınamaz!</p>
       <form onsubmit="deleteAccount(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Şifreniz</label>
@@ -296,8 +295,8 @@
     </div>
   </div>
 
-  <!-- FOLLOWERS/FOLLOWING -->
-  <div id="followers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- FOLLOWERS -->
+  <div id="followers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -309,7 +308,8 @@
     </div>
   </div>
 
-  <div id="following-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- FOLLOWING -->
+  <div id="following-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -321,8 +321,8 @@
     </div>
   </div>
 
-  <!-- GRUP OLUŞTURMA -->
-  <div id="create-group-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- GRUP OLUŞTUR -->
+  <div id="create-group-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -374,7 +374,7 @@
   </div>
 
   <!-- GRUP DETAY -->
-  <div id="group-detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="group-detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -408,7 +408,7 @@
   </div>
 
   <!-- TİK ŞARTLARI -->
-  <div id="tik-terms-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="tik-terms-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
@@ -428,7 +428,7 @@
   </div>
 
   <!-- TİK MODAL -->
-  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold text-white">Tik Al</h3>
@@ -441,12 +441,12 @@
   </div>
 
   <!-- TİK GÖSTER -->
-  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
       <img src="tick-p.png" id="tik-goster-img" class="w-24 h-24 mx-auto object-contain">
       <h3 class="text-xl font-bold text-white">Tebrikler!</h3>
       <p class="text-sm text-slate-300">Tik başarıyla alındı!</p>
-      <button onclick="document.getElementById('tik-goster').classList.add('hidden')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl">Kapat</button>
+      <button onclick="closeTikGoster()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl">Kapat</button>
     </div>
   </div>
 
@@ -456,7 +456,7 @@
   </button>
 
   <!-- REPLY BAR -->
-  <div id="reply-preview-bar" class="hidden fixed bottom-20 right-4 z-40 bg-slate-800 border border-cyan-500/50 rounded-xl p-3 max-w-sm shadow-2xl">
+  <div id="reply-preview-bar" class="fixed bottom-20 right-4 z-40 bg-slate-800 border border-cyan-500/50 rounded-xl p-3 max-w-sm shadow-2xl" style="display:none;">
     <div class="flex items-start gap-2">
       <i class="fa-solid fa-reply text-cyan-400 mt-1"></i>
       <div class="flex-1 min-w-0">
@@ -468,7 +468,7 @@
   </div>
 
   <!-- EMOJI PANEL -->
-  <div id="emoji-panel" class="hidden fixed bottom-24 right-4 z-50 bg-slate-900 border border-slate-700 rounded-2xl p-3 shadow-2xl max-w-xs">
+  <div id="emoji-panel" class="fixed bottom-24 right-4 z-50 bg-slate-900 border border-slate-700 rounded-2xl p-3 shadow-2xl max-w-xs" style="display:none;">
     <div class="flex items-center justify-between mb-2">
       <span class="text-xs font-bold text-slate-300">Emoji Seç</span>
       <button onclick="closeEmojiPanel()" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
@@ -522,7 +522,6 @@
         <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-400 hover:to-cyan-400 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition touch-target">Hesap Oluştur</button>
       </form>
 
-      <!-- Google ile Giriş -->
       <div class="relative my-5">
         <div class="absolute inset-0 flex items-center">
           <div class="w-full border-t border-slate-800"></div>
@@ -812,7 +811,7 @@
           </div>
         </div>
 
-        <!-- GAMES TAB -->
+        <!-- GAMES -->
         <div id="tab-content-games" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-2xl p-4">
             <div class="flex items-center gap-3">
@@ -821,7 +820,7 @@
               </div>
               <div>
                 <h2 class="text-base sm:text-lg font-bold text-purple-300">Oyun Merkezi</h2>
-                <p class="text-[11px] text-purple-200/70">Tıkla, oyna, eğlen! Tüm oyunlar sitemizde.</p>
+                <p class="text-[11px] text-purple-200/70">Tıkla, oyna, eğlen!</p>
               </div>
             </div>
           </div>
@@ -834,7 +833,7 @@
           <div id="games-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
 
-        <!-- MOD PANEL -->
+        <!-- MOD -->
         <div id="tab-content-mod" class="hidden space-y-4 sm:space-y-6">
           <div class="bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/40 rounded-2xl p-4">
             <div class="flex items-center gap-3">
@@ -863,7 +862,7 @@
               <i class="fa-solid fa-users-gear"></i> Kullanıcı İşlemleri
             </h3>
             <div class="relative">
-              <input type="text" id="mod-user-search" oninput="filterModUserSearch()" placeholder="Kullanıcı ara (ban at veya tik kaldır)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
+              <input type="text" id="mod-user-search" oninput="filterModUserSearch()" placeholder="Kullanıcı ara..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
               <i class="fa-solid fa-search absolute left-3 top-3 text-xs text-slate-500"></i>
             </div>
             <div id="mod-user-search-results" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
@@ -906,7 +905,7 @@
   </div>
 
   <!-- PUBLIC PROFILE -->
-  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-2 sm:p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl max-h-[95vh] flex flex-col mx-auto">
       <div class="h-36 sm:h-48 bg-gradient-to-br from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
         <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
@@ -943,7 +942,7 @@
   </div>
 
   <!-- EDIT PROFILE -->
-  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-3 sm:p-4" style="display:none;">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 mx-auto">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <h3 class="text-base sm:text-lg font-bold text-white">Profili Düzenle</h3>
@@ -959,7 +958,6 @@
               <button type="button" onclick="document.getElementById('edit-avatar-input').click()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition touch-target">
                 <i class="fa-solid fa-upload mr-1"></i> Fotoğraf Seç
               </button>
-              <p class="text-[10px] text-slate-500">Otomatik sıkıştırılır.</p>
             </div>
           </div>
         </div>
@@ -980,7 +978,7 @@
   </div>
 
   <!-- OYUN MODAL -->
-  <div id="game-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] hidden flex flex-col">
+  <div id="game-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex-col" style="display:none;">
     <div class="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 shrink-0 safe-bottom">
       <div class="flex items-center gap-2 sm:gap-3 min-w-0">
         <div id="game-modal-emoji" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl sm:text-2xl shrink-0">🎮</div>
@@ -1010,7 +1008,7 @@
       <div id="game-error" class="hidden absolute inset-0 flex-col items-center justify-center bg-slate-950 gap-3 p-6 text-center z-20">
         <i class="fa-solid fa-triangle-exclamation text-amber-400 text-4xl"></i>
         <h3 class="text-lg font-bold text-white">Oyun Yüklenemedi</h3>
-        <p class="text-sm text-slate-400 max-w-md">Bu oyun sitenin içinde açılmayı desteklemiyor olabilir. Yeni sekmede açmayı dene.</p>
+        <p class="text-sm text-slate-400 max-w-md">Bu oyun sitenin içinde açılmayı desteklemiyor olabilir.</p>
         <button onclick="openGameInNewTab()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">
           <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Yeni Sekmede Aç
         </button>
