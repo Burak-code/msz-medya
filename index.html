@@ -495,7 +495,7 @@
       <div id="forgot-password-link-container" class="text-right mb-4">
         <button onclick="openForgotPasswordModal()" class="text-xs text-amber-400 hover:text-amber-300 font-medium">Şifremi Unuttum</button>
       </div>
-      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+      <form id="login-form" onsubmit="handleLogin(event); return false;" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
           <input type="text" id="login-username" required placeholder="kullanici_adi" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
@@ -510,7 +510,7 @@
         </div>
         <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition touch-target">Giriş Yap</button>
       </form>
-      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+      <form id="register-form" onsubmit="handleRegister(event); return false;" class="space-y-4 hidden">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
           <input type="text" id="reg-username" required pattern="^[a-zA-Z0-9_]{3,20}$" placeholder="kullanici_adi" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
