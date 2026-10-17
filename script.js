@@ -287,24 +287,132 @@ async function loadAllFromDB() {
 }
 
 // ============================================================
-// RTDB POSTS
+// HİBRİT FIREBASE + MQTT (Kaynak of Truth = Firebase)
 // ============================================================
-async function pushPostToRTDB(post) {
-  try { await set(ref(rtdb, 'posts/' + post.id), post); } catch (e) { console.error('RTDB push:', e); }
+function getChatId(user1, user2) {
+  return [user1, user2].sort().join('_');
 }
-async function deletePostFromRTDB(postId) {
-  try { await remove(ref(rtdb, 'posts/' + postId)); } catch (e) { console.error('RTDB del:', e); }
-}
-async function loadPostsFromRTDB() {
+
+async function saveUserToFirebase(user) {
+  if (!user?.username) return;
   try {
-    const snapshot = await get(ref(rtdb, 'posts'));
-    if (!snapshot.exists()) return [];
-    const data = snapshot.val();
-    const posts = Object.values(data);
-    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return posts;
-  } catch (e) { console.error('RTDB load:', e); return []; }
+    await set(ref(rtdb, 'users/' + user.username), {
+      username: user.username,
+      fullname: user.fullname || user.username,
+      bio: user.bio || '',
+      color: user.color || 'bg-cyan-600',
+      avatarUrl: user.avatarUrl || null,
+      followers: user.followers || [],
+      following: user.following || [],
+      neonColor: user.neonColor || null,
+      hasTik: !!user.hasTik,
+      tikRengi: user.tikRengi || null,
+      postCount: typeof user.postCount === 'number' ? user.postCount : 0,
+      joinedAt: user.joinedAt || new Date().toISOString(),
+      lastSeen: new Date().toISOString()
+    });
+  } catch (e) { console.error('Firebase user save:', e); }
 }
+
+async function loadAllUsersFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'users'));
+    return snap.exists() ? snap.val() : {};
+  } catch (e) { console.error('Firebase users load:', e); return {}; }
+}
+
+async function savePostToFirebase(post) {
+  try { await set(ref(rtdb, 'posts/' + post.id), post); } catch (e) { console.error('Firebase post save:', e); }
+}
+async function deletePostFromFirebase(postId) {
+  try { await remove(ref(rtdb, 'posts/' + postId)); } catch (e) { console.error('Firebase post del:', e); }
+}
+async function loadPostsFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'posts'));
+    if (!snap.exists()) return [];
+    const posts = Object.values(snap.val());
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return posts.slice(0, MAX_POSTS);
+  } catch (e) { console.error('Firebase posts load:', e); return []; }
+}
+
+async function saveCommentToFirebase(comment) {
+  try { await set(ref(rtdb, `comments/${comment.postId}/${comment.id}`), comment); } catch (e) { console.error('Firebase comment save:', e); }
+}
+async function loadAllCommentsFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'comments'));
+    if (!snap.exists()) return [];
+    const all = [];
+    const data = snap.val();
+    for (const postId in data) {
+      for (const cid in data[postId]) all.push(data[postId][cid]);
+    }
+    return all;
+  } catch (e) { return []; }
+}
+
+async function saveDmToFirebase(msg) {
+  try {
+    const chatId = getChatId(msg.sender, msg.recipient);
+    await set(ref(rtdb, `dms/${chatId}/${msg.id}`), msg);
+  } catch (e) { console.error('Firebase DM save:', e); }
+}
+async function loadUserDmsFromFirebase(username) {
+  try {
+    const snap = await get(ref(rtdb, 'dms'));
+    if (!snap.exists()) return [];
+    const all = [];
+    const data = snap.val();
+    for (const chatId in data) {
+      if (chatId.includes(username)) {
+        for (const mid in data[chatId]) all.push(data[chatId][mid]);
+      }
+    }
+    all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return all.slice(0, 300);
+  } catch (e) { return []; }
+}
+
+async function saveGroupToFirebase(group) {
+  try { await set(ref(rtdb, 'groups/' + group.id), group); } catch (e) { console.error('Firebase group save:', e); }
+}
+async function loadGroupsFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'groups'));
+    return snap.exists() ? Object.values(snap.val()) : [];
+  } catch (e) { return []; }
+}
+
+async function saveBanToFirebase(ban) {
+  try { await set(ref(rtdb, 'bans/' + ban.username), ban); } catch (e) { console.error('Firebase ban save:', e); }
+}
+async function removeBanFromFirebase(username) {
+  try { await remove(ref(rtdb, 'bans/' + username)); } catch (e) {}
+}
+async function loadBansFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'bans'));
+    return snap.exists() ? Object.values(snap.val()) : [];
+  } catch (e) { return []; }
+}
+
+async function saveDmRequestToFirebase(req) {
+  try { await set(ref(rtdb, 'dm_requests/' + req.id), req); } catch (e) {}
+}
+async function loadDmRequestsFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'dm_requests'));
+    return snap.exists() ? Object.values(snap.val()) : [];
+  } catch (e) { return []; }
+}
+
+// Eski isimlerle uyumluluk
+async function pushPostToRTDB(post) { return savePostToFirebase(post); }
+async function deletePostFromRTDB(postId) { return deletePostFromFirebase(postId); }
+async function loadPostsFromRTDB() { return loadPostsFromFirebase(); }
+
 function subscribeToRTDBPosts() {
   if (rtdbPostsUnsub) rtdbPostsUnsub();
   const postsRef = ref(rtdb, 'posts');
@@ -333,6 +441,72 @@ function subscribeToRTDBPosts() {
 }
 function unsubscribeFromRTDBPosts() {
   if (rtdbPostsUnsub) { rtdbPostsUnsub(); rtdbPostsUnsub = null; }
+}
+
+/** Uygulama açılınca Firebase'den tüm veriyi yükle (kaynak of truth) */
+async function loadEverythingFromFirebase() {
+  try {
+    logSystem("Firebase'den veriler yükleniyor...");
+    const [users, posts, comments, groups, bans, dmReqs] = await Promise.all([
+      loadAllUsersFromFirebase(),
+      loadPostsFromFirebase(),
+      loadAllCommentsFromFirebase(),
+      loadGroupsFromFirebase(),
+      loadBansFromFirebase(),
+      loadDmRequestsFromFirebase()
+    ]);
+
+    if (users && Object.keys(users).length > 0) {
+      usersDb = { ...usersDb, ...users };
+    }
+    if (posts && posts.length > 0) {
+      const map = new Map();
+      postsDb.forEach(p => map.set(p.id, p));
+      posts.forEach(p => map.set(p.id, p));
+      postsDb = Array.from(map.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, MAX_POSTS);
+    }
+    if (comments && comments.length > 0) {
+      const map = new Map();
+      commentsDb.forEach(c => map.set(c.id, c));
+      comments.forEach(c => map.set(c.id, c));
+      commentsDb = Array.from(map.values());
+    }
+    if (groups && groups.length > 0) {
+      const map = new Map();
+      groupsDb.forEach(g => map.set(g.id, g));
+      groups.forEach(g => map.set(g.id, g));
+      groupsDb = Array.from(map.values());
+    }
+    if (bans && bans.length > 0) {
+      bannedUsers = bans.filter(b => new Date(b.until).getTime() > Date.now());
+    }
+    if (dmReqs && dmReqs.length > 0) {
+      const map = new Map();
+      dmRequestsDb.forEach(r => map.set(r.id, r));
+      dmReqs.forEach(r => map.set(r.id, r));
+      dmRequestsDb = Array.from(map.values());
+    }
+    if (currentUser) {
+      const myDms = await loadUserDmsFromFirebase(currentUser.username);
+      if (myDms.length > 0) {
+        const map = new Map();
+        dmsDb.forEach(m => map.set(m.id, m));
+        myDms.forEach(m => map.set(m.id, m));
+        dmsDb = Array.from(map.values());
+      }
+    }
+
+    await Promise.all([
+      saveUsersToDB(), savePostsToDB(), saveCommentsToDB(),
+      saveGroupsToDB(), saveBannedUsersToDB(), saveDmRequestsToDB(), saveMessagesToDB()
+    ]);
+    logSystem(`Firebase yüklendi → ${Object.keys(usersDb).length} kullanıcı, ${postsDb.length} post, ${dmsDb.length} mesaj`);
+    return true;
+  } catch (e) {
+    console.error('Firebase yükleme hatası:', e);
+    logSystem('Firebase yükleme hatası, IndexedDB kullanılıyor');
+    return false;
+  }
 }
 
 // ============================================================
@@ -574,6 +748,7 @@ async function modBanUser(targetUsername, hours, reason) {
   const ban = { id: 'ban_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6), username: targetUsername, until, reason, by: currentUser.username, bannedAt: new Date().toISOString() };
   bannedUsers.push(ban);
   await saveBannedUsersToDB();
+  await saveBanToFirebase(ban); // Firebase kalıcı
   if (mqttClient?.connected) {
     mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'BAN_USER', ban }));
     const notifMsg = { id: 'notif_' + Date.now(), to: targetUsername, from: 'MOD', text: `Hesabınız ${hours} saat süreyle askıya alındı. Sebep: ${reason}`, type: 'mod_ban', timestamp: new Date().toISOString() };
@@ -587,6 +762,7 @@ async function modUnbanUser(targetUsername) {
   if (!bannedUsers.find(b => b.username === targetUsername)) return;
   bannedUsers = bannedUsers.filter(b => b.username !== targetUsername);
   await saveBannedUsersToDB();
+  await removeBanFromFirebase(targetUsername); // Firebase'den sil
   if (mqttClient?.connected) mqttClient.publish(TOPICS.MOD, JSON.stringify({ type: 'UNBAN_USER', username: targetUsername }));
   showToast(`✅ @${targetUsername} banı kaldırıldı.`, 'success');
   renderModPanel();
@@ -926,97 +1102,147 @@ function getGroupEmojiForUser(username) {
 // AUTH
 // ============================================================
 function switchAuthTab(tab) {
-  const login = $('login-form'), reg = $('register-form');
-  const tabLogin = $('tab-login-btn'), tabReg = $('tab-register-btn');
-  const forgotLink = $('forgot-password-link-container');
-  if (!login || !reg) return;
-  if (tab === 'login') {
-    login.classList.remove('hidden'); reg.classList.add('hidden');
-    if (forgotLink) forgotLink.classList.remove('hidden');
-    tabLogin.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target';
-    tabReg.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target';
-  } else {
-    login.classList.add('hidden'); reg.classList.remove('hidden');
-    if (forgotLink) forgotLink.classList.add('hidden');
-    tabReg.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-indigo-500 text-white shadow touch-target';
-    tabLogin.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target';
-  }
-}
-async function handleRegister(e) {
-  e.preventDefault();
-  const username = $('reg-username').value.trim().toLowerCase();
-  const password = $('reg-password').value;
-  if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı alınmış!'); return; }
   try {
-    const email = username + '@mszmedya.local';
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const newUser = {
-      username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: cred.user.uid,
-      color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
-      followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
-      joinedAt: new Date().toISOString()
-    };
-    usersDb[username] = newUser;
-    await saveUsersToDB();
-    currentUser = newUser;
-    sessionStorage.setItem('sp_social_active_user', username);
-    showToast('Kayıt başarılı!', 'success');
-    launchMainApp();
+    const login = document.getElementById('login-form');
+    const reg = document.getElementById('register-form');
+    const tabLogin = document.getElementById('tab-login-btn');
+    const tabReg = document.getElementById('tab-register-btn');
+    const forgotLink = document.getElementById('forgot-password-link-container');
+    if (!login || !reg) {
+      console.warn('switchAuthTab: form bulunamadı');
+      return;
+    }
+    if (tab === 'login') {
+      login.classList.remove('hidden');
+      reg.classList.add('hidden');
+      if (forgotLink) forgotLink.classList.remove('hidden');
+      if (tabLogin) tabLogin.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target';
+      if (tabReg) tabReg.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target';
+    } else {
+      login.classList.add('hidden');
+      reg.classList.remove('hidden');
+      if (forgotLink) forgotLink.classList.add('hidden');
+      if (tabReg) tabReg.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-indigo-500 text-white shadow touch-target';
+      if (tabLogin) tabLogin.className = 'flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target';
+    }
   } catch (err) {
-    console.error('Kayıt:', err);
-    if (err.code === 'auth/email-already-in-use') showModal('Hata', 'Bu kullanıcı adı zaten alınmış!');
-    else if (err.code === 'auth/weak-password') showModal('Hata', 'Şifre çok zayıf. En az 6 karakter.');
-    else showModal('Hata', 'Kayıt başarısız: ' + (err.message || err.code));
+    console.error('switchAuthTab hata:', err);
   }
 }
-async function handleLogin(e) {
-  e.preventDefault();
-  const username = $('login-username').value.trim().toLowerCase();
-  const password = $('login-password').value;
-  const remember = $('remember-me').checked;
+// Hemen window'a bağla (module yüklenir yüklenmez)
+window.switchAuthTab = switchAuthTab;
+async function handleRegister(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
   try {
-    const email = username + '@mszmedya.local';
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    let user = usersDb[username];
-    if (!user) {
-      user = {
+    const username = ($('reg-username')?.value || '').trim().toLowerCase();
+    const password = $('reg-password')?.value || '';
+    if (!username || !password) { showModal('Hata', 'Kullanıcı adı ve şifre zorunlu!'); return false; }
+    if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı alınmış!'); return false; }
+    try {
+      const email = username + '@mszmedya.local';
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = {
         username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: cred.user.uid,
         color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
         followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
         joinedAt: new Date().toISOString()
       };
-      usersDb[username] = user;
+      usersDb[username] = newUser;
       await saveUsersToDB();
-    } else {
-      user.firebaseUid = cred.user.uid;
-      user.password = password;
-      if (!user.followers) user.followers = [];
-      if (!user.following) user.following = [];
-      if (typeof user.postCount !== 'number') user.postCount = postsDb.filter(p => p.author.username === username).length;
-      usersDb[username] = user;
-      await saveUsersToDB();
+      currentUser = newUser;
+      sessionStorage.setItem('sp_social_active_user', username);
+      showToast('Kayıt başarılı!', 'success');
+      await launchMainApp();
+    } catch (err) {
+      console.error('Kayıt:', err);
+      // Firebase Auth başarısız olsa bile lokal kayıt dene
+      if (err.code === 'auth/email-already-in-use') {
+        showModal('Hata', 'Bu kullanıcı adı zaten alınmış!');
+      } else if (err.code === 'auth/weak-password') {
+        showModal('Hata', 'Şifre çok zayıf. En az 6 karakter.');
+      } else {
+        // Lokal fallback
+        const newUser = {
+          username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: null,
+          color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
+          followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
+          joinedAt: new Date().toISOString()
+        };
+        usersDb[username] = newUser;
+        await saveUsersToDB();
+        currentUser = newUser;
+        sessionStorage.setItem('sp_social_active_user', username);
+        showToast('Kayıt başarılı (lokal)!', 'success');
+        await launchMainApp();
+      }
     }
-    currentUser = user;
-    sessionStorage.setItem('sp_social_active_user', username);
-    if (remember) { localStorage.setItem('sp_social_username', username); localStorage.setItem('sp_social_password', password); }
-    else { localStorage.removeItem('sp_social_username'); localStorage.removeItem('sp_social_password'); }
-    showToast(`Hoş geldin, ${user.fullname}!`, 'info');
-    launchMainApp();
-  } catch (err) {
-    console.error('Giriş:', err);
-    const localUser = usersDb[username];
-    if (localUser && localUser.password === password) {
-      currentUser = localUser;
+  } catch (outerErr) {
+    console.error('handleRegister fatal:', outerErr);
+    showModal('Hata', 'Kayıt sırasında beklenmeyen hata.');
+  }
+  return false;
+}
+async function handleLogin(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  try {
+    const username = ($('login-username')?.value || '').trim().toLowerCase();
+    const password = $('login-password')?.value || '';
+    const remember = $('remember-me')?.checked;
+    if (!username || !password) { showModal('Hata', 'Kullanıcı adı ve şifre gir!'); return false; }
+    try {
+      const email = username + '@mszmedya.local';
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      let user = usersDb[username];
+      if (!user) {
+        user = {
+          username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: cred.user.uid,
+          color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
+          followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
+          joinedAt: new Date().toISOString()
+        };
+        usersDb[username] = user;
+        await saveUsersToDB();
+      } else {
+        user.firebaseUid = cred.user.uid;
+        user.password = password;
+        if (!user.followers) user.followers = [];
+        if (!user.following) user.following = [];
+        if (typeof user.postCount !== 'number') user.postCount = postsDb.filter(p => p.author.username === username).length;
+        usersDb[username] = user;
+        await saveUsersToDB();
+      }
+      currentUser = user;
       sessionStorage.setItem('sp_social_active_user', username);
       if (remember) { localStorage.setItem('sp_social_username', username); localStorage.setItem('sp_social_password', password); }
-      showToast(`Hoş geldin, ${localUser.fullname}!`, 'info');
-      launchMainApp();
-      return;
+      else { localStorage.removeItem('sp_social_username'); localStorage.removeItem('sp_social_password'); }
+      showToast(`Hoş geldin, ${user.fullname}!`, 'info');
+      await launchMainApp();
+    } catch (err) {
+      console.error('Giriş:', err);
+      const localUser = usersDb[username];
+      if (localUser && localUser.password === password) {
+        currentUser = localUser;
+        sessionStorage.setItem('sp_social_active_user', username);
+        if (remember) { localStorage.setItem('sp_social_username', username); localStorage.setItem('sp_social_password', password); }
+        showToast(`Hoş geldin, ${localUser.fullname}!`, 'info');
+        await launchMainApp();
+        return false;
+      }
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        showModal('Giriş Başarısız', 'Kullanıcı adı veya şifre hatalı.');
+      } else {
+        showModal('Giriş Başarısız', err.message || err.code || 'Bilinmeyen hata');
+      }
     }
-    if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') showModal('Giriş Başarısız', 'Kullanıcı adı veya şifre hatalı.');
-    else showModal('Giriş Başarısız', err.message || err.code);
+  } catch (outerErr) {
+    console.error('handleLogin fatal:', outerErr);
+    showModal('Hata', 'Giriş sırasında beklenmeyen hata.');
   }
+  return false;
 }
+// Hemen window'a bağla
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
 async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -1068,31 +1294,51 @@ function logout() {
   showToast('Çıkış yapıldı.', 'info');
 }
 async function launchMainApp() {
-  $('auth-screen').classList.add('hidden');
-  $('main-app').classList.remove('hidden');
-  console.log('🚀 MSZ MEDYA v3.0!', currentUser.username);
-  loadAnimationSettings();
-  updateUserUI();
-  updateModUI();
-  initNetworkConnection();
   try {
-    const rtdbPosts = await loadPostsFromRTDB();
-    rtdbPosts.forEach(rp => { if (!postsDb.some(p => p.id === rp.id)) postsDb.push(rp); });
-    postsDb.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (postsDb.length > MAX_POSTS) postsDb = postsDb.slice(0, MAX_POSTS);
-    await savePostsToDB();
-  } catch (e) {}
-  subscribeToRTDBPosts();
-  renderFeed();
-  renderGames();
-  renderDmUserList();
-  renderUsersLeaderboard();
-  renderGroups();
-  updateNotificationBadge();
-  const ban = isUserBanned(currentUser.username);
-  if (ban) showBanUI(ban);
-  startBanCheckInterval();
-  updateBanRestrictions();
+    const authScreen = $('auth-screen');
+    const mainApp = $('main-app');
+    if (authScreen) authScreen.classList.add('hidden');
+    if (mainApp) mainApp.classList.remove('hidden');
+    console.log('🚀 MSZ MEDYA v3.1 Hibrit!', currentUser?.username);
+    loadAnimationSettings();
+    updateUserUI();
+    updateModUI();
+    try { initNetworkConnection(); } catch (e) { console.error('MQTT init:', e); }
+
+    // Firebase'den tüm veriyi yükle (hata olsa bile devam et)
+    try {
+      await loadEverythingFromFirebase();
+    } catch (e) {
+      console.error('Firebase load hatası (devam ediliyor):', e);
+    }
+
+    // Kullanıcıyı Firebase'e kaydet (hata olsa bile devam et)
+    try {
+      await saveUserToFirebase(currentUser);
+    } catch (e) {
+      console.error('Firebase user save hatası:', e);
+    }
+
+    try { subscribeToRTDBPosts(); } catch (e) {}
+    renderFeed();
+    renderGames();
+    renderDmUserList();
+    renderUsersLeaderboard();
+    renderGroups();
+    updateNotificationBadge();
+    const ban = isUserBanned(currentUser?.username);
+    if (ban) showBanUI(ban);
+    startBanCheckInterval();
+    updateBanRestrictions();
+    try { logSystem('Ana uygulama başlatıldı (MQTT + Firebase hibrit)'); } catch (e) {}
+  } catch (fatal) {
+    console.error('launchMainApp fatal:', fatal);
+    // En azından ekranı göster
+    try {
+      $('auth-screen')?.classList.add('hidden');
+      $('main-app')?.classList.remove('hidden');
+    } catch (e) {}
+  }
 }
 
 // ============================================================
@@ -1308,6 +1554,7 @@ async function createGroup(e) {
   const newGroup = { id: 'group_' + Date.now() + '_' + Math.random().toString(36).substring(2,7), name, description: desc, type, password: password || null, emoji, tag: tag || null, photo: photoData || null, owner: currentUser.username, members: [currentUser.username], joinRequests: [], createdAt: new Date().toISOString() };
   groupsDb.push(newGroup);
   await saveGroupsToDB();
+  await saveGroupToFirebase(newGroup); // Firebase kalıcı
   closeCreateGroupModal();
   renderGroups();
   showToast('✅ Grup oluşturuldu!', 'success');
@@ -1699,10 +1946,11 @@ async function submitPost() {
   if (postsDb.length > MAX_POSTS) postsDb = postsDb.slice(0, MAX_POSTS);
   await savePostsToDB();
   await incrementPostCount(currentUser.username, 1);
-  await pushPostToRTDB(newPost);
+  // Firebase (kalıcı) + MQTT (anlık)
+  await savePostToFirebase(newPost);
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.POSTS, JSON.stringify({ type: 'NEW_POST', post: newPost }));
   renderFeed();
   updateUserUI();
-  if (mqttClient?.connected) mqttClient.publish(TOPICS.POSTS, JSON.stringify({ type: 'NEW_POST', post: newPost }));
   publishPresence();
   input.value = ''; input.style.height = 'auto';
   pendingPostMedia = null; renderPostMediaPreview();
@@ -1729,7 +1977,8 @@ async function submitComment(postId) {
   commentsDb.push(comment);
   await saveCommentsToDB();
   const post = postsDb.find(p => p.id === postId);
-  if (post) { if (!post.comments) post.comments = []; post.comments.push(comment.id); await savePostsToDB(); }
+  if (post) { if (!post.comments) post.comments = []; post.comments.push(comment.id); await savePostsToDB(); await savePostToFirebase(post); }
+  await saveCommentToFirebase(comment);
   input.value = '';
   renderComments(postId); renderFeed();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.COMMENTS, JSON.stringify({ type: 'NEW_COMMENT', comment }));
@@ -1756,7 +2005,7 @@ async function toggleLike(postId) {
   if (idx === -1) post.likes.push(currentUser.username);
   else post.likes.splice(idx, 1);
   await savePostsToDB();
-  try { await update(ref(rtdb, 'posts/' + postId), { likes: post.likes }); } catch(e){}
+  await savePostToFirebase(post); // Firebase kalıcı
   renderFeed();
   if (activeTab === 'profile') renderProfileTab();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.LIKES, JSON.stringify({ type: 'TOGGLE_LIKE', postId, likes: post.likes }));
@@ -1962,6 +2211,8 @@ async function toggleFollowUser(targetUsername) {
   usersDb[targetUsername] = target;
   usersDb[currentUser.username] = currentUser;
   await saveUsersToDB();
+  await saveUserToFirebase(target);
+  await saveUserToFirebase(currentUser);
   if (mqttClient?.connected) mqttClient.publish(TOPICS.FOLLOWS, JSON.stringify({ type: 'FOLLOW_UPDATE', targetUsername, followerUsername: currentUser.username, followers: target.followers, following: currentUser.following }));
   renderUsersLeaderboard(); updateUserUI();
   if (viewingPublicUsername === targetUsername) renderPublicProfileModal(targetUsername);
@@ -2053,6 +2304,7 @@ function sendFileAttachment(event) {
       const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text, timestamp: new Date().toISOString(), replyTo: replyToMessage, attachment: { data: finalData, type: file.type, name: file.name, size: file.size } };
       dmsDb.push(msg);
       saveMessagesToDB();
+      saveDmToFirebase(msg); // Firebase kalıcı
       dmLastMessageTime[selectedDmUser] = Date.now();
       if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
       cancelReply(); renderChatMessages();
@@ -2117,6 +2369,7 @@ function stopAndSendMicRecording() {
       const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text: '🎤 Sesli mesaj', timestamp: new Date().toISOString(), replyTo: replyToMessage, attachment: { data: e.target.result, type: 'audio/webm', name: 'sesli.webm', size: blob.size } };
       dmsDb.push(msg);
       saveMessagesToDB();
+      saveDmToFirebase(msg); // Firebase kalıcı
       dmLastMessageTime[selectedDmUser] = Date.now();
       if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
       cancelReply(); renderChatMessages();
@@ -2138,6 +2391,7 @@ async function sendDirectMessage(e) {
   const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text, timestamp: new Date().toISOString(), replyTo: replyToMessage };
   dmsDb.push(msg);
   await saveMessagesToDB();
+  await saveDmToFirebase(msg); // Firebase kalıcı
   dmLastMessageTime[selectedDmUser] = Date.now();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
   input.value = '';
@@ -2304,6 +2558,7 @@ async function saveProfileChanges(e) {
   if (tempAvatarBase64) currentUser.avatarUrl = tempAvatarBase64;
   usersDb[currentUser.username] = currentUser;
   await saveUsersToDB();
+  await saveUserToFirebase(currentUser); // Firebase kalıcı
   postsDb.forEach(p => { if (p.author.username === currentUser.username) { p.author.fullname = newFullname; p.author.avatarUrl = currentUser.avatarUrl; } });
   await savePostsToDB();
   commentsDb.forEach(c => { if (c.author.username === currentUser.username) { c.author.fullname = newFullname; c.author.avatarUrl = currentUser.avatarUrl; } });
@@ -2335,6 +2590,7 @@ async function tikKontrolEt() {
     currentUser.tikRengi = tikRengi;
     usersDb[currentUser.username] = currentUser;
     await saveUsersToDB();
+    await saveUserToFirebase(currentUser); // Firebase kalıcı
     postsDb.forEach(p => { if (p.author.username === currentUser.username) { p.author.hasTik = true; p.author.tikRengi = tikRengi; } });
     await savePostsToDB();
     commentsDb.forEach(c => { if (c.author.username === currentUser.username) { c.author.hasTik = true; c.author.tikRengi = tikRengi; } });
@@ -2491,6 +2747,18 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(err) { console.error('DB hatası:', err); }
 
   loadAnimationSettings();
+
+  // Auth tab butonları - yedek event listener (onclick çalışmazsa)
+  const tabLoginBtn = document.getElementById('tab-login-btn');
+  const tabRegBtn = document.getElementById('tab-register-btn');
+  if (tabLoginBtn) tabLoginBtn.addEventListener('click', (e) => { e.preventDefault(); switchAuthTab('login'); });
+  if (tabRegBtn) tabRegBtn.addEventListener('click', (e) => { e.preventDefault(); switchAuthTab('register'); });
+
+  // Login / Register form yedek
+  const loginForm = document.getElementById('login-form');
+  const regForm = document.getElementById('register-form');
+  if (loginForm) loginForm.addEventListener('submit', (e) => { e.preventDefault(); handleLogin(e); });
+  if (regForm) regForm.addEventListener('submit', (e) => { e.preventDefault(); handleRegister(e); });
 
   const postInput = $('post-input');
   if (postInput) {
