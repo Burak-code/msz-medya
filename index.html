@@ -3,1017 +3,673 @@
 <head>
   <link rel="icon" type="image/png" href="favicon.png" sizes="32x32">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>MSZ MEDYA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    #ai-panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
+    #ai-panel.dragging { transition: none !important; }
+    .anim-fade-up { animation: fadeUp 0.4s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    .limit-bar-fill { transition: width 0.3s ease, background-color 0.3s ease; }
+    .gtab-active { background:#1d4ed8 !important; color:#fff !important; }
+    .mention-link { color:#60a5fa; font-weight:600; cursor:pointer; }
+    .mention-link:hover { text-decoration:underline; }
+    /* Mobilde body scroll kilidi */
+    body.modal-open { overflow: hidden; }
+  </style>
 </head>
-<body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
-
-  <!-- TİK ANİMASYON OVERLAY -->
-  <div id="tik-animation-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] items-center justify-center" style="display:none;">
-    <div class="flex items-center justify-center gap-6">
-      <span id="tik-anim-lock" class="tik-anim-icon text-7xl opacity-0 scale-0">🔒</span>
-      <span id="tik-anim-key" class="tik-anim-icon text-7xl opacity-0 scale-0">🔑</span>
-      <span id="tik-anim-unlock" class="tik-anim-icon text-7xl opacity-0 scale-0">🔓</span>
-    </div>
-  </div>
-
-  <!-- BAN UYARI MODAL -->
-  <div id="ban-warning-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] items-center justify-center p-4" style="display:none;" onclick="closeBanWarningModal()">
-    <div class="bg-rose-950 border-2 border-rose-500 rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4" onclick="event.stopPropagation()">
-      <div class="w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto animate-pulse">
-        <i class="fa-solid fa-ban text-rose-400 text-4xl"></i>
-      </div>
-      <h2 class="text-2xl font-extrabold text-rose-200 tracking-tight">BANLISIN!</h2>
-      <p class="text-sm text-rose-300/80" id="ban-warning-reason">Sebep: -</p>
-      <div class="bg-rose-900/50 rounded-2xl p-4 border border-rose-500/30">
-        <p class="text-[10px] text-rose-400 uppercase tracking-wider font-bold mb-1">Kalan Süre</p>
-        <p class="text-2xl font-extrabold text-rose-100 font-mono" id="ban-warning-timer">-</p>
-      </div>
-      <p class="text-[11px] text-rose-300/60 leading-relaxed">
-        <i class="fa-solid fa-circle-info mr-1"></i>
-        Banlıyken gönderi paylaşamaz, mesaj gönderemez, takip edemez veya tepki veremezsin.
-      </p>
-      <button onclick="closeBanWarningModal()" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition touch-target">
-        Anladım
-      </button>
-    </div>
-  </div>
+<body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-blue-500 selection:text-white no-animations overflow-x-hidden">
 
   <!-- TOAST -->
-  <div id="toast-container" class="fixed top-4 left-4 right-4 z-[70] flex flex-col gap-2 max-w-sm mx-auto pointer-events-none sm:left-auto sm:right-4"></div>
+  <div id="toast-container" class="fixed top-3 right-3 left-3 sm:left-auto z-[120] flex flex-col gap-2 sm:max-w-sm pointer-events-none"></div>
 
-  <!-- MSZ AI PANEL -->
-  <div id="ai-panel" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[80] p-2 sm:p-4 flex-col" style="display:none;">
-    <div class="flex items-center justify-between mb-2 px-2">
+  <!-- AI PANEL -->
+  <div id="ai-panel" class="fixed bottom-3 right-2 left-2 sm:left-auto sm:right-4 w-auto sm:w-[350px] h-[70vh] sm:h-[500px] max-h-[80vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex-col hidden z-[80] overflow-hidden ai-panel">
+    <div id="ai-header" class="cursor-grab active:cursor-grabbing bg-slate-800 border-b border-slate-700 p-3 flex items-center justify-between shrink-0 select-none">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center">
-          <i class="fa-solid fa-robot text-white text-sm"></i>
-        </div>
-        <span class="font-bold text-sm text-white">MSZ AI</span>
+        <div class="w-6 h-6 rounded-md bg-purple-600 flex items-center justify-center"><i class="fa-solid fa-robot text-white text-xs"></i></div>
+        <span class="font-bold text-sm text-white pointer-events-none">MSZ AI</span>
       </div>
-      <button onclick="closeAiPanel()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-target">
-        <i class="fa-solid fa-xmark text-sm"></i>
-      </button>
+      <button onclick="closeAiPanel()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl" style="min-height: 0;">
-      <iframe id="ai-frame" src="" allow="clipboard-write; autoplay" class="w-full h-full" style="border:0;"></iframe>
+    <div class="flex-1 relative bg-slate-950 flex flex-col min-h-0">
+      <iframe id="ai-frame" src="https://burak-code.github.io/msz_ai/" class="w-full h-full border-0"></iframe>
+    </div>
+    <div class="bg-slate-900 border-t border-slate-700 p-3 shrink-0 flex flex-col gap-1.5">
+      <div class="flex justify-between items-center text-[10px] font-semibold gap-2">
+        <span class="text-slate-400 truncate" id="ai-limit-text">Limit: Hesaplanıyor...</span>
+        <span class="text-slate-500 font-mono text-right" id="ai-limit-timer"></span>
+      </div>
+      <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+        <div id="ai-limit-bar" class="limit-bar-fill h-full bg-emerald-500 w-full rounded-full"></div>
+      </div>
     </div>
   </div>
 
-  <!-- HAMBURGER MENÜ -->
-  <div id="hamburger-menu" class="fixed inset-0 z-[60] pointer-events-none" style="display:none;">
-    <div id="hamburger-panel" class="absolute left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col pointer-events-auto">
+  <!-- BAN UYARI -->
+  <div id="ban-warning-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[110] items-center justify-center p-4 hidden" onclick="closeBanWarningModal()">
+    <div class="bg-slate-900 border border-red-500/40 rounded-2xl max-w-sm w-full p-6 sm:p-8 shadow-2xl text-center space-y-4" onclick="event.stopPropagation()">
+      <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
+        <i class="fa-solid fa-ban text-red-400 text-2xl"></i>
+      </div>
+      <h2 class="text-xl font-bold text-white">Hesabınız Askıya Alındı</h2>
+      <p class="text-sm text-slate-400" id="ban-warning-reason">Sebep: -</p>
+      <div class="bg-slate-950 rounded-xl p-4 border border-slate-800">
+        <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">Kalan Süre</p>
+        <p class="text-xl font-bold text-white font-mono" id="ban-warning-timer">-</p>
+      </div>
+      <button onclick="closeBanWarningModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition">Anladım</button>
+    </div>
+  </div>
+
+  <!-- HAMBURGER -->
+  <div id="hamburger-menu" class="fixed inset-0 z-[60] pointer-events-none hidden">
+    <div id="hamburger-panel" class="absolute left-0 top-0 h-full w-[85vw] max-w-72 bg-slate-900 border-r border-slate-800 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col pointer-events-auto safe-bottom">
       <div class="flex items-center justify-between p-4 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md overflow-hidden shrink-0">
-            <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
-          </div>
-          <span class="font-bold text-sm text-white">MSZ MEDYA</span>
+          <img src="logo.png" alt="MSZ MEDYA" class="h-8 w-auto object-contain">
+          <span class="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.1</span>
         </div>
-        <button onclick="closeHamburgerMenu()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target">
+        <button onclick="closeHamburgerMenu()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition">
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
-      <nav class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
-        <button onclick="handleBannedClick('feed', event)" id="nav-feed" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 bg-slate-800 text-cyan-400 border border-slate-700/50 touch-target">
-          <i class="fa-solid fa-house text-base w-5 text-center"></i><span>Akış</span>
-        </button>
-        <button onclick="handleBannedClick('messages', event)" id="nav-messages" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-white transition relative touch-target">
-          <i class="fa-solid fa-paper-plane text-base w-5 text-center"></i><span>Mesajlar</span>
-          <span id="unread-dm-badge" class="hidden ml-auto min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span>
-        </button>
-        <button onclick="handleBannedClick('groups', event)" id="nav-groups" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target">
-          <i class="fa-solid fa-users text-emerald-400 text-base w-5 text-center"></i><span>Gruplar</span>
-        </button>
-        <button onclick="handleBannedClick('users', event)" id="nav-users" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target">
-          <i class="fa-solid fa-trophy text-amber-400 text-base w-5 text-center"></i><span>Topluluk</span>
-        </button>
-        <button onclick="handleBannedClick('games', event)" id="nav-games" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target">
-          <i class="fa-solid fa-gamepad text-purple-400 text-base w-5 text-center"></i><span>Oyunlar</span>
-        </button>
-        <button onclick="toggleAiPanel(); closeHamburgerMenu();" class="ai-nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 transition touch-target">
-          <i class="fa-solid fa-robot text-base w-5 text-center"></i><span>MSZ AI</span>
-        </button>
-        <button onclick="handleBannedClick('mod', event)" id="nav-mod" class="nav-btn hidden w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition touch-target border border-rose-500/30">
-          <i class="fa-solid fa-shield-halved text-base w-5 text-center"></i><span>MOD</span>
-        </button>
-        <button onclick="handleBannedClick('profile', event)" id="nav-profile" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-white transition touch-target">
-          <i class="fa-solid fa-user text-base w-5 text-center"></i><span>Profilim</span>
-        </button>
+      <nav class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+        <button onclick="handleBannedClick('feed', event); closeHamburgerMenu();" id="nav-feed" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 bg-blue-500/10 text-blue-400 transition"><i class="fa-solid fa-house w-5 text-center"></i><span>Akış</span></button>
+        <button onclick="handleBannedClick('messages', event); closeHamburgerMenu();" id="nav-messages" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition relative"><i class="fa-solid fa-paper-plane w-5 text-center"></i><span>Mesajlar</span><span id="unread-dm-badge" class="hidden ml-auto bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">0</span></button>
+        <button onclick="handleBannedClick('groups', event); closeHamburgerMenu();" id="nav-groups" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-users w-5 text-center"></i><span>Gruplar</span></button>
+        <button onclick="handleBannedClick('users', event); closeHamburgerMenu();" id="nav-users" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-trophy w-5 text-center"></i><span>Topluluk</span></button>
+        <button onclick="handleBannedClick('games', event); closeHamburgerMenu();" id="nav-games" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-gamepad w-5 text-center"></i><span>Oyunlar</span></button>
+        <button onclick="toggleAiPanel(); closeHamburgerMenu();" class="w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-robot w-5 text-center"></i><span>MSZ AI</span></button>
+        <button onclick="handleBannedClick('mod', event); closeHamburgerMenu();" id="nav-mod" class="nav-btn hidden w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition border border-red-500/30"><i class="fa-solid fa-shield-halved w-5 text-center"></i><span>MOD</span></button>
+        <button onclick="handleBannedClick('profile', event); closeHamburgerMenu();" id="nav-profile" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-user w-5 text-center"></i><span>Profilim</span></button>
       </nav>
       <div class="p-3 border-t border-slate-800 space-y-1">
-        <button onclick="openChangePasswordModal()" class="w-full px-4 py-2.5 text-left text-xs text-slate-300 hover:bg-slate-800 rounded-xl transition flex items-center gap-2 touch-target"><i class="fa-solid fa-key text-cyan-400"></i> Şifre Değiştir</button>
-        <button onclick="openForgotPasswordModal()" class="w-full px-4 py-2.5 text-left text-xs text-amber-400 hover:bg-amber-500/10 rounded-xl transition flex items-center gap-2 touch-target"><i class="fa-solid fa-question-circle"></i> Şifremi Unuttum</button>
-        <button onclick="openDeleteAccountModal()" class="w-full px-4 py-2.5 text-left text-xs text-rose-400 hover:bg-rose-500/10 rounded-xl transition flex items-center gap-2 touch-target"><i class="fa-solid fa-trash-can"></i> Hesabı Sil</button>
-        <button onclick="logout()" class="w-full px-4 py-2.5 text-left text-xs text-slate-300 hover:bg-slate-800 rounded-xl transition flex items-center gap-2 touch-target"><i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap</button>
+        <button onclick="openChangePasswordModal()" class="w-full px-4 py-2.5 text-left text-xs text-slate-400 hover:bg-slate-800 rounded-xl transition flex items-center gap-2"><i class="fa-solid fa-key w-4"></i> Şifre Değiştir</button>
+        <button onclick="openDeleteAccountModal()" class="w-full px-4 py-2.5 text-left text-xs text-red-400 hover:bg-red-500/10 rounded-xl transition flex items-center gap-2"><i class="fa-solid fa-trash-can w-4"></i> Hesabı Sil</button>
+        <button onclick="logout()" class="w-full px-4 py-2.5 text-left text-xs text-slate-400 hover:bg-slate-800 rounded-xl transition flex items-center gap-2"><i class="fa-solid fa-right-from-bracket w-4"></i> Çıkış Yap</button>
       </div>
     </div>
   </div>
 
-  <!-- BİLDİRİM MODAL -->
-  <div id="notification-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-regular fa-bell text-amber-400"></i> <span>Bildirimler</span>
-        </h3>
-        <button onclick="closeNotificationModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div id="notification-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
-        <div class="text-center text-slate-500 text-sm py-8">Henüz bildirim yok.</div>
-      </div>
-      <button onclick="clearAllNotifications()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition touch-target">Tümünü Temizle</button>
-    </div>
-  </div>
+  <!-- ===================== MODALLAR ===================== -->
 
-  <!-- MODAL -->
-  <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-cyan-500/10 text-cyan-400 shrink-0">
-          <i class="fa-solid fa-circle-info text-lg"></i>
+  <div id="notification-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeNotificationModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
+        <h3 class="font-bold text-sm text-white">Bildirimler</h3>
+        <div class="flex items-center gap-2">
+          <button onclick="clearAllNotifications()" class="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800">Temizle</button>
+          <button onclick="closeNotificationModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
         </div>
-        <h3 id="modal-title" class="text-lg font-bold text-white">Bildirim</h3>
       </div>
-      <p id="modal-body" class="text-slate-300 text-sm leading-relaxed"></p>
-      <div class="flex justify-end gap-3 pt-2">
-        <button onclick="closeModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition touch-target">Tamam</button>
-      </div>
+      <div id="notification-list" class="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar"></div>
     </div>
   </div>
 
-  <!-- MOD: BAN MODAL -->
-  <div id="mod-ban-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border-2 border-rose-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-rose-400 flex items-center gap-2">
-          <i class="fa-solid fa-gavel"></i> Kullanıcıyı Banla
-        </h3>
-        <button onclick="closeModBanModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div id="mod-ban-target-info" class="bg-slate-950 rounded-xl p-3 border border-slate-800"></div>
-      <div>
-        <label class="block text-xs font-medium text-slate-400 mb-1">Ban Süresi (saat) <span class="text-rose-400">*</span></label>
-        <input type="number" id="mod-ban-hours" min="1" max="50" value="1" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-rose-500">
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-400 mb-1">Ban Sebebi <span class="text-rose-400">*</span></label>
-        <textarea id="mod-ban-reason" rows="3" required placeholder="Ban sebebini yaz..." class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-rose-500 resize-none"></textarea>
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" onclick="closeModBanModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-        <button type="button" onclick="confirmModBan()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow touch-target">
-          <i class="fa-solid fa-gavel mr-1"></i> Banla
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MOD: GÖNDERİ SİL -->
-  <div id="mod-delete-post-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border-2 border-amber-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation"></i> Gönderiyi Sil
-        </h3>
-        <button onclick="closeModDeletePostModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div id="mod-delete-post-info" class="bg-slate-950 rounded-xl p-3 border border-slate-800"></div>
-      <div>
-        <label class="block text-xs font-medium text-slate-400 mb-1">Silme Sebebi <span class="text-amber-400">*</span></label>
-        <textarea id="mod-delete-post-reason" rows="3" required placeholder="Neden siliyorsun?" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 resize-none"></textarea>
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" onclick="closeModDeletePostModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-        <button type="button" onclick="confirmModDeletePost()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-xl shadow touch-target">
-          <i class="fa-solid fa-trash-can mr-1"></i> Sil ve Bildir
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- DM İSTEK MODAL -->
-  <div id="dm-request-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-paper-plane text-cyan-400"></i> Mesaj İsteği
-        </h3>
-        <button onclick="closeDmRequestModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
+  <div id="dm-request-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeDmRequestModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3" onclick="event.stopPropagation()">
+      <h3 class="font-bold text-sm text-white">Mesaj İsteği</h3>
       <div id="dm-request-modal-body" class="space-y-3"></div>
     </div>
   </div>
 
-  <!-- ŞİFRE DEĞİŞTİR -->
-  <div id="change-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white">Şifre Değiştir</h3>
-        <button onclick="closeChangePasswordModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+  <div id="followers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeFollowersModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
+        <h3 class="font-bold text-sm text-white" id="followers-modal-title">Takipçiler</h3>
+        <button onclick="closeFollowersModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>
-      <form onsubmit="changePassword(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Mevcut Şifre</label>
-          <input type="password" id="current-password" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+      <div id="followers-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
+    </div>
+  </div>
+
+  <div id="following-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeFollowingModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
+        <h3 class="font-bold text-sm text-white" id="following-modal-title">Takip Edilenler</h3>
+        <button onclick="closeFollowingModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div id="following-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
+    </div>
+  </div>
+
+  <div id="create-group-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeCreateGroupModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-xl custom-scrollbar" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm text-white">Grup Oluştur</h3>
+        <button onclick="closeCreateGroupModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <form onsubmit="createGroup(event)" class="space-y-3">
+        <input id="group-name" required placeholder="Grup adı" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <textarea id="group-desc" required placeholder="Açıklama" rows="2" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"></textarea>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="group-emoji" placeholder="Emoji (📁)" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+          <input id="group-tag" placeholder="Etiket (@tag)" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Yeni Şifre</label>
-          <input type="password" id="new-password" required minlength="6" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Yeni Şifre (Tekrar)</label>
-          <input type="password" id="new-password-confirm" required minlength="6" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Güncelle</button>
-        </div>
+        <select id="group-type" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-blue-500 focus:outline-none">
+          <option value="public">Herkese Açık</option>
+          <option value="request">İstek Gönder</option>
+          <option value="followers">Sadece Takipçiler</option>
+        </select>
+        <input id="group-password" placeholder="Şifre (opsiyonel)" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <input id="group-photo" type="file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-slate-800 file:text-white">
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Oluştur</button>
       </form>
     </div>
   </div>
 
-  <!-- ŞİFREMİ UNUTTUM -->
-  <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-key text-amber-400"></i> Şifremi Unuttum
-        </h3>
-        <button onclick="closeForgotPasswordModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <form onsubmit="sendPasswordReset(event)" class="space-y-4">
-        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
-          <p class="text-[11px] text-amber-300 leading-relaxed">
-            <i class="fa-solid fa-envelope mr-1"></i>
-            Kayıtlı e-posta adresine şifre sıfırlama linki gönderilecek. (Google ile giriş yapanlar için çalışır)
-          </p>
+  <div id="group-detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-2 sm:p-3 hidden" onclick="closeGroupDetailModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-xl overflow-hidden" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="group-detail-photo" class="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center text-2xl overflow-hidden shrink-0">📁</div>
+          <div class="min-w-0">
+            <h3 id="group-detail-name" class="font-bold text-sm text-white truncate">Grup</h3>
+            <p id="group-detail-owner" class="text-[10px] text-slate-500 truncate">Kurucu: @-</p>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">E-posta Adresin</label>
-          <input type="email" id="forgot-email" required placeholder="ornek@gmail.com" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
+        <button onclick="closeGroupDetailModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div class="flex border-b border-slate-800 shrink-0">
+        <button onclick="switchGroupTab('chat')" id="gtab-chat-btn" class="flex-1 py-2.5 text-xs font-semibold text-slate-400 gtab-active">💬 Sohbet</button>
+        <button onclick="switchGroupTab('info')" id="gtab-info-btn" class="flex-1 py-2.5 text-xs font-semibold text-slate-400">ℹ️ Bilgi & Üyeler</button>
+      </div>
+      <div id="group-tab-chat" class="flex-1 flex flex-col min-h-0">
+        <div id="group-chat-messages" class="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar bg-slate-950/50" style="min-height:220px;max-height:48vh;"></div>
+        <div id="group-chat-input-bar" class="p-2 border-t border-slate-800 shrink-0">
+          <div class="flex items-center gap-2">
+            <input id="group-chat-input" type="text" placeholder="Mesaj yaz... (@etiket)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500">
+            <button onclick="sendGroupChatMessage()" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+          <p class="text-[9px] text-slate-500 mt-1 px-1" id="group-chat-hint">Sadece grup üyeleri yazabilir.</p>
         </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeForgotPasswordModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-          <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Mail Gönder</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- HESAP SİL -->
-  <div id="delete-account-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-rose-500 flex items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation"></i> Hesabı Sil
-        </h3>
-        <button onclick="closeDeleteAccountModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
-      <p class="text-xs text-slate-400">Bu işlem geri alınamaz!</p>
-      <form onsubmit="deleteAccount(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Şifreniz</label>
-          <input type="password" id="delete-password" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-rose-500">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Onaylamak için yazın: <span class="text-rose-400 font-bold">hesabımı sil</span></label>
-          <input type="text" id="delete-confirm-text" required placeholder="hesabımı sil" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-rose-500">
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeDeleteAccountModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-          <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow touch-target">
-            <i class="fa-solid fa-trash-can mr-1"></i> Sil
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- FOLLOWERS -->
-  <div id="followers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-users text-indigo-400"></i> <span id="followers-modal-title">Takipçiler</span>
-        </h3>
-        <button onclick="closeFollowersModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div id="followers-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div>
-    </div>
-  </div>
-
-  <!-- FOLLOWING -->
-  <div id="following-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-user-plus text-cyan-400"></i> <span id="following-modal-title">Takip Edilenler</span>
-        </h3>
-        <button onclick="closeFollowingModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div id="following-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div>
-    </div>
-  </div>
-
-  <!-- GRUP OLUŞTUR -->
-  <div id="create-group-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-users text-cyan-400"></i> Grup Oluştur
-        </h3>
-        <button onclick="closeCreateGroupModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div class="flex-1 overflow-y-auto custom-scrollbar">
-        <form onsubmit="createGroup(event)" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Grup Adı *</label>
-            <input type="text" id="group-name" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Açıklama *</label>
-            <textarea id="group-desc" rows="2" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Katılım Tipi *</label>
-            <select id="group-type" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-              <option value="public">Herkese Açık</option>
-              <option value="request">İstek Gönder</option>
-              <option value="followers">Sadece Takipçiler</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Grup Şifresi</label>
-            <input type="text" id="group-password" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Grup Emojisi</label>
-            <input type="text" id="group-emoji" placeholder="🎮" maxlength="2" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Tag</label>
-            <input type="text" id="group-tag" placeholder="#grup" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Grup Fotoğrafı</label>
-            <input type="file" id="group-photo" accept="image/*" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white file:text-xs">
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" onclick="closeCreateGroupModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-            <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Oluştur</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- GRUP DETAY -->
-  <div id="group-detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <span id="group-detail-emoji">🎮</span>
-          <span id="group-detail-name">Grup Adı</span>
-        </h3>
-        <button onclick="closeGroupDetailModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
-        <div class="flex items-center gap-3">
-          <div id="group-detail-photo" class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-3xl overflow-hidden">📁</div>
-          <div>
-            <p id="group-detail-desc" class="text-xs text-slate-300">Açıklama</p>
-            <p id="group-detail-owner" class="text-[10px] text-slate-500">Kurucu: @...</p>
-            <p id="group-detail-type" class="text-[10px] text-cyan-400">Herkese Açık</p>
-          </div>
+      <div id="group-tab-info" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar hidden">
+        <p id="group-detail-desc" class="text-xs text-slate-300"></p>
+        <div class="flex items-center gap-2 flex-wrap text-[10px]">
+          <span id="group-detail-type" class="px-2 py-1 rounded bg-slate-800 text-slate-300">Herkese Açık</span>
+          <span class="px-2 py-1 rounded bg-slate-800 text-slate-300"><span id="group-detail-member-count">0</span> üye</span>
         </div>
         <div id="group-detail-password-container" class="hidden">
-          <label class="block text-xs font-medium text-slate-400 mb-1">Grup Şifresi</label>
-          <input type="text" id="group-detail-password-input" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+          <input id="group-detail-password-input" placeholder="Grup şifresi" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
         </div>
-        <button id="group-detail-join-btn" onclick="joinGroup()" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl transition touch-target">Gruba Katıl</button>
-        <button id="group-detail-leave-btn" onclick="leaveGroup()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold rounded-xl transition touch-target hidden">Gruptan Ayrıl</button>
-        <button id="group-detail-delete-btn" onclick="deleteGroup()" class="w-full py-2.5 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded-xl transition touch-target hidden">Grubu Sil</button>
-        <div class="pt-2 border-t border-slate-800">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Katılımcılar (<span id="group-detail-member-count">0</span>)</h4>
-          <div id="group-detail-members" class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar"></div>
+        <div class="flex gap-2 flex-wrap">
+          <button id="group-detail-join-btn" onclick="joinGroup()" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl">Katıl</button>
+          <button id="group-detail-leave-btn" onclick="leaveGroup()" class="hidden px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl">Ayrıl</button>
+          <button id="group-detail-delete-btn" onclick="deleteGroup()" class="hidden px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl">Grubu Sil</button>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-white mb-2">Üyeler</h4>
+          <div id="group-detail-members" class="space-y-1"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- TİK ŞARTLARI -->
-  <div id="tik-terms-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4 max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
-          <i class="fa-solid fa-certificate"></i> Tik Alma Şartları
-        </h3>
-        <button onclick="closeTikTermsModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[100] items-start sm:items-center justify-center p-0 sm:p-3 overflow-y-auto hidden" onclick="closePublicProfileModal()">
+    <div class="bg-slate-900 sm:border sm:border-slate-800 sm:rounded-2xl max-w-2xl w-full min-h-full sm:min-h-0 sm:max-h-[90vh] overflow-y-auto shadow-xl custom-scrollbar" onclick="event.stopPropagation()">
+      <div class="sticky top-0 z-10 flex justify-end p-3 bg-slate-900/95 backdrop-blur border-b border-slate-800 sm:border-0">
+        <button onclick="closePublicProfileModal()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
-      <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 text-sm text-slate-300">
-        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800"><p><span class="text-amber-400 font-bold">1.</span> Instagram adresini <span class="text-cyan-400 font-bold">@burak_msz</span>'ye vermek zorundasın.</p></div>
-        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800"><p><span class="text-amber-400 font-bold">2.</span> Tiki kötüye kullanmayacağına bakmam gerek.</p></div>
-        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800"><p><span class="text-amber-400 font-bold">3.</span> Kırmızı tik - moderatör      Mavi tik normal</p></div>
-        <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800"><p><span class="text-amber-400 font-bold">4.</span> Tik istedikten sonra bir kaç gün seni izleyeceğiz.</p></div>
-        <div class="bg-slate-950/50 p-3 rounded-xl border border-amber-800/50"><p><span class="text-amber-400 font-bold">5.</span> Şartlar sağlanınca tikin verilir.</p></div>
+      <div class="px-4 sm:px-6 pb-6">
+        <div class="flex flex-col items-center text-center -mt-2">
+          <div id="pub-profile-avatar" class="w-24 h-24 sm:w-28 sm:h-28 mb-3"></div>
+          <h2 id="pub-profile-fullname" class="text-lg font-bold text-white flex items-center gap-1 justify-center flex-wrap"></h2>
+          <p id="pub-profile-username" class="text-xs text-slate-500 mt-1"></p>
+          <p id="pub-profile-bio" class="text-xs text-slate-300 mt-2 max-w-md"></p>
+          <div class="grid grid-cols-3 gap-2 w-full max-w-xs mt-4">
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800">
+              <div class="text-base font-bold text-white" id="pub-profile-posts-count">0</div>
+              <div class="text-[9px] text-slate-500 uppercase">Gönderi</div>
+            </div>
+            <button onclick="openFollowersModalFromPublic()" class="bg-slate-950 rounded-xl p-2 border border-slate-800 hover:border-blue-500/50 transition">
+              <div class="text-base font-bold text-white" id="pub-profile-followers-count">0</div>
+              <div class="text-[9px] text-slate-500 uppercase">Takipçi</div>
+            </button>
+            <button onclick="openFollowingModalFromPublic()" class="bg-slate-950 rounded-xl p-2 border border-slate-800 hover:border-blue-500/50 transition">
+              <div class="text-base font-bold text-white" id="pub-profile-following-count">0</div>
+              <div class="text-[9px] text-slate-500 uppercase">Takip</div>
+            </button>
+          </div>
+          <div class="flex gap-2 w-full max-w-xs mt-4">
+            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow transition">Takip Et</button>
+            <button onclick="messagePublicUser()" class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl border border-slate-700 transition">Mesaj</button>
+          </div>
+        </div>
+        <div class="mt-6">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Gönderiler</h3>
+          <div id="pub-profile-posts-list" class="space-y-3"></div>
+        </div>
       </div>
-      <button onclick="closeTikTermsAndContinue()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-xl transition touch-target">Şartları Kabul Et</button>
     </div>
   </div>
 
-  <!-- TİK MODAL -->
-  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white">Tik Al</h3>
-        <button onclick="closeTikModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
+  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeEditProfileModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm text-white">Profili Düzenle</h3>
+        <button onclick="closeEditProfileModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>
-      <input type="text" id="tik-input" placeholder="Kodunu Buraya Yaz" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-      <p id="tik-sonuc" class="text-xs font-bold"></p>
-      <button onclick="tikKontrolEt()" class="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-xl">Onayla</button>
+      <form onsubmit="saveProfileChanges(event)" class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div id="edit-avatar-preview" class="w-16 h-16 rounded-xl bg-slate-950 overflow-hidden shrink-0"></div>
+          <label class="flex-1 cursor-pointer px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs text-white text-center font-medium transition">
+            Foto Seç
+            <input type="file" accept="image/*" onchange="handleAvatarSelect(event)" class="hidden">
+          </label>
+        </div>
+        <input id="edit-fullname" required placeholder="Ad Soyad" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <textarea id="edit-bio" rows="3" placeholder="Biyografi" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"></textarea>
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Kaydet</button>
+      </form>
     </div>
   </div>
 
-  <!-- TİK GÖSTER -->
-  <div id="tik-goster" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 items-center justify-center p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-4">
-      <img src="tick-p.png" id="tik-goster-img" class="w-24 h-24 mx-auto object-contain">
-      <h3 class="text-xl font-bold text-white">Tebrikler!</h3>
-      <p class="text-sm text-slate-300">Tik başarıyla alındı!</p>
-      <button onclick="closeTikGoster()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl">Kapat</button>
-    </div>
-  </div>
-
-  <!-- TİK AL BUTONU -->
-  <button onclick="handleTikButtonClick()" class="fixed bottom-4 right-4 z-40 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition hover:scale-105 active:scale-95 touch-target">
-    <i class="fa-solid fa-certificate mr-1"></i> Tik Al
-  </button>
-
-  <!-- REPLY BAR -->
-  <div id="reply-preview-bar" class="fixed bottom-20 right-4 z-40 bg-slate-800 border border-cyan-500/50 rounded-xl p-3 max-w-sm shadow-2xl" style="display:none;">
-    <div class="flex items-start gap-2">
-      <i class="fa-solid fa-reply text-cyan-400 mt-1"></i>
-      <div class="flex-1 min-w-0">
-        <p class="text-[10px] text-cyan-400 font-semibold" id="reply-preview-user">Yanıtlanıyor...</p>
-        <p class="text-xs text-slate-300 truncate" id="reply-preview-text"></p>
+  <div id="change-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeChangePasswordModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm text-white">Şifre Değiştir</h3>
+        <button onclick="closeChangePasswordModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>
-      <button onclick="cancelReply()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+      <form onsubmit="changePassword(event)" class="space-y-3">
+        <input id="current-password" type="password" required placeholder="Mevcut şifre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <input id="new-password" type="password" required minlength="6" placeholder="Yeni şifre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <input id="new-password-confirm" type="password" required minlength="6" placeholder="Yeni şifre (tekrar)" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Güncelle</button>
+      </form>
     </div>
   </div>
 
-  <!-- EMOJI PANEL -->
-  <div id="emoji-panel" class="fixed bottom-24 right-4 z-50 bg-slate-900 border border-slate-700 rounded-2xl p-3 shadow-2xl max-w-xs" style="display:none;">
+  <div id="delete-account-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeDeleteAccountModal()">
+    <div class="bg-slate-900 border border-red-500/40 rounded-2xl max-w-sm w-full p-5 shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm text-white">Hesabı Sil</h3>
+        <button onclick="closeDeleteAccountModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <form onsubmit="deleteAccount(event)" class="space-y-3">
+        <input id="delete-password" type="password" required placeholder="Şifre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <input id="delete-confirm-text" required placeholder='Onay için "hesabımı sil" yaz' class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-medium rounded-xl text-sm transition">Hesabımı Kalıcı Olarak Sil</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="forgot-password-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeForgotPasswordModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm text-white">Şifre Sıfırla</h3>
+        <button onclick="closeForgotPasswordModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <form onsubmit="sendPasswordReset(event)" class="space-y-3">
+        <input id="forgot-email" type="email" required placeholder="E-posta" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Gönder</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3">
+      <h3 id="modal-title" class="font-bold text-sm text-white">Hata</h3>
+      <p id="modal-body" class="text-xs text-slate-300"></p>
+      <button onclick="closeModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl text-sm transition">Tamam</button>
+    </div>
+  </div>
+
+  <div id="tik-terms-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeTikTermsModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3" onclick="event.stopPropagation()">
+      <h3 class="font-bold text-sm text-white">Tik Kuralları</h3>
+      <p class="text-xs text-slate-400">Tik almak için kurallara uymayı kabul etmelisin. Tik kodunu sadece yetkili kişiler verir.</p>
+      <div class="flex gap-2">
+        <button onclick="closeTikTermsModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl">İptal</button>
+        <button onclick="closeTikTermsAndContinue()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl">Devam</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tik-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeTikModal()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3" onclick="event.stopPropagation()">
+      <h3 class="font-bold text-sm text-white">Tik Kodu</h3>
+      <input id="tik-input" placeholder="Kodu gir" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+      <p id="tik-sonuc" class="text-xs"></p>
+      <button onclick="tikKontrolEt()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Doğrula</button>
+    </div>
+  </div>
+
+  <div id="tik-goster" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeTikGoster()">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-8 shadow-xl text-center space-y-3" onclick="event.stopPropagation()">
+      <img id="tik-goster-img" src="tick-b.png" class="w-20 h-20 mx-auto object-contain">
+      <h3 class="font-bold text-base text-white">Tebrikler! 🎉</h3>
+      <p class="text-xs text-slate-400">Tik kazandın!</p>
+      <button onclick="closeTikGoster()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Tamam</button>
+    </div>
+  </div>
+
+  <div id="mod-ban-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeModBanModal()">
+    <div class="bg-slate-900 border border-red-500/40 rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3" onclick="event.stopPropagation()">
+      <h3 class="font-bold text-sm text-white">Kullanıcıyı Banla</h3>
+      <div id="mod-ban-target-info"></div>
+      <input id="mod-ban-hours" type="number" min="1" max="50" value="1" placeholder="Saat" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-blue-500 focus:outline-none">
+      <textarea id="mod-ban-reason" placeholder="Sebep (zorunlu)" rows="2" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"></textarea>
+      <div class="flex gap-2">
+        <button onclick="closeModBanModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl">İptal</button>
+        <button onclick="confirmModBan()" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl">Banla</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mod-delete-post-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] items-center justify-center p-3 hidden" onclick="closeModDeletePostModal()">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3" onclick="event.stopPropagation()">
+      <h3 class="font-bold text-sm text-white">Gönderiyi Sil</h3>
+      <div id="mod-delete-post-info"></div>
+      <textarea id="mod-delete-post-reason" placeholder="Silme sebebi (zorunlu)" rows="2" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"></textarea>
+      <div class="flex gap-2">
+        <button onclick="closeModDeletePostModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl">İptal</button>
+        <button onclick="confirmModDeletePost()" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl">Sil</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-sm z-[100] hidden flex-col">
+    <div class="flex items-center justify-between p-3 border-b border-slate-800 shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="game-modal-emoji" class="text-lg shrink-0"></span>
+        <div class="min-w-0">
+          <h3 id="game-modal-title" class="font-bold text-xs sm:text-sm text-white truncate"></h3>
+          <span id="game-modal-category" class="text-[9px] text-slate-500"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="toggleGameFullscreen()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-expand text-xs"></i></button>
+        <button onclick="openGameInNewTab()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-external-link text-xs"></i></button>
+        <button onclick="closeGameModal()" class="w-8 h-8 rounded-lg bg-red-600 hover:bg-red-500 text-white flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+    </div>
+    <div id="game-iframe-container" class="flex-1 min-h-0 relative"></div>
+    <div id="game-loading" class="absolute inset-0 flex items-center justify-center text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Yükleniyor...</div>
+    <div id="game-error" class="absolute inset-0 flex flex-col items-center justify-center text-red-400 text-xs hidden"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>Oyun yüklenemedi.</div>
+  </div>
+
+  <div id="emoji-panel" class="fixed bottom-24 right-2 sm:right-4 z-[85] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-3 w-72 sm:w-80 max-h-64 hidden">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-bold text-slate-300">Emoji Seç</span>
-      <button onclick="closeEmojiPanel()" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+      <span class="text-xs font-bold text-white">Emoji</span>
+      <button onclick="closeEmojiPanel()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div id="emoji-grid" class="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto custom-scrollbar"></div>
+    <div id="emoji-grid" class="grid grid-cols-8 gap-1 overflow-y-auto max-h-48 custom-scrollbar"></div>
   </div>
 
-  <!-- AUTH SCREEN -->
-  <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
-    <div class="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative z-10">
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20 mb-4 overflow-hidden">
-          <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
+  <!-- ===================== AUTH ===================== -->
+  <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-slate-950">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div class="text-center mb-6 sm:mb-8">
+        <img src="logo.png" alt="MSZ MEDYA" class="h-12 sm:h-14 mx-auto mb-3 object-contain">
+        <div class="flex items-center justify-center gap-2">
+          <h1 class="text-xl sm:text-2xl font-bold text-white">Hoş Geldiniz</h1>
+          <span class="text-xs font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.1</span>
         </div>
-        <h1 class="text-2xl font-extrabold text-white tracking-tight">MSZ MEDYA <span class="text-xs text-cyan-400 font-mono align-top">v3.0</span></h1>
-        <p class="text-xs text-slate-400 mt-1">Gerçek Zamanlı Sosyal Ağ</p>
       </div>
-      <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
-        <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition bg-cyan-500 text-white shadow touch-target">Giriş Yap</button>
-        <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition text-slate-400 hover:text-white touch-target">Kayıt Ol</button>
+      <div class="flex bg-slate-950 p-1 rounded-xl mb-5 border border-slate-800">
+        <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg transition bg-blue-600 text-white shadow">Giriş Yap</button>
+        <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg transition text-slate-400 hover:text-white">Kayıt Ol</button>
       </div>
-      <div id="forgot-password-link-container" class="text-right mb-4">
-        <button onclick="openForgotPasswordModal()" class="text-xs text-amber-400 hover:text-amber-300 font-medium">Şifremi Unuttum</button>
-      </div>
-      <form id="login-form" onsubmit="handleLogin(event); return false;" class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
-          <input type="text" id="login-username" required placeholder="kullanici_adi" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Şifre</label>
-          <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-        </div>
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="remember-me" class="w-4 h-4 rounded bg-slate-950 border-slate-800 text-cyan-500">
-          <label for="remember-me" class="text-xs text-slate-400">Beni Hatırla</label>
-        </div>
-        <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition touch-target">Giriş Yap</button>
+      <form id="login-form" onsubmit="handleLogin(event); return false;" class="space-y-3">
+        <input type="text" id="login-username" required placeholder="Kullanıcı Adı" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <input type="password" id="login-password" required placeholder="Şifre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <label class="flex items-center gap-2 text-xs text-slate-400">
+          <input type="checkbox" id="remember-me" class="rounded">
+          Beni hatırla
+        </label>
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Giriş Yap</button>
       </form>
-      <form id="register-form" onsubmit="handleRegister(event); return false;" class="space-y-4 hidden">
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Kullanıcı Adı</label>
-          <input type="text" id="reg-username" required pattern="^[a-zA-Z0-9_]{3,20}$" placeholder="kullanici_adi" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Şifre</label>
-          <input type="password" id="reg-password" required minlength="6" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-        </div>
-        <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-400 hover:to-cyan-400 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition touch-target">Hesap Oluştur</button>
+      <form id="register-form" onsubmit="handleRegister(event); return false;" class="space-y-3 hidden">
+        <input type="text" id="reg-username" required pattern="^[a-zA-Z0-9_]{3,20}$" placeholder="Kullanıcı Adı" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <input type="password" id="reg-password" required minlength="6" placeholder="Şifre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
+        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Hesap Oluştur</button>
       </form>
-
       <div class="relative my-5">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-slate-800"></div>
-        </div>
-        <div class="relative flex justify-center text-[10px]">
-          <span class="bg-slate-900 px-2 text-slate-500 uppercase tracking-wider">veya</span>
-        </div>
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+        <div class="relative flex justify-center text-xs"><span class="bg-slate-900 px-2 text-slate-500">veya</span></div>
       </div>
-
-      <button type="button" onclick="signInWithGoogle()"
-        class="w-full py-3 bg-white hover:bg-slate-100 text-slate-900 font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition touch-target">
-        <svg class="w-5 h-5" viewBox="0 0 48 48">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        </svg>
+      <button onclick="signInWithGoogle()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-medium rounded-xl text-sm flex items-center justify-center gap-2 transition">
+        <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         Google ile Giriş Yap
       </button>
     </div>
   </div>
 
-  <!-- MAIN APP -->
-  <div id="main-app" class="hidden min-h-screen flex flex-col">
-    <header id="main-header" class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 safe-bottom transition-all duration-300">
-      <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-          <button onclick="toggleHamburgerMenu()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-target shrink-0" title="Menü">
-            <i class="fa-solid fa-bars text-sm"></i>
+  <!-- ===================== MAIN APP ===================== -->
+  <div id="main-app" class="hidden min-h-screen flex flex-col bg-slate-950">
+    <!-- Desktop Header -->
+    <header class="hidden md:flex sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 h-16 items-center justify-between px-6">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="MSZ MEDYA" class="h-8 w-auto object-contain">
+        <span class="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.1</span>
+      </div>
+      <nav class="flex items-center gap-1">
+        <button onclick="handleBannedClick('feed', event)" id="nav-feed-desk" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/10 text-blue-400 transition flex items-center gap-2"><i class="fa-solid fa-house"></i> Akış</button>
+        <button onclick="handleBannedClick('messages', event)" id="nav-messages-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2 relative"><i class="fa-solid fa-paper-plane"></i> Mesajlar <span id="unread-dm-badge-desk" class="hidden ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">0</span></button>
+        <button onclick="handleBannedClick('groups', event)" id="nav-groups-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-users"></i> Gruplar</button>
+        <button onclick="handleBannedClick('users', event)" id="nav-users-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Topluluk</button>
+        <button onclick="handleBannedClick('games', event)" id="nav-games-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> Oyunlar</button>
+        <button onclick="toggleAiPanel()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-robot"></i> AI</button>
+        <button onclick="handleBannedClick('mod', event)" id="nav-mod-desk" class="hidden px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border border-red-500/30"><i class="fa-solid fa-shield-halved"></i> MOD</button>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button onclick="handleBannedClick('notifications', event)" class="relative w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-regular fa-bell"></i><span id="notification-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span></button>
+        <div class="relative">
+          <button onclick="toggleSettingsDropdown()" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-800 transition">
+            <div id="header-avatar" class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs overflow-hidden">?</div>
+            <span id="header-username-display" class="text-sm font-medium text-slate-300">@...</span>
+            <i class="fa-solid fa-chevron-down text-xs text-slate-500"></i>
           </button>
-          <div class="flex items-center gap-2 cursor-pointer" onclick="handleBannedClick('feed', event)">
-            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-cyan-500/20 overflow-hidden shrink-0">
-              <img src="favicon.png" alt="MSZ MEDYA" class="w-full h-full object-cover">
+          <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+              <span class="text-xs text-slate-400">Animasyonlar</span>
+              <div onclick="toggleAnimations()" class="anim-toggle-switch" id="animation-toggle-switch"></div>
             </div>
-            <div class="hidden xs:block">
-              <span id="header-title-text" class="font-bold text-sm sm:text-base text-white tracking-tight header-title">MSZ MEDYA <span class="text-[10px] text-cyan-400 font-mono">v3.0</span></span>
-              <div id="status-badge" class="flex items-center gap-1 text-[9px] sm:text-[10px] text-amber-400 font-medium">
-                <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                <span id="status-text">Bağlanıyor...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-          <div id="ban-indicator" class="hidden items-center gap-2 px-3 py-1.5 bg-rose-950/80 border-2 border-rose-500 rounded-xl shadow-lg shadow-rose-500/30 animate-pulse">
-            <i class="fa-solid fa-ban text-rose-400 text-sm"></i>
-            <div class="flex flex-col leading-tight">
-              <span class="text-[10px] font-extrabold text-rose-200 tracking-wider">BANLISIN</span>
-              <span class="text-[9px] text-rose-300/80 font-mono" id="ban-indicator-timer">-</span>
-            </div>
-          </div>
-
-          <button onclick="handleBannedClick('notifications', event)" class="relative w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-target">
-            <i class="fa-regular fa-bell text-amber-400 text-sm sm:text-base"></i>
-            <span id="notification-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span>
-          </button>
-          <div class="flex items-center gap-1 sm:gap-2 cursor-pointer" onclick="handleBannedClick('profile', event)">
-            <div id="header-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow overflow-hidden shrink-0">?</div>
-            <div class="hidden md:block text-left">
-              <div id="header-username-display" class="text-xs font-semibold text-white truncate max-w-[80px]">@...</div>
-            </div>
-          </div>
-          <div class="relative">
-            <button onclick="handleBannedClick('settings', event)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition touch-target">
-              <i class="fa-solid fa-gear text-xs sm:text-sm"></i>
-            </button>
-            <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
-              <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-                <div class="flex items-center gap-2">
-                  <i id="animation-toggle-icon" class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
-                  <span class="text-xs text-slate-300">Animasyonlar</span>
-                </div>
-                <div onclick="toggleAnimations()" class="anim-toggle-switch active" id="animation-toggle-switch"></div>
-              </div>
-              <button onclick="openChangePasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 touch-target"><i class="fa-solid fa-key text-cyan-400"></i> Şifre Değiştir</button>
-              <button onclick="openForgotPasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-amber-400 hover:bg-amber-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target"><i class="fa-solid fa-question-circle"></i> Şifremi Unuttum</button>
-              <button onclick="openDeleteAccountModal(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2 border-t border-slate-800 touch-target"><i class="fa-solid fa-trash-can"></i> Hesabı Sil</button>
-              <button onclick="logout(); toggleSettingsDropdown();" class="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 border-t border-slate-800 touch-target"><i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap</button>
-            </div>
+            <button onclick="openChangePasswordModal(); toggleSettingsDropdown();" class="w-full px-4 py-2.5 text-left text-xs text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-key w-4"></i> Şifre Değiştir</button>
+            <button onclick="openDeleteAccountModal(); toggleSettingsDropdown();" class="w-full px-4 py-2.5 text-left text-xs text-red-400 hover:bg-red-500/10 transition flex items-center gap-2"><i class="fa-solid fa-trash-can w-4"></i> Hesabı Sil</button>
+            <button onclick="logout(); toggleSettingsDropdown();" class="w-full px-4 py-2.5 text-left text-xs text-slate-400 hover:bg-slate-800 transition flex items-center gap-2 border-t border-slate-800"><i class="fa-solid fa-right-from-bracket w-4"></i> Çıkış Yap</button>
           </div>
         </div>
       </div>
     </header>
 
-    <main class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-      <aside class="hidden lg:block lg:col-span-3 space-y-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
-          <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
-            <div id="sidebar-avatar" class="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center font-bold text-lg shadow overflow-hidden shrink-0">?</div>
-            <div class="overflow-hidden">
-              <h4 id="sidebar-username-display" class="font-bold text-sm text-white truncate">@...</h4>
-            </div>
-          </div>
-          <p id="sidebar-bio" class="text-xs text-slate-300 leading-relaxed italic line-clamp-3">...</p>
-          <div class="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
-            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-              <div id="sidebar-post-count" class="font-bold text-cyan-400 text-base">0</div>
-              <div class="text-[10px] text-slate-500">Gönderi</div>
-            </div>
-            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 clickable-stat" onclick="handleBannedClick('followers', event)">
-              <div id="sidebar-followers-count" class="font-bold text-indigo-400 text-base">0</div>
-              <div class="text-[10px] text-slate-500">Takipçi</div>
-            </div>
-            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 clickable-stat" onclick="handleBannedClick('following', event)">
-              <div id="sidebar-user-count" class="font-bold text-emerald-400 text-base">0</div>
-              <div class="text-[10px] text-slate-500">Takip</div>
-            </div>
-          </div>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
-          <div class="text-xs font-semibold text-slate-400 mb-1">Sosyal Bağlantılar</div>
-          <a href="https://burak-code.github.io/msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white touch-target">
-            <i class="fa-solid fa-globe text-cyan-400"></i> Web Sitem
-          </a>
-          <a href="https://www.instagram.com/burak_msz/" target="_blank" class="flex items-center gap-2 px-3 py-2 bg-slate-950 rounded-xl hover:bg-slate-800 transition text-sm text-slate-300 hover:text-white touch-target">
-            <i class="fa-brands fa-instagram text-pink-400"></i> Instagram
-          </a>
-        </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
-          <div class="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
-            <span><i class="fa-solid fa-wifi mr-1 text-cyan-400"></i> Sistem Logu</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          </div>
-          <div id="system-log-box" class="h-36 bg-slate-950 rounded-xl p-2.5 font-mono text-[10px] text-slate-400 overflow-y-auto space-y-1.5 custom-scrollbar border border-slate-800/80">
-            <div class="text-slate-600">// Canlı akış aktif...</div>
-          </div>
-        </div>
-      </aside>
+    <!-- Mobile Header -->
+    <header class="md:hidden sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 h-14 flex items-center justify-between px-3">
+      <button onclick="toggleHamburgerMenu()" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-bars"></i></button>
+      <div class="flex items-center gap-2">
+        <img src="logo.png" alt="MSZ MEDYA" class="h-7 w-auto object-contain">
+        <span class="text-[9px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">v3.1</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="handleBannedClick('notifications', event)" class="relative w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-regular fa-bell"></i><span id="notification-badge-mob" class="hidden absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold px-1">0</span></button>
+        <button onclick="switchTab('profile')" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center overflow-hidden"><div id="header-avatar-mob" class="w-full h-full"></div></button>
+      </div>
+    </header>
 
-      <section class="lg:col-span-9 space-y-4 sm:space-y-6">
-        <!-- FEED -->
-        <div id="tab-content-feed" class="space-y-4 sm:space-y-6">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
-            <div class="flex gap-3">
-              <div id="composer-avatar" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">?</div>
-              <div class="flex-1 space-y-2">
-                <textarea id="post-input" rows="1" placeholder="Neler oluyor? Dünyayla paylaş..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition resize-none min-h-[70px] max-h-[300px] overflow-y-auto custom-scrollbar"></textarea>
-                <div id="post-media-preview" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-2"></div>
-                <input type="file" id="post-media-input" accept="image/*,video/*,audio/*" class="hidden" onchange="handlePostMediaSelect(event)">
-              </div>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800 gap-2 flex-wrap">
-              <div class="flex items-center gap-1 sm:gap-2 text-slate-400">
-                <button type="button" onclick="document.getElementById('post-media-input').click()" title="Medya Ekle" class="p-2 hover:bg-slate-800 hover:text-cyan-400 rounded-lg text-xs transition touch-target">
-                  <i class="fa-solid fa-photo-film text-sm"></i>
-                </button>
-                <button type="button" onclick="openEmojiPanel('post-input')" title="Emoji Ekle" class="p-2 hover:bg-slate-800 hover:text-amber-400 rounded-lg text-xs transition touch-target">
-                  <i class="fa-regular fa-face-smile text-sm"></i>
-                </button>
-                <span class="text-[10px] text-slate-500 font-mono" id="char-counter">0 / 280</span>
-              </div>
-              <button onclick="submitPost()" class="px-4 sm:px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2 touch-target">
-                <i class="fa-solid fa-paper-plane text-xs"></i><span>Paylaş</span>
-              </button>
-            </div>
-          </div>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between px-1">
-              <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
-                <i class="fa-solid fa-bolt text-cyan-400"></i><span>Canlı Gönderi Akışı</span>
-              </h2>
-              <span class="text-xs text-slate-500" id="post-feed-count">0 Gönderi</span>
-            </div>
-            <div id="posts-container" class="space-y-4"></div>
-          </div>
-        </div>
-
-        <!-- MESSAGES -->
-        <div id="tab-content-messages" class="hidden space-y-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl min-h-[500px] flex flex-col md:flex-row">
-            <div class="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/50 flex flex-col">
-              <div class="p-3 border-b border-slate-800">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sohbetler</h3>
-                <div class="relative">
-                  <input type="text" id="dm-user-search" oninput="filterDmSearch()" placeholder="Kullanıcı ara..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-                  <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
-                </div>
-              </div>
-              <div id="dm-search-results" class="hidden border-b border-slate-800 max-h-48 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-slate-900/50"></div>
-              <div class="px-3 pt-2 pb-1 text-[10px] text-slate-500 uppercase tracking-wider font-bold">Aktif Sohbetler</div>
-              <div id="dm-users-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 max-h-[200px] md:max-h-none"></div>
-            </div>
-            <div class="flex-1 flex flex-col bg-slate-900 min-h-[300px]">
-              <div id="chat-header" class="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 gap-2 flex-wrap">
-                <div class="flex items-center gap-3 min-w-0 chat-header-clickable" onclick="openChatUserProfile()">
-                  <div id="chat-target-avatar" class="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center font-bold overflow-hidden shrink-0">?</div>
-                  <div class="min-w-0">
-                    <h4 id="chat-target-name" class="font-bold text-sm text-white truncate">Sohbet Seçin</h4>
-                    <p id="chat-target-handle" class="text-xs text-slate-500 truncate">Mesajlaşmak için soldan bir kullanıcı tıklayın</p>
-                  </div>
-                </div>
-                <button id="chat-view-profile-btn" onclick="openChatUserProfile()" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-xl transition touch-target shrink-0">
-                  <i class="fa-solid fa-user mr-1"></i> Profil
-                </button>
-              </div>
-              <div id="chat-messages-box" class="flex-1 p-3 sm:p-4 overflow-y-auto custom-scrollbar" style="max-height:400px; min-height:250px; height:350px;">
-                <div id="chat-messages-inner" class="flex flex-col min-h-full">
-                  <div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">Sohbet başlatmak için listeden bir kullanıcı seçin.</div>
-                </div>
-              </div>
-              <div class="p-3 border-t border-slate-800 bg-slate-900">
-                <form id="dm-form" onsubmit="sendDirectMessage(event)" class="flex gap-2 flex-wrap">
-                  <input type="text" id="dm-input-text" disabled placeholder="Mesajınızı yazın..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 disabled:opacity-50 min-h-[44px]">
+    <!-- Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-4 pb-24 md:pb-4">
+      <!-- FEED -->
+      <div id="tab-content-feed" class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3 sm:gap-4">
+        <div class="space-y-3 sm:space-y-4 min-w-0">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4 shadow-sm">
+            <div class="flex items-start gap-3">
+              <div id="composer-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs overflow-hidden shrink-0"></div>
+              <div class="flex-1 min-w-0">
+                <textarea id="post-input" placeholder="Neler oluyor? (@etiket)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none min-h-[70px] max-h-[300px]"></textarea>
+                <div id="post-media-preview" class="mt-2 hidden"></div>
+                <div class="flex items-center justify-between mt-2 gap-2">
                   <div class="flex items-center gap-1">
-                    <button type="button" onclick="openEmojiPanel('dm-input-text')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-400 rounded-xl transition touch-target" title="Emoji">
-                      <i class="fa-regular fa-face-smile text-sm"></i>
-                    </button>
-                    <button type="button" onclick="document.getElementById('dm-file-input').click()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-xl transition touch-target" title="Dosya">
-                      <i class="fa-solid fa-paperclip text-sm"></i>
-                    </button>
-                    <input type="file" id="dm-file-input" class="file-input-hidden" accept="image/*,video/*,audio/*" onchange="sendFileAttachment(event)">
-                    <button type="button" id="dm-mic-btn" onclick="toggleMicRecording()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 rounded-xl transition touch-target" title="Ses Kaydı">
-                      <i class="fa-solid fa-microphone text-sm"></i>
-                    </button>
-                    <button type="submit" id="dm-send-btn" disabled class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition touch-target min-w-[44px]">
-                      <i class="fa-solid fa-paper-plane"></i>
-                    </button>
+                    <label class="cursor-pointer w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-solid fa-image text-xs"></i><input type="file" accept="image/*,video/*,audio/*" onchange="handlePostMediaSelect(event)" class="hidden"></label>
+                    <button onclick="openEmojiPanel('post-input')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-regular fa-face-smile text-xs"></i></button>
                   </div>
-                </form>
-                <div id="mic-recording-bar" class="hidden mt-2 bg-rose-950/50 border border-rose-500/30 rounded-xl p-3 flex items-center justify-between gap-3">
                   <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></span>
-                    <span class="text-xs text-rose-300 font-bold">Kayıt: <span id="mic-timer">0:00</span></span>
-                  </div>
-                  <div class="flex gap-2">
-                    <button type="button" onclick="cancelMicRecording()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg">İptal</button>
-                    <button type="button" onclick="stopAndSendMicRecording()" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg"><i class="fa-solid fa-paper-plane mr-1"></i>Gönder</button>
+                    <span id="char-counter" class="text-[10px] text-slate-500 font-mono">0 / 280</span>
+                    <button onclick="submitPost()" class="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition">Paylaş</button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- GROUPS -->
-        <div id="tab-content-groups" class="hidden space-y-4">
-          <div class="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-4">
-            <p class="text-xs text-emerald-200 leading-relaxed">
-              <i class="fa-solid fa-circle-info mr-1 text-emerald-400"></i>
-              <strong>Burası grup merkezi.</strong> Gruplar kurabilirsin. Grup kurmak için <strong class="text-amber-400">tikin olması gerekir</strong>.
-            </p>
           </div>
           <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <i class="fa-solid fa-users text-emerald-400"></i> Gruplar
-            </h2>
-            <button onclick="openCreateGroupModal()" id="create-group-btn" class="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow transition touch-target">
-              <i class="fa-solid fa-plus mr-1"></i> Grup Oluştur
-            </button>
+            <h2 class="text-sm font-bold text-white">Akış</h2>
+            <span id="post-feed-count" class="text-[10px] text-slate-500">0 Gönderi</span>
           </div>
-          <div id="groups-container" class="space-y-3"></div>
+          <div id="posts-container" class="space-y-3"></div>
         </div>
+        <aside class="hidden lg:block space-y-3">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center gap-3 mb-3">
+              <div id="sidebar-avatar" class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold overflow-hidden shrink-0"></div>
+              <div class="min-w-0">
+                <div id="sidebar-username-display" class="font-bold text-sm text-white truncate"></div>
+                <p id="sidebar-bio" class="text-[10px] text-slate-500 truncate"></p>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="bg-slate-950 rounded-lg p-2 text-center border border-slate-800"><div id="sidebar-post-count" class="text-sm font-bold text-white">0</div><div class="text-[9px] text-slate-500 uppercase">Gönderi</div></div>
+              <button onclick="handleBannedClick('followers')" class="bg-slate-950 rounded-lg p-2 text-center border border-slate-800 hover:border-blue-500/50 transition"><div id="sidebar-followers-count" class="text-sm font-bold text-white">0</div><div class="text-[9px] text-slate-500 uppercase">Takipçi</div></button>
+              <button onclick="handleBannedClick('following')" class="bg-slate-950 rounded-lg p-2 text-center border border-slate-800 hover:border-blue-500/50 transition"><div id="sidebar-user-count" class="text-sm font-bold text-white">0</div><div class="text-[9px] text-slate-500 uppercase">Takip</div></button>
+            </div>
+            <button onclick="handleBannedClick('edit-profile')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition">Profili Düzenle</button>
+            <button onclick="handleTikButtonClick()" class="w-full mt-2 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-semibold rounded-xl transition">Tik Al / Kontrol Et</button>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold text-white mb-2">Sistem</h3>
+            <div id="system-log-box" class="text-[10px] font-mono space-y-0.5 max-h-32 overflow-y-auto custom-scrollbar"></div>
+            <div class="mt-2 flex items-center gap-2 text-[10px] text-slate-500"><i class="fa-solid fa-circle text-[6px] text-emerald-500"></i><span id="status-text">Bağlanıyor...</span></div>
+          </div>
+        </aside>
+      </div>
 
-        <!-- USERS -->
-        <div id="tab-content-users" class="hidden space-y-4 sm:space-y-6">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div>
-                <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <i class="fa-solid fa-trophy text-amber-400"></i> Topluluk
-                </h2>
-                <p class="text-xs text-slate-400 mt-1 hidden sm:block">En çok takipçisi olan popüler kullanıcılar</p>
-              </div>
-              <div class="text-xs text-slate-500 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 whitespace-nowrap" id="total-users-badge">0 Kayıtlı Üye</div>
-            </div>
-            <div class="bg-slate-950/50 rounded-xl p-3 border border-slate-800">
-              <h3 class="text-xs font-bold text-amber-400 flex items-center gap-2 mb-2">
-                <i class="fa-solid fa-star"></i> Ödüller
-              </h3>
-              <div class="flex flex-wrap gap-3">
-                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <span class="text-amber-400 text-sm">🏆</span>
-                  <span class="text-[10px] text-slate-300">10 Takipçi → <span class="text-purple-400 font-bold">Neon Mor</span></span>
-                </div>
-                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <span class="text-amber-400 text-sm">🌟</span>
-                  <span class="text-[10px] text-slate-300">50 Takipçi → <span class="text-cyan-400 font-bold">Neon Mavi</span></span>
-                </div>
-                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <span class="text-amber-400 text-sm">👑</span>
-                  <span class="text-[10px] text-slate-300">100 Takipçi → <span class="text-amber-400 font-bold">Neon Altın</span></span>
-                </div>
-              </div>
-            </div>
-            <div id="users-leaderboard-container" class="space-y-3 pt-2"></div>
+      <!-- MESSAGES -->
+      <div id="tab-content-messages" class="hidden grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 sm:gap-4 h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden min-h-0">
+          <div class="p-3 border-b border-slate-800 shrink-0">
+            <input id="dm-user-search" type="text" oninput="filterDmSearch()" placeholder="Kullanıcı ara..." class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500">
           </div>
+          <div id="dm-search-results" class="hidden p-2 space-y-1 border-b border-slate-800 max-h-48 overflow-y-auto custom-scrollbar"></div>
+          <div id="dm-requests-inbox" class="hidden p-2 space-y-1 border-b border-slate-800 max-h-48 overflow-y-auto custom-scrollbar"></div>
+          <div id="dm-users-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
         </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden min-h-0">
+          <div class="p-3 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <div id="chat-target-avatar" class="w-9 h-9 shrink-0"></div>
+              <div class="min-w-0">
+                <div id="chat-target-name" class="font-bold text-xs text-white truncate">Sohbet seç</div>
+                <div id="chat-target-handle" class="text-[10px] text-slate-500 truncate">—</div>
+              </div>
+            </div>
+            <button id="chat-view-profile-btn" onclick="openChatUserProfile()" class="hidden px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold rounded-lg"><i class="fa-solid fa-user"></i></button>
+          </div>
+          <div id="chat-messages-box" class="flex-1 overflow-y-auto p-3 min-h-0 custom-scrollbar">
+            <div id="chat-messages-inner" class="space-y-2"></div>
+          </div>
+          <div id="reply-preview-bar" class="hidden p-2 border-t border-slate-800 bg-slate-950" style="display:none">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="text-[9px] text-blue-400 font-semibold" id="reply-preview-user"></div>
+                <div class="text-[10px] text-slate-400 truncate" id="reply-preview-text"></div>
+              </div>
+              <button onclick="cancelReply()" class="text-slate-500 hover:text-red-400 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <div id="mic-recording-bar" class="hidden p-2 border-t border-slate-800 bg-red-500/10 items-center gap-2" style="display:none">
+            <i class="fa-solid fa-circle text-red-500 text-xs animate-pulse"></i>
+            <span id="mic-timer" class="text-xs font-mono text-white">0:00</span>
+            <button onclick="cancelMicRecording()" class="ml-auto px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg">İptal</button>
+            <button onclick="stopAndSendMicRecording()" class="px-2 py-1 bg-red-600 text-white text-[10px] rounded-lg">Gönder</button>
+          </div>
+          <form id="dm-form" onsubmit="sendDirectMessage(event)" class="p-2 border-t border-slate-800 flex items-center gap-1 shrink-0">
+            <label class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center cursor-pointer shrink-0"><i class="fa-solid fa-paperclip text-xs"></i><input type="file" accept="image/*,video/*,audio/*" onchange="sendFileAttachment(event)" class="hidden"></label>
+            <button type="button" onclick="toggleMicRecording()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-microphone text-xs"></i></button>
+            <button type="button" onclick="openEmojiPanel('dm-input-text')" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center shrink-0"><i class="fa-regular fa-face-smile text-xs"></i></button>
+            <input id="dm-input-text" type="text" placeholder="Mesaj yaz... (@etiket)" disabled class="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500">
+            <button type="submit" id="dm-send-btn" disabled class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50 transition shrink-0"><i class="fa-solid fa-paper-plane"></i></button>
+          </form>
+        </div>
+      </div>
 
-        <!-- GAMES -->
-        <div id="tab-content-games" class="hidden space-y-4 sm:space-y-6">
-          <div class="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-2xl p-4">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-2xl bg-purple-500/20 flex items-center justify-center shrink-0">
-                <i class="fa-solid fa-gamepad text-purple-400 text-xl"></i>
-              </div>
-              <div>
-                <h2 class="text-base sm:text-lg font-bold text-purple-300">Oyun Merkezi</h2>
-                <p class="text-[11px] text-purple-200/70">Tıkla, oyna, eğlen!</p>
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center justify-between px-1">
-            <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <i class="fa-solid fa-fire text-orange-400"></i> Tüm Oyunlar
-            </h3>
-            <span class="text-xs text-slate-500" id="games-count">0 Oyun</span>
-          </div>
-          <div id="games-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <!-- GROUPS -->
+      <div id="tab-content-groups" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white">Gruplar</h2>
+          <button id="create-group-btn" onclick="openCreateGroupModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-sm transition"><i class="fa-solid fa-plus mr-1"></i> Grup Oluştur</button>
         </div>
+        <div id="groups-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
 
-        <!-- MOD -->
-        <div id="tab-content-mod" class="hidden space-y-4 sm:space-y-6">
-          <div class="bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/40 rounded-2xl p-4">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
-                <i class="fa-solid fa-shield-halved text-rose-400 text-xl"></i>
-              </div>
-              <div>
-                <h2 class="text-base sm:text-lg font-bold text-rose-400">MOD Paneli</h2>
-                <p class="text-[11px] text-rose-300/70">Yetkili kullanıcı işlemleri</p>
-              </div>
-            </div>
-          </div>
-          <div class="bg-slate-900 border border-rose-500/30 rounded-2xl p-4 shadow-xl space-y-3">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <h3 class="text-sm font-bold text-rose-400 flex items-center gap-2">
-                <i class="fa-solid fa-gavel"></i> Banlı Kullanıcılar
-              </h3>
-              <span class="text-[10px] text-slate-500 bg-slate-950 px-2 py-1 rounded-lg" id="mod-ban-count">0 kişi</span>
-            </div>
-            <div id="mod-banned-list" class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-              <div class="text-center text-xs text-slate-500 py-4">Banlı kullanıcı yok.</div>
-            </div>
-          </div>
-          <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-xl space-y-3">
-            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
-              <i class="fa-solid fa-users-gear"></i> Kullanıcı İşlemleri
-            </h3>
-            <div class="relative">
-              <input type="text" id="mod-user-search" oninput="filterModUserSearch()" placeholder="Kullanıcı ara..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
-              <i class="fa-solid fa-search absolute left-3 top-3 text-xs text-slate-500"></i>
-            </div>
-            <div id="mod-user-search-results" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-              <div class="text-center text-xs text-slate-500 py-3">Kullanıcı ara...</div>
-            </div>
-          </div>
+      <!-- USERS -->
+      <div id="tab-content-users" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white">Topluluk</h2>
+          <span id="total-users-badge" class="text-[10px] text-slate-500">0 Kayıtlı Üye</span>
         </div>
+        <div id="users-leaderboard-container" class="space-y-2"></div>
+      </div>
 
-        <!-- PROFILE -->
-        <div id="tab-content-profile" class="hidden space-y-4 sm:space-y-6">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div class="h-24 sm:h-32 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 relative"></div>
-            <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 relative space-y-4">
-              <div class="flex items-end justify-between -mt-12 gap-2">
-                <div id="profile-main-avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-xl overflow-hidden shrink-0">?</div>
-                <button onclick="handleBannedClick('edit-profile', event)" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1 sm:gap-2 touch-target">
-                  <i class="fa-solid fa-pen-to-square"></i><span class="hidden xs:inline">Profili Düzenle</span>
-                </button>
+      <!-- GAMES -->
+      <div id="tab-content-games" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white">Oyunlar</h2>
+          <span id="games-count" class="text-[10px] text-slate-500">0 Oyun</span>
+        </div>
+        <div id="games-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- MOD -->
+      <div id="tab-content-mod" class="hidden space-y-3">
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <h2 class="text-sm font-bold text-red-400 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> MOD Paneli</h2>
+          <p class="text-[10px] text-red-300/70 mt-1">Yetkili işlemleri buradan yap.</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-white">Banlı Kullanıcılar</h3>
+            <span id="mod-ban-count" class="text-[10px] text-slate-500">0 kişi</span>
+          </div>
+          <div id="mod-banned-list" class="space-y-2"></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+          <h3 class="text-xs font-bold text-white mb-2">Kullanıcı Ara</h3>
+          <input id="mod-user-search" type="text" oninput="filterModUserSearch()" placeholder="Kullanıcı ara..." class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 mb-2">
+          <div id="mod-user-search-results" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="tab-content-profile" class="hidden space-y-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6 shadow-sm">
+          <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <div id="profile-main-avatar" class="w-20 h-20 sm:w-24 sm:h-24 shrink-0"></div>
+            <div class="flex-1 text-center sm:text-left min-w-0">
+              <h2 id="profile-fullname" class="text-lg font-bold text-white flex items-center gap-1 justify-center sm:justify-start flex-wrap"></h2>
+              <p id="profile-username-display" class="text-xs text-slate-500 mt-1"></p>
+              <p id="profile-bio" class="text-xs text-slate-300 mt-2"></p>
+              <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto sm:mx-0 mt-3">
+                <div class="bg-slate-950 rounded-lg p-2 text-center border border-slate-800"><div id="profile-stat-posts" class="text-sm font-bold text-white">0</div><div class="text-[9px] text-slate-500 uppercase">Gönderi</div></div>
+                <button onclick="handleBannedClick('followers')" class="bg-slate-950 rounded-lg p-2 text-center border border-slate-800 hover:border-blue-500/50 transition"><div id="profile-stat-followers" class="text-sm font-bold text-white">0</div><div class="text-[9px] text-slate-500 uppercase">Takipçi</div></button>
+                <button onclick="handleBannedClick('following')" class="bg-slate-950 rounded-lg p-2 text-center border border-slate-800 hover:border-blue-500/50 transition"><div id="profile-stat-following" class="text-sm font-bold text-white">0</div><div class="text-[9px] text-slate-500 uppercase">Takip</div></button>
               </div>
-              <div>
-                <h2 id="profile-fullname" class="text-lg sm:text-xl font-bold text-white">...</h2>
-                <p id="profile-username-display" class="text-xs text-cyan-400 font-mono">@...</p>
-              </div>
-              <p id="profile-bio" class="text-sm text-slate-300 leading-relaxed">...</p>
-              <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800 text-xs text-slate-400 flex-wrap">
-                <div class="clickable-stat" onclick="handleBannedClick('followers', event)"><strong id="profile-stat-followers" class="text-white font-bold text-sm">0</strong> Takipçi</div>
-                <div class="clickable-stat" onclick="handleBannedClick('following', event)"><strong id="profile-stat-following" class="text-white font-bold text-sm">0</strong> Takip</div>
-                <div><strong id="profile-stat-posts" class="text-white font-bold text-sm">0</strong> Gönderi</div>
+              <div class="flex gap-2 mt-3 justify-center sm:justify-start">
+                <button onclick="handleBannedClick('edit-profile')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg">Profili Düzenle</button>
+                <button onclick="handleTikButtonClick()" class="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-semibold rounded-lg">Tik</button>
               </div>
             </div>
           </div>
-          <div id="reward-selector-container"></div>
-          <div class="space-y-4">
-            <h3 class="text-sm font-bold text-slate-300">Gönderilerim</h3>
-            <div id="profile-posts-container" class="space-y-4"></div>
-          </div>
         </div>
-      </section>
+        <div id="reward-selector-container"></div>
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Gönderilerim</h3>
+        <div id="profile-posts-container" class="space-y-3"></div>
+      </div>
     </main>
-  </div>
-
-  <!-- PUBLIC PROFILE -->
-  <div id="public-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-2 sm:p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl max-h-[95vh] flex flex-col mx-auto">
-      <div class="h-36 sm:h-48 bg-gradient-to-br from-cyan-600 via-indigo-600 to-purple-600 relative shrink-0">
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-        <button onclick="closePublicProfileModal()" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition touch-target z-10">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 space-y-4 flex-1 overflow-y-auto custom-scrollbar -mt-12 sm:-mt-16">
-        <div class="flex items-end justify-between gap-3 flex-wrap">
-          <div id="pub-profile-avatar" class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-slate-800 border-4 border-slate-900 text-white flex items-center justify-center font-bold text-3xl sm:text-4xl shadow-xl overflow-hidden shrink-0">?</div>
-          <div class="flex items-center gap-2 flex-wrap pb-1">
-            <button id="pub-profile-follow-btn" onclick="toggleFollowPublicUser()" class="px-4 py-2 sm:px-5 sm:py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-cyan-500/20 transition touch-target">Takip Et</button>
-            <button id="pub-profile-dm-btn" onclick="messagePublicUser()" class="px-4 py-2 sm:px-5 sm:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition touch-target">
-              <i class="fa-solid fa-paper-plane mr-1"></i> Mesaj
-            </button>
-          </div>
-        </div>
-        <div class="pt-2">
-          <h3 id="pub-profile-fullname" class="text-2xl sm:text-3xl font-extrabold text-white">...</h3>
-          <p id="pub-profile-username" class="text-sm sm:text-base text-cyan-400 font-mono mt-1">@...</p>
-        </div>
-        <p id="pub-profile-bio" class="text-sm sm:text-base text-slate-300 leading-relaxed">...</p>
-        <div class="flex items-center gap-6 sm:gap-8 py-4 border-y border-slate-800 text-sm sm:text-base text-slate-400 flex-wrap">
-          <div class="text-center"><strong id="pub-profile-posts-count" class="text-white font-bold text-xl sm:text-2xl block">0</strong> <span class="text-xs">Gönderi</span></div>
-          <div class="text-center clickable-stat" onclick="openFollowersModalFromPublic()"><strong id="pub-profile-followers-count" class="text-white font-bold text-xl sm:text-2xl block">0</strong> <span class="text-xs">Takipçi</span></div>
-          <div class="text-center clickable-stat" onclick="openFollowingModalFromPublic()"><strong id="pub-profile-following-count" class="text-white font-bold text-xl sm:text-2xl block">0</strong> <span class="text-xs">Takip</span></div>
-        </div>
-        <div class="space-y-3 pt-2">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Gönderileri</h4>
-          <div id="pub-profile-posts-list" class="space-y-4"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EDIT PROFILE -->
-  <div id="edit-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 items-center justify-center p-3 sm:p-4" style="display:none;">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 mx-auto">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="text-base sm:text-lg font-bold text-white">Profili Düzenle</h3>
-        <button onclick="closeEditProfileModal()" class="text-slate-500 hover:text-white p-2 touch-target"><i class="fa-solid fa-xmark text-xl"></i></button>
-      </div>
-      <form onsubmit="saveProfileChanges(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-2">Profil Fotoğrafı</label>
-          <div class="flex items-center gap-4 flex-wrap">
-            <div id="edit-avatar-preview" class="w-16 h-16 rounded-2xl bg-slate-800 text-white flex items-center justify-center font-bold text-xl overflow-hidden border border-slate-700 shrink-0">?</div>
-            <div class="flex-1 space-y-1 min-w-[120px]">
-              <input type="file" id="edit-avatar-input" accept="image/*" onchange="handleAvatarSelect(event)" class="hidden">
-              <button type="button" onclick="document.getElementById('edit-avatar-input').click()" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition touch-target">
-                <i class="fa-solid fa-upload mr-1"></i> Fotoğraf Seç
-              </button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Ad Soyad</label>
-          <input type="text" id="edit-fullname" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Biyografi</label>
-          <textarea id="edit-bio" rows="3" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 resize-none"></textarea>
-        </div>
-        <div class="flex justify-end gap-2 pt-2 flex-wrap">
-          <button type="button" onclick="closeEditProfileModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 touch-target">İptal</button>
-          <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-xl shadow touch-target">Kaydet</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- OYUN MODAL -->
-  <div id="game-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex-col" style="display:none;">
-    <div class="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 shrink-0 safe-bottom">
-      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div id="game-modal-emoji" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl sm:text-2xl shrink-0">🎮</div>
-        <div class="min-w-0">
-          <h3 id="game-modal-title" class="font-bold text-sm sm:text-base text-white truncate">Oyun</h3>
-          <p id="game-modal-category" class="text-[10px] sm:text-xs text-purple-400">Kategori</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-        <button onclick="openGameInNewTab()" title="Yeni Sekmede Aç" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-target">
-          <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-        </button>
-        <button onclick="toggleGameFullscreen()" title="Tam Ekran" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition touch-target">
-          <i class="fa-solid fa-expand text-xs"></i>
-        </button>
-        <button onclick="closeGameModal()" title="Kapat" class="w-9 h-9 rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center transition touch-target">
-          <i class="fa-solid fa-xmark text-sm"></i>
-        </button>
-      </div>
-    </div>
-    <div id="game-modal-body" class="flex-1 relative bg-slate-950 overflow-hidden">
-      <div id="game-iframe-container" class="absolute inset-0 w-full h-full"></div>
-      <div id="game-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 gap-3 z-10">
-        <div class="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
-        <p class="text-sm text-slate-400">Oyun yükleniyor...</p>
-      </div>
-      <div id="game-error" class="hidden absolute inset-0 flex-col items-center justify-center bg-slate-950 gap-3 p-6 text-center z-20">
-        <i class="fa-solid fa-triangle-exclamation text-amber-400 text-4xl"></i>
-        <h3 class="text-lg font-bold text-white">Oyun Yüklenemedi</h3>
-        <p class="text-sm text-slate-400 max-w-md">Bu oyun sitenin içinde açılmayı desteklemiyor olabilir.</p>
-        <button onclick="openGameInNewTab()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">
-          <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Yeni Sekmede Aç
-        </button>
-      </div>
-    </div>
   </div>
 
   <script type="module" src="script.js"></script>
