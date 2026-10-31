@@ -457,6 +457,7 @@
         <button onclick="handleBannedClick('users', event)" id="nav-users-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Topluluk</button>
         <button onclick="handleBannedClick('games', event)" id="nav-games-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> Oyunlar</button>
         <button onclick="toggleAiPanel()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-robot"></i> AI</button>
+        <button onclick="handleBannedClick('profile', event)" id="nav-profile-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-user"></i> Profilim</button>
         <button onclick="handleBannedClick('mod', event)" id="nav-mod-desk" class="hidden px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border border-red-500/30"><i class="fa-solid fa-shield-halved"></i> MOD</button>
       </nav>
       <div class="flex items-center gap-3">
@@ -666,6 +667,13 @@
           </div>
         </div>
         <div id="reward-selector-container"></div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-white">Gruplarım</h3>
+            <span id="profile-groups-count" class="text-[10px] text-slate-500">0 grup</span>
+          </div>
+          <div id="profile-groups-container" class="space-y-2"></div>
+        </div>
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Gönderilerim</h3>
         <div id="profile-posts-container" class="space-y-3"></div>
       </div>
