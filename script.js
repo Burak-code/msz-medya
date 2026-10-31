@@ -1726,20 +1726,26 @@ function openGroupDetail(groupId) {
   $('group-detail-member-count').innerText = members.length;
   const membersContainer = $('group-detail-members');
   if (members.length === 0) membersContainer.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">Katılımcı yok.</div>`;
-  else membersContainer.innerHTML = members.map(u => { const user = ensureUserExists(u); if (!user) return ''; return `<div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${u}')"><div class="w-6 h-6 shrink-0">${renderAvatar(user, "w-6 h-6 text-[10px]")}</div><span class="text-xs text-slate-300 truncate">${escapeHTML(user.fullname)}${u === g.owner ? ' 👑' : ''}</span></div>`; }).join('');
+  else membersContainer.innerHTML = members.map(u => { const user = ensureUserExists(u); if (!user) return ''; return `<div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${u}')"><div class="w-6 h-6 shrink-0">${renderAvatar(user, "w-6 h-6 text-[10px]")}</div><span class="text-xs text-slate-300 truncate">${escapeHtml(user.fullname)}${u === g.owner ? ' 👑' : ''}</span></div>`; }).join('');
 
-  // Sohbet sekmesini varsayılan yap
-  switchGroupTab('chat');
-  // Sohbeti yükle
-  loadGroupChatForCurrent();
-  // Sadece üyeler yazabilsin
+  // Sohbet sadece üyelere açık: üye değilse kilitli, bilgi sekmesi açılır
   const chatInput = $('group-chat-input');
-  if (chatInput) {
-    chatInput.disabled = !isMember;
-    chatInput.placeholder = isMember ? 'Mesaj yaz... (@etiket)' : 'Sadece üyeler yazabilir';
+  const inputBar = $('group-chat-input-bar');
+  const chatBox = $('group-chat-messages');
+  if (isMember) {
+    switchGroupTab('chat');
+    if (inputBar) inputBar.classList.remove('hidden');
+    if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Mesaj yaz... (@etiket)'; }
+    const hint = $('group-chat-hint');
+    if (hint) hint.innerText = 'Bu sohbeti sadece grup üyeleri görür ve yazabilir.';
+    loadGroupChatForCurrent();
+  } else {
+    unsubscribeFromGroupChat(groupId);
+    switchGroupTab('info');
+    if (inputBar) inputBar.classList.add('hidden');
+    if (chatInput) chatInput.disabled = true;
+    if (chatBox) chatBox.innerHTML = `<div class="text-center text-slate-500 text-xs py-10"><i class="fa-solid fa-lock text-2xl mb-2 block text-slate-600"></i>Bu sohbet sadece grup üyelerine açık.<br>Görmek için gruba katıl.</div>`;
   }
-  const hint = $('group-chat-hint');
-  if (hint) hint.innerText = isMember ? 'Sadece grup üyeleri yazabilir.' : 'Yazmak için gruba katıl.';
 
   const m = $('group-detail-modal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
@@ -1847,21 +1853,42 @@ async function joinGroup() {
     await saveGroupsToDB();
     await saveGroupToFirebase(g);
     showToast('✅ Katıldın!', 'success');
-    renderGroups(); openGroupDetail(selectedGroupId); updateUserUI();
+    renderGroups(); renderProfileGroups(); openGroupDetail(selectedGroupId); updateUserUI();
     if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'GROUP_UPDATE', group: g }));
   }
 }
-async function leaveGroup() {
-  if (!selectedGroupId) return;
-  const g = groupsDb.find(x => x.id === selectedGroupId);
+async function leaveGroupById(id) {
+  const g = groupsDb.find(x => x.id === id);
   if (!g) return;
-  if (g.owner === currentUser.username) { showModal('Uyarı', 'Kurucu ayrılamaz.'); return; }
-  g.members = g.members.filter(u => u !== currentUser.username);
+  if (g.owner === currentUser.username) { showModal('Uyarı', 'Kurucu ayrılamaz. Grubu silebilirsin.'); return; }
+  if (!confirm(`"${g.name}" grubundan ayrılmak istiyor musun?`)) return;
+  g.members = (g.members || []).filter(u => u !== currentUser.username);
   await saveGroupsToDB();
   await saveGroupToFirebase(g);
-  showToast('Ayrıldın.', 'info');
-  renderGroups(); closeGroupDetailModal(); updateUserUI();
+  unsubscribeFromGroupChat(id);
+  showToast('Gruptan ayrıldın.', 'info');
+  if (selectedGroupId === id) closeGroupDetailModal();
+  renderGroups(); renderProfileGroups(); updateUserUI(); renderFeed();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'GROUP_UPDATE', group: g }));
+}
+async function leaveGroup() { if (selectedGroupId) await leaveGroupById(selectedGroupId); }
+function leaveGroupFromProfile(id) { leaveGroupById(id); }
+
+function renderProfileGroups() {
+  const container = $('profile-groups-container');
+  if (!container || !currentUser) return;
+  const mine = groupsDb.filter(g => g.members?.includes(currentUser.username));
+  const cnt = $('profile-groups-count');
+  if (cnt) cnt.innerText = `${mine.length} grup`;
+  if (mine.length === 0) { container.innerHTML = `<div class="text-center text-xs text-slate-500 py-4">Henüz hiçbir gruba üye değilsin.</div>`; return; }
+  container.innerHTML = mine.map(g => {
+    const isOwner = g.owner === currentUser.username;
+    const icon = g.photo ? `<img src="${g.photo}" class="w-full h-full object-cover">` : (g.emoji || '📁');
+    const btn = isOwner
+      ? `<button onclick="deleteGroup('${g.id}')" class="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg shrink-0">Sil</button>`
+      : `<button onclick="leaveGroupFromProfile('${g.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-red-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg transition shrink-0">Ayrıl</button>`;
+    return `<div class="flex items-center gap-3 p-2 bg-slate-950 border border-slate-800 rounded-xl"><div class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center text-xl overflow-hidden shrink-0 cursor-pointer" onclick="openGroupDetail('${g.id}')">${icon}</div><div class="min-w-0 flex-1 cursor-pointer" onclick="openGroupDetail('${g.id}')"><div class="flex items-center gap-1.5"><span class="text-xs font-bold text-white truncate">${escapeHtml(g.name)}</span>${isOwner ? '<span class="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-semibold">Kurucu</span>' : ''}</div><p class="text-[10px] text-slate-500">👥 ${g.members?.length || 0} üye</p></div>${btn}</div>`;
+  }).join('');
 }
 async function deleteGroup(groupId) {
   const id = groupId || selectedGroupId;
@@ -1874,7 +1901,8 @@ async function deleteGroup(groupId) {
   try { await remove(ref(rtdb, 'groups/' + id)); } catch(e) {}
   try { await remove(ref(rtdb, 'group_chats/' + id)); } catch(e) {}
   showToast('✅ Silindi.', 'success');
-  renderGroups(); closeGroupDetailModal();
+  unsubscribeFromGroupChat(id);
+  renderGroups(); renderProfileGroups(); closeGroupDetailModal();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'DELETE_GROUP', groupId: id }));
 }
 
@@ -2139,7 +2167,7 @@ function switchTab(tab) {
   activeTab = tab;
 
   // Desktop
-  ['feed','messages','groups','users','games','mod'].forEach(t => {
+  ['feed','messages','groups','users','games','profile','mod'].forEach(t => {
     const el = $(`nav-${t}-desk`);
     if (!el) return;
     el.className = 'px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2';
@@ -2767,6 +2795,7 @@ function renderProfileTab() {
   $('profile-stat-followers').innerText = (currentUser.followers||[]).length;
   $('profile-stat-following').innerText = (currentUser.following||[]).length;
   renderRewardSelector();
+  renderProfileGroups();
   const container = $('profile-posts-container');
   if (myPosts.length === 0) container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center text-slate-500 text-xs">Henüz gönderin yok.</div>`;
   else container.innerHTML = myPosts.map(p => createPostCard(p)).join('');
@@ -2975,7 +3004,7 @@ Object.assign(window, {
   openFollowersModal, closeFollowersModal, openFollowingModal, closeFollowingModal,
   openFollowersModalFromPublic, openFollowingModalFromPublic,
   openCreateGroupModal, closeCreateGroupModal, createGroup, openGroupDetail,
-  closeGroupDetailModal, joinGroup, leaveGroup, deleteGroup, switchGroupTab, sendGroupChatMessage,
+  closeGroupDetailModal, joinGroup, leaveGroup, leaveGroupFromProfile, deleteGroup, switchGroupTab, sendGroupChatMessage,
   submitPost, toggleLike, toggleComments, submitComment, deleteComment, deletePost,
   handlePostMediaSelect, removePostMedia, openMediaLightbox,
   openEmojiPanel, closeEmojiPanel, insertEmoji,
