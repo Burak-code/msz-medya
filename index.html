@@ -266,35 +266,7 @@
         </div>
         <input id="edit-fullname" required placeholder="Ad Soyad" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
         <textarea id="edit-bio" rows="3" placeholder="Biyografi" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"></textarea>
-        <label for="edit-birthdate" class="block text-xs text-slate-400">Doğum tarihi</label>
-        <input type="date" id="edit-birthdate" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white">
-        <label for="edit-country" class="block text-xs text-slate-400">Ülke</label>
-        <select id="edit-country" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white">
-          <option value="">Ülkeni seç</option>
-        </select>
         <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Kaydet</button>
-      </form>
-    </div>
-  </div>
-
-
-  <div id="required-profile-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-sm z-[250] items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
-      <div class="text-center mb-4">
-        <div class="text-3xl mb-2">🌍</div>
-        <h3 class="font-bold text-white text-base">Profilini tamamla</h3>
-        <p class="text-xs text-slate-400 mt-2">MSZ MEDYA'ya devam etmek için doğum tarihini ve ülkeni seçmelisin. 18 yaş ve üzeri kullanıcılar kabul edilir.</p>
-      </div>
-      <form onsubmit="completeRequiredProfile(event)" class="space-y-3">
-        <label for="required-birthdate" class="block text-xs text-slate-400">Doğum tarihi</label>
-        <input type="date" id="required-birthdate" required class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white">
-        <label for="required-country" class="block text-xs text-slate-400">Ülke</label>
-        <select id="required-country" required class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white">
-          <option value="">Ülkeni seç</option>
-        </select>
-        <p class="text-[11px] text-slate-500">Doğum tarihin gizli tutulur. Profilinde yalnızca yaşın ve ülke bayrağın gösterilir.</p>
-        <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm">Devam Et</button>
-        <button type="button" onclick="logout()" class="w-full py-2 text-slate-400 hover:text-white text-xs">Çıkış yap</button>
       </form>
     </div>
   </div>
@@ -457,12 +429,6 @@
       <form id="register-form" onsubmit="handleRegister(event); return false;" class="space-y-3 hidden">
         <input type="text" id="reg-username" required pattern="^[a-zA-Z0-9_]{3,20}$" placeholder="Kullanıcı Adı" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
         <input type="password" id="reg-password" required minlength="6" placeholder="Şifre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none">
-        <label for="reg-birthdate" class="block text-xs text-slate-400">Doğum tarihin (18 yaş ve üzeri)</label>
-        <input type="date" id="reg-birthdate" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white">
-        <label for="reg-country" class="block text-xs text-slate-400">Ülken</label>
-        <select id="reg-country" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white">
-          <option value="">Ülkeni seç</option>
-        </select>
         <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm transition">Hesap Oluştur</button>
       </form>
       <div class="relative my-5">
@@ -491,7 +457,6 @@
         <button onclick="handleBannedClick('users', event)" id="nav-users-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Topluluk</button>
         <button onclick="handleBannedClick('games', event)" id="nav-games-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> Oyunlar</button>
         <button onclick="toggleAiPanel()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-robot"></i> AI</button>
-        <button onclick="handleBannedClick('profile', event)" id="nav-profile-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-user"></i> Profilim</button>
         <button onclick="handleBannedClick('mod', event)" id="nav-mod-desk" class="hidden px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border border-red-500/30"><i class="fa-solid fa-shield-halved"></i> MOD</button>
       </nav>
       <div class="flex items-center gap-3">
