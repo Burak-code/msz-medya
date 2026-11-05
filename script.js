@@ -194,10 +194,156 @@ function ensureUserExists(username, partialData = {}) {
     hasTik: partialData.hasTik || false,
     tikRengi: partialData.tikRengi || null,
     postCount: typeof partialData.postCount === 'number' ? partialData.postCount : 0,
+    country: partialData.country || null,
+    age: typeof partialData.age === 'number' ? partialData.age : null,
     joinedAt: partialData.joinedAt || new Date().toISOString()
   };
   usersDb[username] = fallback;
   return fallback;
+}
+
+// ============================================================
+// ÜLKE / YAŞ / BAYRAK
+// ============================================================
+const COUNTRIES = [
+['AF','Afganistan'],['AL','Arnavutluk'],['DZ','Cezayir'],['AD','Andorra'],['AO','Angola'],['AG','Antigua ve Barbuda'],['AR','Arjantin'],['AM','Ermenistan'],['AU','Avustralya'],['AT','Avusturya'],['AZ','Azerbaycan'],
+['BS','Bahamalar'],['BH','Bahreyn'],['BD','Bangladeş'],['BB','Barbados'],['BY','Belarus'],['BE','Belçika'],['BZ','Belize'],['BJ','Benin'],['BT','Butan'],['BO','Bolivya'],['BA','Bosna-Hersek'],['BW','Botsvana'],['BR','Brezilya'],['BN','Brunei'],['BG','Bulgaristan'],['BF','Burkina Faso'],['BI','Burundi'],
+['CV','Yeşil Burun'],['KH','Kamboçya'],['CM','Kamerun'],['CA','Kanada'],['CF','Orta Afrika Cumhuriyeti'],['TD','Çad'],['CL','Şili'],['CN','Çin'],['CO','Kolombiya'],['KM','Komorlar'],['CG','Kongo'],['CD','Kongo Demokratik Cumhuriyeti'],['CR','Kosta Rika'],['CI','Fildişi Sahili'],['HR','Hırvatistan'],['CU','Küba'],['CY','Kıbrıs'],['CZ','Çekya'],
+['DK','Danimarka'],['DJ','Cibuti'],['DM','Dominika'],['DO','Dominik Cumhuriyeti'],['EC','Ekvador'],['EG','Mısır'],['SV','El Salvador'],['GQ','Ekvator Ginesi'],['ER','Eritre'],['EE','Estonya'],['SZ','Esvatini'],['ET','Etiyopya'],
+['FJ','Fiji'],['FI','Finlandiya'],['FR','Fransa'],['GA','Gabon'],['GM','Gambiya'],['GE','Gürcistan'],['DE','Almanya'],['GH','Gana'],['GR','Yunanistan'],['GD','Grenada'],['GT','Guatemala'],['GN','Gine'],['GW','Gine-Bissau'],['GY','Guyana'],
+['HT','Haiti'],['HN','Honduras'],['HU','Macaristan'],['IS','İzlanda'],['IN','Hindistan'],['ID','Endonezya'],['IR','İran'],['IQ','Irak'],['IE','İrlanda'],['IT','İtalya'],['JM','Jamaika'],['JP','Japonya'],['JO','Ürdün'],
+['KZ','Kazakistan'],['KE','Kenya'],['KI','Kiribati'],['KP','Kuzey Kore'],['KR','Güney Kore'],['XK','Kosova'],['KW','Kuveyt'],['KG','Kırgızistan'],['LA','Laos'],['LV','Letonya'],['LB','Lübnan'],['LS','Lesotho'],['LR','Liberya'],['LY','Libya'],['LI','Lihtenştayn'],['LT','Litvanya'],['LU','Lüksemburg'],
+['MG','Madagaskar'],['MW','Malavi'],['MY','Malezya'],['MV','Maldivler'],['ML','Mali'],['MT','Malta'],['MH','Marshall Adaları'],['MR','Moritanya'],['MU','Mauritius'],['MX','Meksika'],['FM','Mikronezya'],['MD','Moldova'],['MC','Monako'],['MN','Moğolistan'],['ME','Karadağ'],['MA','Fas'],['MZ','Mozambik'],['MM','Myanmar'],
+['NA','Namibya'],['NR','Nauru'],['NP','Nepal'],['NL','Hollanda'],['NZ','Yeni Zelanda'],['NI','Nikaragua'],['NE','Nijer'],['NG','Nijerya'],['MK','Kuzey Makedonya'],['NO','Norveç'],['OM','Umman'],
+['PK','Pakistan'],['PW','Palau'],['PS','Filistin'],['PA','Panama'],['PG','Papua Yeni Gine'],['PY','Paraguay'],['PE','Peru'],['PH','Filipinler'],['PL','Polonya'],['PT','Portekiz'],['QA','Katar'],
+['RO','Romanya'],['RU','Rusya'],['RW','Ruanda'],['KN','Saint Kitts ve Nevis'],['LC','Saint Lucia'],['VC','Saint Vincent ve Grenadinler'],['WS','Samoa'],['SM','San Marino'],['ST','São Tomé ve Príncipe'],['SA','Suudi Arabistan'],['SN','Senegal'],['RS','Sırbistan'],['SC','Seyşeller'],['SL','Sierra Leone'],['SG','Singapur'],['SK','Slovakya'],['SI','Slovenya'],['SB','Solomon Adaları'],['SO','Somali'],['ZA','Güney Afrika'],['SS','Güney Sudan'],['ES','İspanya'],['LK','Sri Lanka'],['SD','Sudan'],['SR','Surinam'],['SE','İsveç'],['CH','İsviçre'],['SY','Suriye'],
+['TW','Tayvan'],['TJ','Tacikistan'],['TZ','Tanzanya'],['TH','Tayland'],['TL','Doğu Timor'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad ve Tobago'],['TN','Tunus'],['TR','Türkiye'],['TM','Türkmenistan'],['TV','Tuvalu'],
+['UG','Uganda'],['UA','Ukrayna'],['AE','Birleşik Arap Emirlikleri'],['GB','Birleşik Krallık'],['US','Amerika Birleşik Devletleri'],['UY','Uruguay'],['UZ','Özbekistan'],['VU','Vanuatu'],['VA','Vatikan'],['VE','Venezuela'],['VN','Vietnam'],['YE','Yemen'],['ZM','Zambiya'],['ZW','Zimbabve']
+];
+const COUNTRY_MAP = Object.fromEntries(COUNTRIES);
+const MIN_AGE = 18;
+
+function calcAge(birthDate) {
+  if (!birthDate) return null;
+  const d = new Date(birthDate);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
+}
+// Kendi hesabında doğum tarihinden, başkalarında yayınlanan yaştan hesaplar
+function getUserAge(user) {
+  if (!user) return null;
+  if (user.birthDate) {
+    const a = calcAge(user.birthDate);
+    if (a !== null) return a;
+  }
+  return typeof user.age === 'number' ? user.age : null;
+}
+// Hata mesajı döner, sorun yoksa null
+function validateBirthAndCountry(birthDate, country) {
+  if (!birthDate) return 'Doğum tarihini seçmelisin.';
+  if (!country || !COUNTRY_MAP[country]) return 'Ülkeni seçmelisin.';
+  const age = calcAge(birthDate);
+  if (age === null || new Date(birthDate).getTime() > Date.now() || age > 120) return 'Geçerli bir doğum tarihi gir.';
+  if (age < MIN_AGE) return 'MSZ MEDYA ' + MIN_AGE + ' yaş ve üzeri kullanıcılar içindir.';
+  return null;
+}
+function renderCountryFlag(code, size = 'w-5 h-5') {
+  if (!code || !COUNTRY_MAP[code]) return '';
+  const lc = code.toLowerCase();
+  return `<img src="https://flagcdn.com/w80/${lc}.png" alt="${escapeHtml(COUNTRY_MAP[code])}" title="${escapeHtml(COUNTRY_MAP[code])}" loading="lazy" class="${size} rounded-full object-cover border border-slate-600 shrink-0">`;
+}
+// İsmin yanındaki küçük yuvarlak bayrak (her yerde)
+function renderNameFlag(user) {
+  if (!user || !user.country || !COUNTRY_MAP[user.country]) return '';
+  return renderCountryFlag(user.country, 'w-3.5 h-3.5 ml-1 inline-block align-middle');
+}
+// Sadece profilde: yaş (doğum tarihi değil)
+function renderAgeBadge(user) {
+  const age = getUserAge(user);
+  if (age === null) return '';
+  return `<span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 align-middle text-[10px] font-bold text-slate-200"><i class="fa-solid fa-cake-candles text-[9px] text-pink-400"></i>${age} yaşında</span>`;
+}
+function populateCountrySelects() {
+  const sorted = [...COUNTRIES].sort((a, b) => a[1].localeCompare(b[1], 'tr'));
+  const options = sorted.map(([code, name]) => `<option value="${code}">${escapeHtml(name)}</option>`).join('');
+  ['reg-country', 'edit-country', 'required-country'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">Ülkeni seç</option>' + options;
+  });
+  // 18 yaşından küçük tarihler seçilemesin
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - MIN_AGE);
+  const maxStr = maxDate.toISOString().split('T')[0];
+  ['reg-birthdate', 'edit-birthdate', 'required-birthdate'].forEach(id => {
+    const el = $(id);
+    if (el) { el.max = maxStr; el.min = '1900-01-01'; }
+  });
+}
+function needsRequiredProfile() {
+  if (!currentUser) return false;
+  return !currentUser.birthDate || !currentUser.country || !COUNTRY_MAP[currentUser.country];
+}
+function setRequiredProfileError(msg) {
+  const form = document.querySelector('#required-profile-modal form');
+  if (!form) return;
+  let p = $('required-profile-error');
+  if (!p) {
+    p = document.createElement('p');
+    p.id = 'required-profile-error';
+    p.className = 'text-xs text-red-400 font-medium';
+    form.insertBefore(p, form.querySelector('button[type="submit"]'));
+  }
+  p.innerText = msg || '';
+}
+function checkRequiredProfile() {
+  const m = $('required-profile-modal');
+  if (!m) return;
+  if (needsRequiredProfile()) {
+    setRequiredProfileError('');
+    m.classList.remove('hidden'); m.style.display = 'flex';
+  } else {
+    m.classList.add('hidden'); m.style.display = 'none';
+  }
+}
+async function completeRequiredProfile(e) {
+  if (e) e.preventDefault();
+  const birthDate = $('required-birthdate').value;
+  const country = $('required-country').value;
+  const err = validateBirthAndCountry(birthDate, country);
+  if (err) { setRequiredProfileError(err); return false; }
+  currentUser.birthDate = birthDate;
+  currentUser.country = country;
+  usersDb[currentUser.username] = currentUser;
+  await saveUsersToDB();
+  await saveUserToFirebase(currentUser);
+  publishPresence();
+  checkRequiredProfile();
+  updateUserUI(); renderProfileTab(); renderUsersLeaderboard();
+  showToast('✅ Profilin tamamlandı!', 'success');
+  return false;
+}
+// Başka cihazdan girişte doğum tarihi/ülkeyi Firebase'den geri al
+async function syncMyPrivateProfile() {
+  if (!currentUser) return;
+  try {
+    if (!currentUser.birthDate || !currentUser.country) {
+      const snap = await get(ref(rtdb, 'user_private/' + currentUser.username));
+      if (snap.exists()) {
+        const v = snap.val();
+        if (!currentUser.birthDate && v.birthDate) currentUser.birthDate = v.birthDate;
+        if (!currentUser.country && v.country) currentUser.country = v.country;
+      }
+    }
+    const pub = usersDb[currentUser.username];
+    if (pub && pub !== currentUser && !currentUser.country && pub.country) currentUser.country = pub.country;
+    usersDb[currentUser.username] = currentUser;
+    await saveUsersToDB();
+  } catch (e) { console.error('private profile sync:', e); }
 }
 
 function normalizePost(p) {
@@ -313,8 +459,14 @@ async function saveUserToFirebase(user) {
       followers: user.followers || [], following: user.following || [],
       neonColor: user.neonColor || null, hasTik: !!user.hasTik, tikRengi: user.tikRengi || null,
       postCount: typeof user.postCount === 'number' ? user.postCount : 0,
-      joinedAt: user.joinedAt || new Date().toISOString(), lastSeen: new Date().toISOString()
+      joinedAt: user.joinedAt || new Date().toISOString(), lastSeen: new Date().toISOString(),
+      country: user.country || null,
+      age: getUserAge(user)
     });
+    // Doğum tarihi herkese açık users düğümüne yazılmaz
+    if (user.birthDate) {
+      await set(ref(rtdb, 'user_private/' + user.username), { birthDate: user.birthDate, country: user.country || null });
+    }
   } catch (e) { console.error('FB user save:', e); }
 }
 
@@ -694,6 +846,7 @@ async function incrementPostCount(username, delta = 1) {
 function sanitizeUserObj(u) {
   return {
     username: u.username, fullname: u.fullname, bio: u.bio, color: u.color, avatarUrl: u.avatarUrl,
+    country: u.country || null, age: getUserAge(u),
     followers: u.followers || [], following: u.following || [],
     neonColor: u.neonColor || null, hasTik: u.hasTik || false, tikRengi: u.tikRengi || null,
     postCount: typeof u.postCount === 'number' ? u.postCount : postsDb.filter(p => p.author && p.author.username === u.username).length
@@ -1224,7 +1377,7 @@ function getUserDisplayName(user) {
   if (!user) return '?';
   let name = escapeHtml(user.fullname || user.username);
   if ((user.followers||[]).length >= 10 && user.neonColor) name = `<span class="neon-text" style="color:${user.neonColor}">${name}</span>`;
-  return name + showTikBadge(user);
+  return name + renderNameFlag(user) + showTikBadge(user);
 }
 
 // Grup simgesi (emoji veya foto) — isim sağında göster
@@ -1266,10 +1419,15 @@ async function handleRegister(e) {
     const password = $('reg-password')?.value || '';
     if (!username || !password) { showModal('Hata', 'Kullanıcı adı ve şifre zorunlu!'); return false; }
     if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı alınmış!'); return false; }
+    const birthDate = $('reg-birthdate')?.value || '';
+    const country = $('reg-country')?.value || '';
+    const profileErr = validateBirthAndCountry(birthDate, country);
+    if (profileErr) { showModal('Hata', profileErr); return false; }
     try {
       const email = username + '@mszmedya.local';
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = {
+        birthDate, country,
         username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: cred.user.uid,
         color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
         followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
@@ -1288,6 +1446,7 @@ async function handleRegister(e) {
       else if (err.code === 'auth/weak-password') showModal('Hata', 'Şifre çok zayıf. En az 6 karakter.');
       else {
         const newUser = {
+        birthDate, country,
           username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: null,
           color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
           followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
@@ -1414,6 +1573,7 @@ function logout() {
   hideBanUI();
   $('main-app').classList.add('hidden');
   $('auth-screen').classList.remove('hidden');
+  const rpm = $('required-profile-modal'); if (rpm) { rpm.classList.add('hidden'); rpm.style.display = 'none'; }
   const lu = $('login-username'), lp = $('login-password');
   if (lu) lu.value = '';
   if (lp) lp.value = '';
@@ -1431,8 +1591,10 @@ async function launchMainApp() {
     loadAnimationSettings();
     updateUserUI();
     updateModUI();
+    checkRequiredProfile();
     try { initNetworkConnection(); } catch (e) { console.error('MQTT init:', e); }
     try { await loadEverythingFromFirebase(); } catch (e) { console.error('Firebase load:', e); }
+    try { await syncMyPrivateProfile(); } catch (e) {}
     try { await saveUserToFirebase(currentUser); } catch (e) {}
     try { subscribeToRTDBPosts(); } catch (e) {}
 
@@ -1456,6 +1618,7 @@ async function launchMainApp() {
     if (iframe) iframe.onload = () => sendAiLimitToFrame();
 
     logSystem('Ana uygulama başlatıldı (v3.1)');
+    checkRequiredProfile();
   } catch (fatal) {
     console.error('launchMainApp fatal:', fatal);
     try {
@@ -1726,26 +1889,20 @@ function openGroupDetail(groupId) {
   $('group-detail-member-count').innerText = members.length;
   const membersContainer = $('group-detail-members');
   if (members.length === 0) membersContainer.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">Katılımcı yok.</div>`;
-  else membersContainer.innerHTML = members.map(u => { const user = ensureUserExists(u); if (!user) return ''; return `<div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${u}')"><div class="w-6 h-6 shrink-0">${renderAvatar(user, "w-6 h-6 text-[10px]")}</div><span class="text-xs text-slate-300 truncate">${escapeHtml(user.fullname)}${u === g.owner ? ' 👑' : ''}</span></div>`; }).join('');
+  else membersContainer.innerHTML = members.map(u => { const user = ensureUserExists(u); if (!user) return ''; return `<div class="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer" onclick="openPublicProfileModal('${u}')"><div class="w-6 h-6 shrink-0">${renderAvatar(user, "w-6 h-6 text-[10px]")}</div><span class="text-xs text-slate-300 truncate">${escapeHtml(user.fullname)}${renderNameFlag(user)}${u === g.owner ? ' 👑' : ''}</span></div>`; }).join('');
 
-  // Sohbet sadece üyelere açık: üye değilse kilitli, bilgi sekmesi açılır
+  // Sohbet sekmesini varsayılan yap
+  switchGroupTab('chat');
+  // Sohbeti yükle
+  loadGroupChatForCurrent();
+  // Sadece üyeler yazabilsin
   const chatInput = $('group-chat-input');
-  const inputBar = $('group-chat-input-bar');
-  const chatBox = $('group-chat-messages');
-  if (isMember) {
-    switchGroupTab('chat');
-    if (inputBar) inputBar.classList.remove('hidden');
-    if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Mesaj yaz... (@etiket)'; }
-    const hint = $('group-chat-hint');
-    if (hint) hint.innerText = 'Bu sohbeti sadece grup üyeleri görür ve yazabilir.';
-    loadGroupChatForCurrent();
-  } else {
-    unsubscribeFromGroupChat(groupId);
-    switchGroupTab('info');
-    if (inputBar) inputBar.classList.add('hidden');
-    if (chatInput) chatInput.disabled = true;
-    if (chatBox) chatBox.innerHTML = `<div class="text-center text-slate-500 text-xs py-10"><i class="fa-solid fa-lock text-2xl mb-2 block text-slate-600"></i>Bu sohbet sadece grup üyelerine açık.<br>Görmek için gruba katıl.</div>`;
+  if (chatInput) {
+    chatInput.disabled = !isMember;
+    chatInput.placeholder = isMember ? 'Mesaj yaz... (@etiket)' : 'Sadece üyeler yazabilir';
   }
+  const hint = $('group-chat-hint');
+  if (hint) hint.innerText = isMember ? 'Sadece grup üyeleri yazabilir.' : 'Yazmak için gruba katıl.';
 
   const m = $('group-detail-modal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
@@ -1794,7 +1951,7 @@ function renderGroupChatMessages() {
     const u = ensureUserExists(m.sender, { fullname: m.senderFullname, avatarUrl: m.senderAvatar, color: m.senderColor });
     const time = formatTimeAgo(m.timestamp);
     return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-      <div class="flex items-center gap-1 mb-0.5 px-1"><span class="text-[9px] font-bold ${isMe ? 'text-blue-400' : 'text-slate-400'}">${escapeHtml(m.senderFullname || m.sender)}</span><span class="text-[8px] text-slate-600">${time}</span></div>
+      <div class="flex items-center gap-1 mb-0.5 px-1"><span class="text-[9px] font-bold ${isMe ? 'text-blue-400' : 'text-slate-400'}">${escapeHtml(m.senderFullname || m.sender)}${renderNameFlag(u)}</span><span class="text-[8px] text-slate-600">${time}</span></div>
       <div class="max-w-[85%] rounded-2xl px-3 py-2 text-xs ${isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'} shadow break-words">${renderText(m.text)}</div>
     </div>`;
   }).join('');
@@ -1853,42 +2010,21 @@ async function joinGroup() {
     await saveGroupsToDB();
     await saveGroupToFirebase(g);
     showToast('✅ Katıldın!', 'success');
-    renderGroups(); renderProfileGroups(); openGroupDetail(selectedGroupId); updateUserUI();
+    renderGroups(); openGroupDetail(selectedGroupId); updateUserUI();
     if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'GROUP_UPDATE', group: g }));
   }
 }
-async function leaveGroupById(id) {
-  const g = groupsDb.find(x => x.id === id);
+async function leaveGroup() {
+  if (!selectedGroupId) return;
+  const g = groupsDb.find(x => x.id === selectedGroupId);
   if (!g) return;
-  if (g.owner === currentUser.username) { showModal('Uyarı', 'Kurucu ayrılamaz. Grubu silebilirsin.'); return; }
-  if (!confirm(`"${g.name}" grubundan ayrılmak istiyor musun?`)) return;
-  g.members = (g.members || []).filter(u => u !== currentUser.username);
+  if (g.owner === currentUser.username) { showModal('Uyarı', 'Kurucu ayrılamaz.'); return; }
+  g.members = g.members.filter(u => u !== currentUser.username);
   await saveGroupsToDB();
   await saveGroupToFirebase(g);
-  unsubscribeFromGroupChat(id);
-  showToast('Gruptan ayrıldın.', 'info');
-  if (selectedGroupId === id) closeGroupDetailModal();
-  renderGroups(); renderProfileGroups(); updateUserUI(); renderFeed();
+  showToast('Ayrıldın.', 'info');
+  renderGroups(); closeGroupDetailModal(); updateUserUI();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'GROUP_UPDATE', group: g }));
-}
-async function leaveGroup() { if (selectedGroupId) await leaveGroupById(selectedGroupId); }
-function leaveGroupFromProfile(id) { leaveGroupById(id); }
-
-function renderProfileGroups() {
-  const container = $('profile-groups-container');
-  if (!container || !currentUser) return;
-  const mine = groupsDb.filter(g => g.members?.includes(currentUser.username));
-  const cnt = $('profile-groups-count');
-  if (cnt) cnt.innerText = `${mine.length} grup`;
-  if (mine.length === 0) { container.innerHTML = `<div class="text-center text-xs text-slate-500 py-4">Henüz hiçbir gruba üye değilsin.</div>`; return; }
-  container.innerHTML = mine.map(g => {
-    const isOwner = g.owner === currentUser.username;
-    const icon = g.photo ? `<img src="${g.photo}" class="w-full h-full object-cover">` : (g.emoji || '📁');
-    const btn = isOwner
-      ? `<button onclick="deleteGroup('${g.id}')" class="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg shrink-0">Sil</button>`
-      : `<button onclick="leaveGroupFromProfile('${g.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-red-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg transition shrink-0">Ayrıl</button>`;
-    return `<div class="flex items-center gap-3 p-2 bg-slate-950 border border-slate-800 rounded-xl"><div class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center text-xl overflow-hidden shrink-0 cursor-pointer" onclick="openGroupDetail('${g.id}')">${icon}</div><div class="min-w-0 flex-1 cursor-pointer" onclick="openGroupDetail('${g.id}')"><div class="flex items-center gap-1.5"><span class="text-xs font-bold text-white truncate">${escapeHtml(g.name)}</span>${isOwner ? '<span class="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-semibold">Kurucu</span>' : ''}</div><p class="text-[10px] text-slate-500">👥 ${g.members?.length || 0} üye</p></div>${btn}</div>`;
-  }).join('');
 }
 async function deleteGroup(groupId) {
   const id = groupId || selectedGroupId;
@@ -1901,8 +2037,7 @@ async function deleteGroup(groupId) {
   try { await remove(ref(rtdb, 'groups/' + id)); } catch(e) {}
   try { await remove(ref(rtdb, 'group_chats/' + id)); } catch(e) {}
   showToast('✅ Silindi.', 'success');
-  unsubscribeFromGroupChat(id);
-  renderGroups(); renderProfileGroups(); closeGroupDetailModal();
+  renderGroups(); closeGroupDetailModal();
   if (mqttClient?.connected) mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'DELETE_GROUP', groupId: id }));
 }
 
@@ -2167,7 +2302,7 @@ function switchTab(tab) {
   activeTab = tab;
 
   // Desktop
-  ['feed','messages','groups','users','games','profile','mod'].forEach(t => {
+  ['feed','messages','groups','users','games','mod','profile'].forEach(t => {
     const el = $(`nav-${t}-desk`);
     if (!el) return;
     el.className = 'px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2';
@@ -2328,7 +2463,7 @@ function renderComments(postId) {
   if (!container) return;
   const postComments = commentsDb.filter(c => c.postId === postId);
   if (postComments.length === 0) { container.innerHTML = `<div class="text-xs text-slate-500 text-center py-2">Henüz yorum yok.</div>`; return; }
-  container.innerHTML = postComments.map(c => `<div class="flex items-start gap-2 p-2 bg-slate-950 rounded-xl"><div class="w-6 h-6 shrink-0">${renderAvatar(c.author, "w-6 h-6 text-[10px]")}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-1.5 flex-wrap"><span class="font-bold text-[10px] text-white">${escapeHtml(c.author.fullname)}${showTikBadge(c.author)}</span><span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span><span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span></div><p class="text-xs text-slate-300 break-words">${renderText(c.text)}</p></div>${(c.author.username === currentUser.username || hasModPermission()) ? `<button onclick="deleteComment('${c.id}','${postId}')" class="text-slate-600 hover:text-red-400 text-xs p-1 shrink-0"><i class="fa-solid fa-times"></i></button>` : ''}</div>`).join('');
+  container.innerHTML = postComments.map(c => `<div class="flex items-start gap-2 p-2 bg-slate-950 rounded-xl"><div class="w-6 h-6 shrink-0">${renderAvatar(c.author, "w-6 h-6 text-[10px]")}</div><div class="flex-1 min-w-0"><div class="flex items-center gap-1.5 flex-wrap"><span class="font-bold text-[10px] text-white">${escapeHtml(c.author.fullname)}${renderNameFlag(usersDb[c.author.username] || c.author)}${showTikBadge(c.author)}</span><span class="text-[9px] text-slate-500">@${escapeHtml(c.author.username)}</span><span class="text-[9px] text-slate-600">${formatTimeAgo(c.createdAt)}</span></div><p class="text-xs text-slate-300 break-words">${renderText(c.text)}</p></div>${(c.author.username === currentUser.username || hasModPermission()) ? `<button onclick="deleteComment('${c.id}','${postId}')" class="text-slate-600 hover:text-red-400 text-xs p-1 shrink-0"><i class="fa-solid fa-times"></i></button>` : ''}</div>`).join('');
 }
 async function deleteComment(commentId, postId) {
   commentsDb = commentsDb.filter(c => c.id !== commentId);
@@ -2788,14 +2923,13 @@ function renderProfileTab() {
   if (!currentUser) return;
   $('profile-main-avatar').innerHTML = renderAvatar(currentUser, "w-20 h-20 sm:w-24 sm:h-24 text-2xl");
   $('profile-fullname').innerHTML = getUserDisplayName(currentUser);
-  $('profile-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
+  $('profile-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser) + renderAgeBadge(currentUser);
   $('profile-bio').innerText = currentUser.bio;
   const myPosts = postsDb.filter(p => p.author?.username === currentUser.username).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   $('profile-stat-posts').innerText = getTotalPostCount(currentUser.username);
   $('profile-stat-followers').innerText = (currentUser.followers||[]).length;
   $('profile-stat-following').innerText = (currentUser.following||[]).length;
   renderRewardSelector();
-  renderProfileGroups();
   const container = $('profile-posts-container');
   if (myPosts.length === 0) container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center text-slate-500 text-xs">Henüz gönderin yok.</div>`;
   else container.innerHTML = myPosts.map(p => createPostCard(p)).join('');
@@ -2821,7 +2955,7 @@ function renderPublicProfileModal(username) {
   const groupEmoji = getGroupEmojiForUser(username);
   $('pub-profile-avatar').innerHTML = renderAvatar(u, "w-24 h-24 sm:w-28 sm:h-28 text-3xl");
   $('pub-profile-fullname').innerHTML = groupEmoji + getUserDisplayName(u);
-  $('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u);
+  $('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u) + renderAgeBadge(u);
   $('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
   const followers = u.followers || [], following = u.following || [];
   const userPosts = postsDb.filter(p => p.author?.username === username).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -2848,6 +2982,8 @@ function openEditProfileModal() {
   $('edit-fullname').value = currentUser.fullname;
   $('edit-bio').value = currentUser.bio;
   $('edit-avatar-preview').innerHTML = renderAvatar(currentUser, "w-full h-full text-xl");
+  const eb = $('edit-birthdate'); if (eb) eb.value = currentUser.birthDate || '';
+  const ec = $('edit-country'); if (ec) ec.value = currentUser.country || '';
   tempAvatarBase64 = null;
   const m = $('edit-profile-modal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
@@ -2878,6 +3014,12 @@ async function saveProfileChanges(e) {
   e.preventDefault();
   const newFullname = $('edit-fullname').value.trim();
   const newBio = $('edit-bio').value.trim();
+  const newBirthDate = $('edit-birthdate').value;
+  const newCountry = $('edit-country').value;
+  const profileErr = validateBirthAndCountry(newBirthDate, newCountry);
+  if (profileErr) { showModal('Hata', profileErr); return; }
+  currentUser.birthDate = newBirthDate;
+  currentUser.country = newCountry;
   currentUser.fullname = newFullname;
   currentUser.bio = newBio;
   if (tempAvatarBase64) currentUser.avatarUrl = tempAvatarBase64;
@@ -3004,7 +3146,7 @@ Object.assign(window, {
   openFollowersModal, closeFollowersModal, openFollowingModal, closeFollowingModal,
   openFollowersModalFromPublic, openFollowingModalFromPublic,
   openCreateGroupModal, closeCreateGroupModal, createGroup, openGroupDetail,
-  closeGroupDetailModal, joinGroup, leaveGroup, leaveGroupFromProfile, deleteGroup, switchGroupTab, sendGroupChatMessage,
+  closeGroupDetailModal, joinGroup, leaveGroup, deleteGroup, switchGroupTab, sendGroupChatMessage,
   submitPost, toggleLike, toggleComments, submitComment, deleteComment, deletePost,
   handlePostMediaSelect, removePostMedia, openMediaLightbox,
   openEmojiPanel, closeEmojiPanel, insertEmoji,
@@ -3021,7 +3163,7 @@ Object.assign(window, {
   openModDeletePostModal, closeModDeletePostModal, confirmModDeletePost,
   modUnbanUser, modRemoveTik, filterModUserSearch,
   openGame, closeGameModal, openGameInNewTab, toggleGameFullscreen,
-  openSafeLink, openNotificationModal
+  openSafeLink, openNotificationModal, completeRequiredProfile
 });
 
 // ============================================================
@@ -3045,6 +3187,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(err) { console.error('DB hatası:', err); }
 
   loadAnimationSettings();
+  populateCountrySelects();
 
   const tabLoginBtn = document.getElementById('tab-login-btn');
   const tabRegBtn = document.getElementById('tab-register-btn');
