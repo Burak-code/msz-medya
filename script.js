@@ -84,6 +84,128 @@ const REWARD_TIERS = [
   { count: 100, color: '#d97706', name: 'Altın', icon: '👑' }
 ];
 
+// Ülke listesi (İsrail yok). code = ISO 3166-1 alpha-2
+const COUNTRIES = [
+  { code: 'TR', name: 'Türkiye' },
+  { code: 'AZ', name: 'Azerbaycan' },
+  { code: 'DE', name: 'Almanya' },
+  { code: 'US', name: 'Amerika Birleşik Devletleri' },
+  { code: 'GB', name: 'Birleşik Krallık' },
+  { code: 'FR', name: 'Fransa' },
+  { code: 'NL', name: 'Hollanda' },
+  { code: 'BE', name: 'Belçika' },
+  { code: 'AT', name: 'Avusturya' },
+  { code: 'CH', name: 'İsviçre' },
+  { code: 'SE', name: 'İsveç' },
+  { code: 'NO', name: 'Norveç' },
+  { code: 'DK', name: 'Danimarka' },
+  { code: 'FI', name: 'Finlandiya' },
+  { code: 'IT', name: 'İtalya' },
+  { code: 'ES', name: 'İspanya' },
+  { code: 'PT', name: 'Portekiz' },
+  { code: 'GR', name: 'Yunanistan' },
+  { code: 'RU', name: 'Rusya' },
+  { code: 'UA', name: 'Ukrayna' },
+  { code: 'PL', name: 'Polonya' },
+  { code: 'RO', name: 'Romanya' },
+  { code: 'BG', name: 'Bulgaristan' },
+  { code: 'HU', name: 'Macaristan' },
+  { code: 'CZ', name: 'Çekya' },
+  { code: 'SK', name: 'Slovakya' },
+  { code: 'HR', name: 'Hırvatistan' },
+  { code: 'RS', name: 'Sırbistan' },
+  { code: 'BA', name: 'Bosna Hersek' },
+  { code: 'XK', name: 'Kosova' },
+  { code: 'AL', name: 'Arnavutluk' },
+  { code: 'MK', name: 'Kuzey Makedonya' },
+  { code: 'GE', name: 'Gürcistan' },
+  { code: 'AM', name: 'Ermenistan' },
+  { code: 'KZ', name: 'Kazakistan' },
+  { code: 'UZ', name: 'Özbekistan' },
+  { code: 'TM', name: 'Türkmenistan' },
+  { code: 'KG', name: 'Kırgızistan' },
+  { code: 'TJ', name: 'Tacikistan' },
+  { code: 'IR', name: 'İran' },
+  { code: 'IQ', name: 'Irak' },
+  { code: 'SY', name: 'Suriye' },
+  { code: 'LB', name: 'Lübnan' },
+  { code: 'JO', name: 'Ürdün' },
+  { code: 'SA', name: 'Suudi Arabistan' },
+  { code: 'AE', name: 'Birleşik Arap Emirlikleri' },
+  { code: 'QA', name: 'Katar' },
+  { code: 'KW', name: 'Kuveyt' },
+  { code: 'BH', name: 'Bahreyn' },
+  { code: 'OM', name: 'Umman' },
+  { code: 'YE', name: 'Yemen' },
+  { code: 'EG', name: 'Mısır' },
+  { code: 'LY', name: 'Libya' },
+  { code: 'TN', name: 'Tunus' },
+  { code: 'DZ', name: 'Cezayir' },
+  { code: 'MA', name: 'Fas' },
+  { code: 'PS', name: 'Filistin' },
+  { code: 'CY', name: 'Kıbrıs' },
+  { code: 'JP', name: 'Japonya' },
+  { code: 'KR', name: 'Güney Kore' },
+  { code: 'CN', name: 'Çin' },
+  { code: 'IN', name: 'Hindistan' },
+  { code: 'PK', name: 'Pakistan' },
+  { code: 'BD', name: 'Bangladeş' },
+  { code: 'ID', name: 'Endonezya' },
+  { code: 'MY', name: 'Malezya' },
+  { code: 'SG', name: 'Singapur' },
+  { code: 'TH', name: 'Tayland' },
+  { code: 'VN', name: 'Vietnam' },
+  { code: 'PH', name: 'Filipinler' },
+  { code: 'AU', name: 'Avustralya' },
+  { code: 'NZ', name: 'Yeni Zelanda' },
+  { code: 'CA', name: 'Kanada' },
+  { code: 'MX', name: 'Meksika' },
+  { code: 'BR', name: 'Brezilya' },
+  { code: 'AR', name: 'Arjantin' },
+  { code: 'CL', name: 'Şili' },
+  { code: 'CO', name: 'Kolombiya' },
+  { code: 'ZA', name: 'Güney Afrika' },
+  { code: 'NG', name: 'Nijerya' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'OTHER', name: 'Diğer' }
+];
+
+function countryCodeToFlagEmoji(code) {
+  if (!code || code === 'OTHER' || code === 'XK') {
+    if (code === 'XK') return '🇽🇰'; // Kosovo
+    return '🏳️';
+  }
+  try {
+    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)));
+  } catch {
+    return '🏳️';
+  }
+}
+
+function getCountryName(code) {
+  const c = COUNTRIES.find(x => x.code === code);
+  return c ? c.name : (code || '—');
+}
+
+function calcAge(birthDateStr) {
+  if (!birthDateStr) return null;
+  const bd = new Date(birthDateStr);
+  if (isNaN(bd.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - bd.getFullYear();
+  const m = today.getMonth() - bd.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+  return age >= 0 && age < 130 ? age : null;
+}
+
+function buildCountrySelectOptions(selectedCode = '') {
+  return COUNTRIES.map(c => {
+    const flag = countryCodeToFlagEmoji(c.code);
+    const sel = c.code === selectedCode ? ' selected' : '';
+    return `<option value="${c.code}"${sel}>${flag} ${c.name}</option>`;
+  }).join('');
+}
+
 const EMOJI_LIST = [
   '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
   '😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥳','😏','😒','😞','😔','😟','😕','🙁','😣','😖','😫',
@@ -194,6 +316,8 @@ function ensureUserExists(username, partialData = {}) {
     hasTik: partialData.hasTik || false,
     tikRengi: partialData.tikRengi || null,
     postCount: typeof partialData.postCount === 'number' ? partialData.postCount : 0,
+    country: partialData.country || null,
+    birthDate: partialData.birthDate || null,
     joinedAt: partialData.joinedAt || new Date().toISOString()
   };
   usersDb[username] = fallback;
@@ -313,6 +437,8 @@ async function saveUserToFirebase(user) {
       followers: user.followers || [], following: user.following || [],
       neonColor: user.neonColor || null, hasTik: !!user.hasTik, tikRengi: user.tikRengi || null,
       postCount: typeof user.postCount === 'number' ? user.postCount : 0,
+      country: user.country || null,
+      birthDate: user.birthDate || null,
       joinedAt: user.joinedAt || new Date().toISOString(), lastSeen: new Date().toISOString()
     });
   } catch (e) { console.error('FB user save:', e); }
@@ -1125,14 +1251,11 @@ function renderRewardSelector() {
 // ============================================================
 function canMessageUser(targetUsername) {
   if (!currentUser || targetUsername === currentUser.username) return false;
-  // Daha önce mesajlaşmışsa serbest
   const existingDM = dmsDb.some(m => (m.sender === currentUser.username && m.recipient === targetUsername) || (m.sender === targetUsername && m.recipient === currentUser.username));
   if (existingDM) return true;
-  // Kabul edilmiş istek varsa serbest
   return dmRequestsDb.some(r => r.status === 'accepted' && ((r.from === currentUser.username && r.to === targetUsername) || (r.from === targetUsername && r.to === currentUser.username)));
 }
 function getDmRequestStatus(targetUsername) {
-  // En güncel kaydı bul (pending > accepted > rejected önceliği)
   const related = dmRequestsDb.filter(r =>
     (r.from === currentUser.username && r.to === targetUsername) ||
     (r.from === targetUsername && r.to === currentUser.username)
@@ -1151,8 +1274,6 @@ function sendDmRequest(targetUsername) {
     selectChatUser(targetUsername);
     return;
   }
-
-  // Bekleyen istek var mı? (benden ona veya ondan bana)
   const pendingFromMe = dmRequestsDb.find(r => r.from === currentUser.username && r.to === targetUsername && r.status === 'pending');
   if (pendingFromMe) {
     showToast('Zaten bekleyen istek var.', 'info');
@@ -1164,13 +1285,11 @@ function sendDmRequest(targetUsername) {
     openDmRequestModal(pendingToMe.id);
     return;
   }
-
-  // Eski reddedilmiş istekleri temizle (yeniden istek atılabilsin)
+  // Reddedilmiş eski istekleri temizle → yeniden istek atılabilsin
   dmRequestsDb = dmRequestsDb.filter(r => {
     const isPair = (r.from === currentUser.username && r.to === targetUsername) || (r.from === targetUsername && r.to === currentUser.username);
     return !(isPair && r.status === 'rejected');
   });
-
   const newReq = {
     id: 'dmreq_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
     from: currentUser.username,
@@ -1184,9 +1303,7 @@ function sendDmRequest(targetUsername) {
   dmRequestsDb.push(newReq);
   saveDmRequestsToDB();
   saveDmRequestToFirebase(newReq);
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'NEW_DM_REQUEST', request: newReq }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'NEW_DM_REQUEST', request: newReq }));
   showToast(`✅ @${targetUsername} isteği gönderildi!`, 'success');
   renderDmSearchResults();
   renderDmRequestsInbox();
@@ -1194,22 +1311,12 @@ function sendDmRequest(targetUsername) {
 }
 async function acceptDmRequest(requestId) {
   const req = dmRequestsDb.find(r => r.id === requestId);
-  if (!req || req.status !== 'pending') {
-    showToast('İstek bulunamadı veya zaten işlenmiş.', 'warning');
-    return;
-  }
-  // Sadece alıcı kabul edebilir
-  if (req.to !== currentUser.username) {
-    showToast('Bu isteği sen kabul edemezsin.', 'warning');
-    return;
-  }
+  if (!req || req.status !== 'pending') { showToast('İstek bulunamadı veya zaten işlenmiş.', 'warning'); return; }
+  if (req.to !== currentUser.username) { showToast('Bu isteği sen kabul edemezsin.', 'warning'); return; }
   req.status = 'accepted';
   await saveDmRequestsToDB();
   await saveDmRequestToFirebase(req);
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'accept' }));
-  }
-  // Gönderene de bildirim için (MQTT zaten gidiyor)
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'accept' }));
   closeDmRequestModal();
   showToast(`✅ @${req.from} ile mesajlaşabilirsin!`, 'success');
   addNotification(`@${req.from} ile mesaj isteği kabul edildi 💬`);
@@ -1220,20 +1327,12 @@ async function acceptDmRequest(requestId) {
 }
 async function rejectDmRequest(requestId) {
   const req = dmRequestsDb.find(r => r.id === requestId);
-  if (!req || req.status !== 'pending') {
-    showToast('İstek bulunamadı veya zaten işlenmiş.', 'warning');
-    return;
-  }
-  if (req.to !== currentUser.username) {
-    showToast('Bu isteği sen reddedemezsin.', 'warning');
-    return;
-  }
+  if (!req || req.status !== 'pending') { showToast('İstek bulunamadı veya zaten işlenmiş.', 'warning'); return; }
+  if (req.to !== currentUser.username) { showToast('Bu isteği sen reddedemezsin.', 'warning'); return; }
   req.status = 'rejected';
   await saveDmRequestsToDB();
   await saveDmRequestToFirebase(req);
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'reject' }));
-  }
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM_REQUESTS, JSON.stringify({ type: 'DM_REQUEST_RESPONSE', request: req, action: 'reject' }));
   closeDmRequestModal();
   showToast(`❌ @${req.from} reddedildi.`, 'info');
   renderDmUserList();
@@ -1270,10 +1369,9 @@ function renderDmRequestsInbox() {
 // AVATAR / TİK / GRUP EMOJİ
 // ============================================================
 function renderAvatar(user, size = "w-10 h-10 text-sm") {
-  // size class'larından genişlik çıkar (bayrak boyutu için)
   const sizeMatch = size.match(/w-(\d+)/);
   const sizeNum = sizeMatch ? parseInt(sizeMatch[1]) : 10;
-  const flagSize = sizeNum >= 20 ? 'w-6 h-6' : sizeNum >= 12 ? 'w-5 h-5' : sizeNum >= 9 ? 'w-4 h-4' : 'w-3.5 h-3.5';
+  const flagSizeClass = sizeNum >= 20 ? 'avatar-flag-lg' : sizeNum >= 12 ? 'avatar-flag-md' : 'avatar-flag-sm';
 
   let inner = '';
   if (user?.avatarUrl) {
@@ -1284,29 +1382,19 @@ function renderAvatar(user, size = "w-10 h-10 text-sm") {
     inner = `<div class="${size} rounded-xl ${color} text-white flex items-center justify-center font-bold shadow-sm">${letter}</div>`;
   }
 
-  // Grup bayrağı (profil fotoğrafı sağ alt)
-  const groupFlag = getGroupFlagBadge(user?.username, flagSize);
-
-  return `<div class="relative inline-block shrink-0 avatar-wrap">${inner}${groupFlag}</div>`;
+  // Ülke bayrağı — profil fotoğrafı sağ alt (zorunlu seçilen ülke)
+  const countryFlag = getCountryFlagBadge(user, flagSizeClass);
+  return `<div class="relative inline-block shrink-0 avatar-wrap">${inner}${countryFlag}</div>`;
 }
 
-/** Kullanıcının üye olduğu gruptan bayrak/rozet üretir (sağ alt) */
-function getGroupFlagBadge(username, flagSize = 'w-4 h-4') {
-  if (!username) return '';
-  for (const g of groupsDb) {
-    if (g.members?.includes(username)) {
-      if (g.photo) {
-        return `<img src="${g.photo}" class="avatar-flag ${flagSize}" alt="bayrak" title="${escapeHtml(g.name || '')}">`;
-      }
-      if (g.emoji) {
-        return `<span class="avatar-flag avatar-flag-emoji ${flagSize}" title="${escapeHtml(g.name || '')}">${g.emoji}</span>`;
-      }
-      // Varsayılan MSZ bayrağı
-      return `<img src="msz-flag.png" class="avatar-flag ${flagSize}" alt="MSZ" title="${escapeHtml(g.name || 'MSZ')}">`;
-    }
-  }
-  return '';
+function getCountryFlagBadge(user, sizeClass = 'avatar-flag-sm') {
+  const code = user?.country;
+  if (!code) return '';
+  const emoji = countryCodeToFlagEmoji(code);
+  const name = getCountryName(code);
+  return `<span class="avatar-flag avatar-flag-emoji ${sizeClass}" title="${escapeHtml(name)}">${emoji}</span>`;
 }
+
 function showTikBadge(user) {
   if (user?.hasTik) {
     const file = user.tikRengi === 'purple' ? 'tick-p.png' : user.tikRengi === 'red' ? 'tick-r.png' : 'tick-b.png';
@@ -1358,17 +1446,30 @@ async function handleRegister(e) {
   try {
     const username = ($('reg-username')?.value || '').trim().toLowerCase();
     const password = $('reg-password')?.value || '';
+    const country = ($('reg-country')?.value || '').trim();
+    const birthDate = ($('reg-birthdate')?.value || '').trim();
+
     if (!username || !password) { showModal('Hata', 'Kullanıcı adı ve şifre zorunlu!'); return false; }
+    if (!country) { showModal('Hata', 'Ülke seçimi zorunlu!'); return false; }
+    if (country === 'IL') { showModal('Hata', 'Geçersiz ülke seçimi.'); return false; }
+    if (!birthDate) { showModal('Hata', 'Doğum tarihi zorunlu!'); return false; }
+    const age = calcAge(birthDate);
+    if (age === null) { showModal('Hata', 'Geçerli bir doğum tarihi gir!'); return false; }
+    if (age < 13) { showModal('Hata', 'Kayıt için en az 13 yaşında olmalısın.'); return false; }
     if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı alınmış!'); return false; }
+
+    const baseUser = {
+      username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null,
+      color: USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)], avatarUrl: null,
+      followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
+      country, birthDate,
+      joinedAt: new Date().toISOString()
+    };
+
     try {
       const email = username + '@mszmedya.local';
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const newUser = {
-        username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: cred.user.uid,
-        color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
-        followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
-        joinedAt: new Date().toISOString()
-      };
+      const newUser = { ...baseUser, firebaseUid: cred.user.uid };
       usersDb[username] = newUser;
       await saveUsersToDB();
       await saveUserToFirebase(newUser);
@@ -1381,12 +1482,7 @@ async function handleRegister(e) {
       if (err.code === 'auth/email-already-in-use') showModal('Hata', 'Bu kullanıcı adı zaten alınmış!');
       else if (err.code === 'auth/weak-password') showModal('Hata', 'Şifre çok zayıf. En az 6 karakter.');
       else {
-        const newUser = {
-          username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: null,
-          color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
-          followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
-          joinedAt: new Date().toISOString()
-        };
+        const newUser = { ...baseUser, firebaseUid: null };
         usersDb[username] = newUser;
         await saveUsersToDB();
         await saveUserToFirebase(newUser);
@@ -1550,6 +1646,14 @@ async function launchMainApp() {
     if (iframe) iframe.onload = () => sendAiLimitToFrame();
 
     logSystem('Ana uygulama başlatıldı (v3.1)');
+
+    // Eski hesaplarda ülke / doğum tarihi yoksa zorunlu tamamlat
+    if (currentUser && (!currentUser.country || !currentUser.birthDate)) {
+      setTimeout(() => {
+        showToast('Ülke ve doğum tarihi zorunlu. Lütfen profilini tamamla.', 'warning');
+        openEditProfileModal();
+      }, 600);
+    }
   } catch (fatal) {
     console.error('launchMainApp fatal:', fatal);
     try {
@@ -2072,29 +2176,17 @@ async function handleIncomingNetworkData(topic, data) {
     return;
   }
   if (topic === TOPICS.DM + currentUser.username && data.type === 'DIRECT_MESSAGE') {
-    const msg = data.message;
-    if (!msg || !msg.id) return;
-    // Duplicate engelle
-    if (dmsDb.some(m => m.id === msg.id)) return;
-    // Timestamp yoksa şimdi koy
-    if (!msg.timestamp) msg.timestamp = new Date().toISOString();
-    dmsDb.push(msg);
+    if (data.message.sender !== currentUser.username) {
+      dmUnreadCounts[data.message.sender] = (dmUnreadCounts[data.message.sender] || 0) + 1;
+      ensureUserExists(data.message.sender);
+      renderDmUserList();
+    }
+    dmsDb.push(data.message);
     await saveMessagesToDB();
-    try { await saveDmToFirebase(msg); } catch (e) {}
-    if (msg.sender !== currentUser.username) {
-      dmUnreadCounts[msg.sender] = (dmUnreadCounts[msg.sender] || 0) + 1;
-      ensureUserExists(msg.sender);
-      dmLastMessageTime[msg.sender] = new Date(msg.timestamp).getTime() || Date.now();
-      addNotification(`@${msg.sender} yeni mesaj! 💬`);
-    }
-    if (activeTab === 'messages' && selectedDmUser === msg.sender) {
-      dmUnreadCounts[msg.sender] = 0;
-      renderChatMessages();
-      renderDmUserList();
-    } else {
-      updateUnreadBadge();
-      renderDmUserList();
-    }
+    dmLastMessageTime[data.message.sender] = Date.now();
+    addNotification(`@${data.message.sender} yeni mesaj! 💬`);
+    if (activeTab === 'messages' && selectedDmUser === data.message.sender) { dmUnreadCounts[data.message.sender] = 0; renderChatMessages(); renderDmUserList(); }
+    else { updateUnreadBadge(); renderDmUserList(); }
     return;
   }
   if (topic === TOPICS.DM + currentUser.username && data.type === 'DELETE_DM') {
@@ -2105,44 +2197,24 @@ async function handleIncomingNetworkData(topic, data) {
   }
   if (topic === TOPICS.DM_REQUESTS && data.type === 'NEW_DM_REQUEST') {
     const req = data.request;
-    if (!req || !req.id) return;
     if (req.to === currentUser.username && !dmRequestsDb.some(r => r.id === req.id)) {
       dmRequestsDb.push(req);
       await saveDmRequestsToDB();
-      try { await saveDmRequestToFirebase(req); } catch (e) {}
       ensureUserExists(req.from, { fullname: req.fromFullname, avatarUrl: req.fromAvatar, color: req.fromColor });
       addNotification(`@${req.from} sana mesaj isteği gönderdi! 💬`);
       renderDmRequestsInbox();
-      renderDmSearchResults();
-      // Modal aç (sadece pending ise)
-      if (req.status === 'pending') openDmRequestModal(req.id);
+      openDmRequestModal(req.id);
     }
     return;
   }
   if (topic === TOPICS.DM_REQUESTS && data.type === 'DM_REQUEST_RESPONSE') {
     const req = data.request;
-    if (!req || !req.id) return;
     const existing = dmRequestsDb.find(r => r.id === req.id);
-    if (existing) {
-      existing.status = req.status;
-    } else {
-      dmRequestsDb.push(req);
-    }
+    if (existing) existing.status = req.status; else dmRequestsDb.push(req);
     await saveDmRequestsToDB();
-    try { await saveDmRequestToFirebase(req); } catch (e) {}
-    // İsteği gönderen kişiye bildirim
-    if (req.from === currentUser.username) {
-      if (data.action === 'accept') {
-        showToast(`✅ @${req.to} kabul etti!`, 'success');
-        addNotification(`@${req.to} mesaj isteğini kabul etti 💬`);
-        renderDmUserList();
-      } else if (data.action === 'reject') {
-        showToast(`❌ @${req.to} reddetti.`, 'warning');
-        addNotification(`@${req.to} mesaj isteğini reddetti`);
-      }
-    }
+    if (data.action === 'accept') { showToast(`✅ @${req.to} kabul etti!`, 'success'); renderDmUserList(); }
+    else if (data.action === 'reject') showToast(`❌ @${req.to} reddetti.`, 'warning');
     renderDmRequestsInbox();
-    renderDmSearchResults();
     return;
   }
   if (topic === TOPICS.COMMENTS && data.type === 'NEW_COMMENT') {
@@ -2604,11 +2676,8 @@ function renderUsersLeaderboard() {
     const isMe = u.username === currentUser.username;
     const isFollowing = currentUser.following?.includes(u.username);
     const groupEmoji = getGroupEmojiForUser(u.username);
-
     let rank = `<span class="w-7 h-7 rounded-lg bg-slate-800 text-slate-500 font-bold text-xs flex items-center justify-center shrink-0">${i+1}</span>`;
     let cardClass = 'bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm';
-
-    // 1. altın sarı, 2. mavi, 3. mor çerçeve
     if (i === 0) {
       rank = `<span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 font-extrabold text-sm flex items-center justify-center shrink-0">🥇</span>`;
       cardClass = 'leaderboard-gold bg-slate-900 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm';
@@ -2619,7 +2688,6 @@ function renderUsersLeaderboard() {
       rank = `<span class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-300 font-extrabold text-sm flex items-center justify-center shrink-0">🥉</span>`;
       cardClass = 'leaderboard-purple bg-slate-900 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm';
     }
-
     return `<div class="${cardClass}"><div class="flex items-center gap-2 overflow-hidden min-w-0 flex-1">${rank}<div class="w-9 h-9 shrink-0 cursor-pointer" onclick="openPublicProfileModal('${escapeHtml(u.username)}')">${renderAvatar(u, "w-9 h-9 text-xs")}</div><div class="overflow-hidden cursor-pointer min-w-0" onclick="openPublicProfileModal('${escapeHtml(u.username)}')"><div class="flex items-center gap-1.5 flex-wrap"><h4 class="font-bold text-xs text-white truncate">${groupEmoji}${getUserDisplayName(u)}</h4>${isMe ? `<span class="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-semibold">Sen</span>` : ''}</div><p class="text-[10px] text-slate-500 truncate">@${escapeHtml(u.username)} • ${followerCount} Takipçi</p></div></div><div class="shrink-0">${!isMe ? `<button onclick="toggleFollowUser('${escapeHtml(u.username)}')" class="px-2 sm:px-3 py-1.5 text-[10px] font-semibold rounded-lg transition ${isFollowing ? 'bg-slate-800 text-slate-300' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm'}">${isFollowing ? 'Takiptesin' : 'Takip Et'}</button>` : `<button onclick="switchTab('profile')" class="px-2 py-1.5 bg-slate-800 text-slate-300 text-[10px] font-semibold rounded-lg">Profilim</button>`}</div></div>`;
   }).join('');
 }
@@ -2676,7 +2744,6 @@ function renderDmSearchResults() {
         actionBtn = `<span class="text-[10px] text-amber-400 font-semibold">Bekliyor</span>`;
       }
     } else {
-      // rejected veya hiç yok → istek atılabilir
       actionBtn = `<button onclick="event.stopPropagation(); sendDmRequest('${u.username}')" class="px-2 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded-lg">${status === 'rejected' ? 'Tekrar İstek' : 'İstek'}</button>`;
     }
     return `<div class="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-slate-800 transition"><div class="flex items-center gap-2 min-w-0 flex-1"><div class="w-7 h-7 shrink-0">${renderAvatar(u, "w-7 h-7 text-[10px]")}</div><div class="min-w-0"><div class="text-xs font-bold text-white truncate">${getUserDisplayName(u)}</div><div class="text-[9px] text-slate-500 truncate">@${u.username}</div></div></div>${actionBtn}</div>`;
@@ -2710,15 +2777,10 @@ function startDirectMessageWith(username) {
   } else {
     const status = getDmRequestStatus(username);
     if (status === 'pending') {
-      // Benden mi ona mı?
       const pendingToMe = dmRequestsDb.find(r => r.from === username && r.to === currentUser.username && r.status === 'pending');
-      if (pendingToMe) {
-        openDmRequestModal(pendingToMe.id);
-      } else {
-        showToast('İstek bekliyor.', 'info');
-      }
+      if (pendingToMe) openDmRequestModal(pendingToMe.id);
+      else showToast('İstek bekliyor.', 'info');
     } else {
-      // rejected veya hiç yok → yeniden istek atılabilir
       sendDmRequest(username);
     }
   }
@@ -2842,26 +2904,14 @@ async function sendDirectMessage(e) {
   if (!text || !selectedDmUser) return;
   if (containsForbidden(text)) { showToast('Yasaklı içerik!', 'error'); return; }
   text = censorText(text);
-  const now = Date.now();
-  const msg = {
-    id: 'dm_' + now + '_' + Math.random().toString(36).substring(2, 6),
-    sender: currentUser.username,
-    recipient: selectedDmUser,
-    text,
-    timestamp: new Date(now).toISOString(),
-    replyTo: replyToMessage
-  };
+  const msg = { id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2,6), sender: currentUser.username, recipient: selectedDmUser, text, timestamp: new Date().toISOString(), replyTo: replyToMessage };
   dmsDb.push(msg);
   await saveMessagesToDB();
-  try { await saveDmToFirebase(msg); } catch (err) { console.error('DM FB save:', err); }
-  dmLastMessageTime[selectedDmUser] = now;
-  if (mqttClient?.connected) {
-    mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
-  }
+  await saveDmToFirebase(msg);
+  dmLastMessageTime[selectedDmUser] = Date.now();
+  if (mqttClient?.connected) mqttClient.publish(TOPICS.DM + selectedDmUser, JSON.stringify({ type: 'DIRECT_MESSAGE', message: msg }));
   input.value = '';
-  cancelReply();
-  renderChatMessages();
-  renderDmUserList();
+  cancelReply(); renderChatMessages();
 }
 function startReply(msgId) {
   const msg = dmsDb.find(m => m.id === msgId);
@@ -2888,7 +2938,6 @@ function renderChatMessages() {
   const container = $('chat-messages-inner');
   if (!container) return;
   if (!selectedDmUser) { container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-500 text-xs text-center p-4">Sohbet seç.</div>`; return; }
-  // Sağlam sıralama: timestamp (ms) + id yedek anahtar — eski üstte, yeni altta
   const convo = dmsDb
     .filter(m => (m.sender === currentUser.username && m.recipient === selectedDmUser) || (m.sender === selectedDmUser && m.recipient === currentUser.username))
     .sort((a, b) => {
@@ -2938,7 +2987,17 @@ function renderProfileTab() {
   $('profile-main-avatar').innerHTML = renderAvatar(currentUser, "w-20 h-20 sm:w-24 sm:h-24 text-2xl");
   $('profile-fullname').innerHTML = getUserDisplayName(currentUser);
   $('profile-username-display').innerHTML = '@' + currentUser.username + showTikBadge(currentUser);
-  $('profile-bio').innerText = currentUser.bio;
+  const metaEl = $('profile-meta');
+  if (metaEl) {
+    const parts = [];
+    if (currentUser.country) {
+      parts.push(`<span title="${escapeHtml(getCountryName(currentUser.country))}">${countryCodeToFlagEmoji(currentUser.country)} ${escapeHtml(getCountryName(currentUser.country))}</span>`);
+    }
+    const age = calcAge(currentUser.birthDate);
+    if (age !== null) parts.push(`<span>${age} yaş</span>`);
+    metaEl.innerHTML = parts.length ? parts.join('<span class="text-slate-600">·</span>') : '<span class="text-amber-400">Ülke / doğum tarihi eksik — profili düzenle</span>';
+  }
+  $('profile-bio').innerText = currentUser.bio || '';
   const myPosts = postsDb.filter(p => p.author?.username === currentUser.username).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   $('profile-stat-posts').innerText = getTotalPostCount(currentUser.username);
   $('profile-stat-followers').innerText = (currentUser.followers||[]).length;
@@ -2970,6 +3029,14 @@ function renderPublicProfileModal(username) {
   $('pub-profile-avatar').innerHTML = renderAvatar(u, "w-24 h-24 sm:w-28 sm:h-28 text-3xl");
   $('pub-profile-fullname').innerHTML = groupEmoji + getUserDisplayName(u);
   $('pub-profile-username').innerHTML = '@' + u.username + showTikBadge(u);
+  const pubMeta = $('pub-profile-meta');
+  if (pubMeta) {
+    const parts = [];
+    if (u.country) parts.push(`<span title="${escapeHtml(getCountryName(u.country))}">${countryCodeToFlagEmoji(u.country)} ${escapeHtml(getCountryName(u.country))}</span>`);
+    const age = calcAge(u.birthDate);
+    if (age !== null) parts.push(`<span>${age} yaş</span>`);
+    pubMeta.innerHTML = parts.length ? parts.join('<span class="text-slate-600">·</span>') : '';
+  }
   $('pub-profile-bio').innerText = u.bio || 'Biyografi yok.';
   const followers = u.followers || [], following = u.following || [];
   const userPosts = postsDb.filter(p => p.author?.username === username).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -2993,9 +3060,15 @@ function messagePublicUser() { if (viewingPublicUsername) startDirectMessageWith
 // EDIT PROFILE
 // ============================================================
 function openEditProfileModal() {
-  $('edit-fullname').value = currentUser.fullname;
-  $('edit-bio').value = currentUser.bio;
-  $('edit-avatar-preview').innerHTML = renderAvatar(currentUser, "w-full h-full text-xl");
+  $('edit-fullname').value = currentUser.fullname || '';
+  $('edit-bio').value = currentUser.bio || '';
+  const countrySel = $('edit-country');
+  if (countrySel) {
+    countrySel.innerHTML = `<option value="">Ülke seç...</option>` + buildCountrySelectOptions(currentUser.country || '');
+  }
+  const birthInput = $('edit-birthdate');
+  if (birthInput) birthInput.value = currentUser.birthDate || '';
+  $('edit-avatar-preview').innerHTML = renderAvatar(currentUser, "w-16 h-16 text-xl");
   tempAvatarBase64 = null;
   const m = $('edit-profile-modal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
@@ -3016,7 +3089,9 @@ function handleAvatarSelect(e) {
       canvas.width = w; canvas.height = h;
       ctx.drawImage(img, 0, 0, w, h);
       tempAvatarBase64 = canvas.toDataURL('image/jpeg', 0.85);
-      $('edit-avatar-preview').innerHTML = `<img src="${tempAvatarBase64}" class="w-full h-full object-cover rounded-xl">`;
+      // Geçici önizleme + bayrak
+      const previewUser = { ...currentUser, avatarUrl: tempAvatarBase64 };
+      $('edit-avatar-preview').innerHTML = renderAvatar(previewUser, "w-16 h-16 text-xl");
     };
     img.src = ev.target.result;
   };
@@ -3026,15 +3101,38 @@ async function saveProfileChanges(e) {
   e.preventDefault();
   const newFullname = $('edit-fullname').value.trim();
   const newBio = $('edit-bio').value.trim();
+  const newCountry = ($('edit-country')?.value || '').trim();
+  const newBirthDate = ($('edit-birthdate')?.value || '').trim();
+
+  if (!newCountry) { showToast('Ülke seçimi zorunlu!', 'error'); return; }
+  if (newCountry === 'IL') { showToast('Geçersiz ülke.', 'error'); return; }
+  if (!newBirthDate) { showToast('Doğum tarihi zorunlu!', 'error'); return; }
+  const age = calcAge(newBirthDate);
+  if (age === null) { showToast('Geçerli doğum tarihi gir!', 'error'); return; }
+  if (age < 13) { showToast('En az 13 yaşında olmalısın.', 'error'); return; }
+
   currentUser.fullname = newFullname;
   currentUser.bio = newBio;
+  currentUser.country = newCountry;
+  currentUser.birthDate = newBirthDate;
   if (tempAvatarBase64) currentUser.avatarUrl = tempAvatarBase64;
   usersDb[currentUser.username] = currentUser;
   await saveUsersToDB();
   await saveUserToFirebase(currentUser);
-  postsDb.forEach(p => { if (p.author?.username === currentUser.username) { p.author.fullname = newFullname; p.author.avatarUrl = currentUser.avatarUrl; } });
+  postsDb.forEach(p => {
+    if (p.author?.username === currentUser.username) {
+      p.author.fullname = newFullname;
+      p.author.avatarUrl = currentUser.avatarUrl;
+      p.author.country = newCountry;
+    }
+  });
   await savePostsToDB();
-  commentsDb.forEach(c => { if (c.author?.username === currentUser.username) { c.author.fullname = newFullname; c.author.avatarUrl = currentUser.avatarUrl; } });
+  commentsDb.forEach(c => {
+    if (c.author?.username === currentUser.username) {
+      c.author.fullname = newFullname;
+      c.author.avatarUrl = currentUser.avatarUrl;
+    }
+  });
   await saveCommentsToDB();
   publishPresence();
   closeEditProfileModal();
@@ -3193,6 +3291,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(err) { console.error('DB hatası:', err); }
 
   loadAnimationSettings();
+
+  // Ülke select'lerini doldur
+  const regCountry = $('reg-country');
+  if (regCountry) {
+    regCountry.innerHTML = `<option value="">Ülke seç (zorunlu)...</option>` + buildCountrySelectOptions('');
+  }
+  const editCountry = $('edit-country');
+  if (editCountry) {
+    editCountry.innerHTML = `<option value="">Ülke seç (zorunlu)...</option>` + buildCountrySelectOptions('');
+  }
 
   const tabLoginBtn = document.getElementById('tab-login-btn');
   const tabRegBtn = document.getElementById('tab-register-btn');
