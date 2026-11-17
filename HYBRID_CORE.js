@@ -32,6 +32,9 @@ async function saveUserToFirebase(user) {
       hasTik: !!user.hasTik,
       tikRengi: user.tikRengi || null,
       postCount: typeof user.postCount === 'number' ? user.postCount : 0,
+      country: user.country || null,
+      birthDate: user.birthDate || null,
+      firebaseUid: user.firebaseUid || null,
       joinedAt: user.joinedAt || new Date().toISOString(),
       lastSeen: new Date().toISOString()
     });
