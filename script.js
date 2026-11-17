@@ -5,7 +5,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebas
 import {
   getAuth, GoogleAuthProvider, signInWithPopup,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  sendPasswordResetEmail, updatePassword,
+  sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged,
   EmailAuthProvider, reauthenticateWithCredential, deleteUser
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
 import {
@@ -402,7 +402,13 @@ async function saveToDBAll(store, dataArray) {
 const savePostsToDB = () => saveToDBAll('posts', postsDb);
 const saveCommentsToDB = () => saveToDBAll('comments', commentsDb);
 const saveMessagesToDB = () => saveToDBAll('messages', dmsDb);
-const saveUsersToDB = () => saveToDBAll('users', Object.values(usersDb));
+const saveUsersToDB = () => {
+  // Authentication secrets belong exclusively to Firebase Authentication.
+  Object.values(usersDb).forEach(user => {
+    if (user && Object.hasOwn(user, 'password')) delete user.password;
+  });
+  return saveToDBAll('users', Object.values(usersDb));
+};
 const saveGroupsToDB = () => saveToDBAll('groups', groupsDb);
 const saveDmRequestsToDB = () => saveToDBAll('dm_requests', dmRequestsDb);
 const saveBannedUsersToDB = () => saveToDBAll('banned_users', bannedUsers);
@@ -1456,12 +1462,14 @@ async function handleRegister(e) {
     const age = calcAge(birthDate);
     if (age === null) { showModal('Hata', 'Geçerli bir doğum tarihi gir!'); return false; }
     if (age < 13) { showModal('Hata', 'Kayıt için en az 13 yaşında olmalısın.'); return false; }
-    if (usersDb[username]) { showModal('Hata', 'Bu kullanıcı adı alınmış!'); return false; }
+    const existingUser = usersDb[username];
+    if (existingUser?.firebaseUid) { showModal('Hata', 'Bu kullanıcı adı zaten alınmış!'); return false; }
 
     const baseUser = {
-      username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null,
-      color: USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)], avatarUrl: null,
-      followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
+      ...(existingUser || {}),
+      username, fullname: existingUser?.fullname || username, bio: existingUser?.bio || 'MSZ MEDYA üyesi.', email: existingUser?.email || null,
+      color: existingUser?.color || USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)], avatarUrl: existingUser?.avatarUrl || null,
+      followers: existingUser?.followers || [], following: existingUser?.following || [], neonColor: existingUser?.neonColor || null, hasTik: existingUser?.hasTik || false, tikRengi: existingUser?.tikRengi || null, postCount: existingUser?.postCount || 0,
       country, birthDate,
       joinedAt: new Date().toISOString()
     };
@@ -1481,16 +1489,7 @@ async function handleRegister(e) {
       console.error('Kayıt:', err);
       if (err.code === 'auth/email-already-in-use') showModal('Hata', 'Bu kullanıcı adı zaten alınmış!');
       else if (err.code === 'auth/weak-password') showModal('Hata', 'Şifre çok zayıf. En az 6 karakter.');
-      else {
-        const newUser = { ...baseUser, firebaseUid: null };
-        usersDb[username] = newUser;
-        await saveUsersToDB();
-        await saveUserToFirebase(newUser);
-        currentUser = newUser;
-        sessionStorage.setItem('sp_social_active_user', username);
-        showToast('Kayıt başarılı (lokal)!', 'success');
-        await launchMainApp();
-      }
+      else showModal('Kayıt Başarısız', err.message || err.code || 'Firebase hesabı oluşturulamadı.');
     }
   } catch (outerErr) {
     console.error('handleRegister fatal:', outerErr);
@@ -1509,20 +1508,22 @@ async function handleLogin(e) {
     if (!username || !password) { showModal('Hata', 'Kullanıcı adı ve şifre gir!'); return false; }
     try {
       const email = username + '@mszmedya.local';
+      await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
       const cred = await signInWithEmailAndPassword(auth, email, password);
       let user = usersDb[username];
       if (!user) {
+        const remoteUser = await loadUserFromFirebase(username);
         user = {
-          username, fullname: username, bio: 'MSZ MEDYA üyesi.', password, email: null, firebaseUid: cred.user.uid,
-          color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: null,
-          followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
+          ...(remoteUser || {}),
+          username, fullname: remoteUser?.fullname || username, bio: remoteUser?.bio || 'MSZ MEDYA üyesi.', email: remoteUser?.email || null, firebaseUid: cred.user.uid,
+          color: remoteUser?.color || USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)], avatarUrl: remoteUser?.avatarUrl || null,
+          followers: remoteUser?.followers || [], following: remoteUser?.following || [], neonColor: remoteUser?.neonColor || null, hasTik: remoteUser?.hasTik || false, tikRengi: remoteUser?.tikRengi || null, postCount: remoteUser?.postCount || 0,
           joinedAt: new Date().toISOString()
         };
         usersDb[username] = user;
         await saveUsersToDB();
       } else {
         user.firebaseUid = cred.user.uid;
-        user.password = password;
         if (!user.followers) user.followers = [];
         if (!user.following) user.following = [];
         if (typeof user.postCount !== 'number') user.postCount = postsDb.filter(p => p.author?.username === username).length;
@@ -1531,21 +1532,13 @@ async function handleLogin(e) {
       }
       currentUser = user;
       sessionStorage.setItem('sp_social_active_user', username);
-      if (remember) { localStorage.setItem('sp_social_username', username); localStorage.setItem('sp_social_password', password); }
-      else { localStorage.removeItem('sp_social_username'); localStorage.removeItem('sp_social_password'); }
+      if (remember) localStorage.setItem('sp_social_username', username);
+      else localStorage.removeItem('sp_social_username');
+      localStorage.removeItem('sp_social_password');
       showToast(`Hoş geldin, ${user.fullname}!`, 'info');
       await launchMainApp();
     } catch (err) {
       console.error('Giriş:', err);
-      const localUser = usersDb[username];
-      if (localUser && localUser.password === password) {
-        currentUser = localUser;
-        sessionStorage.setItem('sp_social_active_user', username);
-        if (remember) { localStorage.setItem('sp_social_username', username); localStorage.setItem('sp_social_password', password); }
-        showToast(`Hoş geldin, ${localUser.fullname}!`, 'info');
-        await launchMainApp();
-        return false;
-      }
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         showModal('Giriş Başarısız', 'Kullanıcı adı veya şifre hatalı.');
       } else showModal('Giriş Başarısız', err.message || err.code || 'Bilinmeyen hata');
@@ -1566,7 +1559,7 @@ async function signInWithGoogle() {
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
     if (!usersDb[username]) {
       const newUser = {
-        username, fullname: fbUser.displayName || username, bio: 'MSZ MEDYA üyesi.', password: null,
+        username, fullname: fbUser.displayName || username, bio: 'MSZ MEDYA üyesi.',
         email, firebaseUid: fbUser.uid, avatarUrl: fbUser.photoURL || null,
         color: USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)],
         followers: [], following: [], neonColor: null, hasTik: false, tikRengi: null, postCount: 0,
@@ -1608,6 +1601,7 @@ function logout() {
   if (lu) lu.value = '';
   if (lp) lp.value = '';
   const savedU = localStorage.getItem('sp_social_username');
+  localStorage.removeItem('sp_social_password');
   if (savedU && lu) lu.value = savedU;
   showToast('Çıkış yapıldı.', 'info');
 }
@@ -1693,22 +1687,13 @@ async function changePassword(e) {
   if (newPass !== confirmPass) { showModal('Hata', 'Şifreler eşleşmiyor!'); return; }
   try {
     const fbUser = auth.currentUser;
-    if (!fbUser) {
-      if (currentUser.password !== current) { showModal('Hata', 'Mevcut şifre yanlış!'); return; }
-      currentUser.password = newPass;
-      usersDb[currentUser.username] = currentUser;
-      await saveUsersToDB();
-      closeChangePasswordModal();
-      showToast('Şifre güncellendi (lokal).', 'success');
-      return;
-    }
+    if (!fbUser) { showModal('Hata', 'Şifre değiştirmek için Firebase oturumunuz açık olmalı.'); return; }
     const credential = EmailAuthProvider.credential(fbUser.email, current);
     await reauthenticateWithCredential(fbUser, credential);
     await updatePassword(fbUser, newPass);
-    currentUser.password = newPass;
     usersDb[currentUser.username] = currentUser;
     await saveUsersToDB();
-    if (localStorage.getItem('sp_social_username') === currentUser.username) localStorage.setItem('sp_social_password', newPass);
+    localStorage.removeItem('sp_social_password');
     closeChangePasswordModal();
     showToast('✅ Şifre güncellendi!', 'success');
   } catch (err) {
@@ -1762,10 +1747,7 @@ async function deleteAccount(e) {
       const credential = EmailAuthProvider.credential(fbUser.email, password);
       await reauthenticateWithCredential(fbUser, credential);
       await deleteUser(fbUser);
-    } else if (currentUser.password !== password) {
-      showModal('Hata', 'Şifre yanlış!');
-      return;
-    }
+    } else { showModal('Hata', 'Hesabı silmek için Firebase oturumunuz açık olmalı.'); return; }
     if (mqttClient?.connected) mqttClient.publish(TOPICS.USERS, JSON.stringify({ type: 'DELETE_ACCOUNT', username: deletedUsername }));
     await purgeUserData(deletedUsername);
     localStorage.removeItem('sp_social_username');
@@ -2337,7 +2319,7 @@ function switchTab(tab) {
   activeTab = tab;
 
   // Desktop
-  ['feed','messages','groups','users','games','mod'].forEach(t => {
+  ['feed','messages','groups','users','games','profile','mod'].forEach(t => {
     const el = $(`nav-${t}-desk`);
     if (!el) return;
     el.className = 'px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2';
@@ -3343,27 +3325,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  const sessionUser = sessionStorage.getItem('sp_social_active_user');
   const savedUsername = localStorage.getItem('sp_social_username');
-  const savedPassword = localStorage.getItem('sp_social_password');
+  localStorage.removeItem('sp_social_password');
   if (savedUsername) {
     const lu = $('login-username');
     if (lu) lu.value = savedUsername;
     const rm = $('remember-me');
     if (rm) rm.checked = true;
   }
-  if (sessionUser && usersDb[sessionUser]) {
-    currentUser = usersDb[sessionUser];
-    if (!currentUser.followers) currentUser.followers = [];
-    if (!currentUser.following) currentUser.following = [];
-    if (typeof currentUser.postCount !== 'number') currentUser.postCount = postsDb.filter(p => p.author?.username === currentUser.username).length;
-    launchMainApp();
-  } else if (savedUsername && savedPassword && usersDb[savedUsername]) {
-    currentUser = usersDb[savedUsername];
-    if (!currentUser.followers) currentUser.followers = [];
-    if (!currentUser.following) currentUser.following = [];
-    if (typeof currentUser.postCount !== 'number') currentUser.postCount = postsDb.filter(p => p.author?.username === currentUser.username).length;
-    sessionStorage.setItem('sp_social_active_user', savedUsername);
-    launchMainApp();
-  }
+  onAuthStateChanged(auth, async fbUser => {
+    if (!fbUser || currentUser) return;
+    const username = (fbUser.email || '').split('@')[0].toLowerCase();
+    if (!username) return;
+    let user = usersDb[username] || Object.values(usersDb).find(u => u.firebaseUid === fbUser.uid);
+    if (!user) user = ensureUserExists(username, { fullname: fbUser.displayName || username, avatarUrl: fbUser.photoURL || null });
+    user.firebaseUid = fbUser.uid;
+    if (!user.followers) user.followers = [];
+    if (!user.following) user.following = [];
+    if (typeof user.postCount !== 'number') user.postCount = postsDb.filter(p => p.author?.username === user.username).length;
+    usersDb[user.username] = user;
+    currentUser = user;
+    sessionStorage.setItem('sp_social_active_user', user.username);
+    await saveUsersToDB();
+    await launchMainApp();
+  });
 });
