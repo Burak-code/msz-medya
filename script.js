@@ -42,8 +42,8 @@ const OYUNLAR = [
 // ============================================================
 // KONFIG
 // ============================================================
-const gecerliKod = "000000000f00000₺000044ertugrulveMSZ";
-const tikRengi = "purple";
+const gecerliKod = "has_tick-red: true;";
+const tikRengi = "red";
 
 const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 const TOPIC_PREFIX = 'social_pulse_net_v3/';
