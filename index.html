@@ -75,12 +75,12 @@
           cur.id = 'boot-cursor';
           textEl.appendChild(cur);
           char++;
-          setTimeout(type, line.charAt(0) === '>' ? 10 : 16);
+          setTimeout(type, line.charAt(0) === '>' ? 35 : 25);
         } else {
           full += line + '\n';
           i++;
           char = 0;
-          setTimeout(type, 120);
+          setTimeout(type, 350);
         }
       } catch (e) {
         hide();
