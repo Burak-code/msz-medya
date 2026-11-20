@@ -8,46 +8,82 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    #ai-panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
-    #ai-panel.dragging { transition: none !important; }
+    #ai-panel { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s; }
     .anim-fade-up { animation: fadeUp 0.4s ease-out forwards; opacity: 0; transform: translateY(20px); }
     @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
-    .limit-bar-fill { transition: width 0.3s ease, background-color 0.3s ease; }
     .gtab-active { background:#1d4ed8 !important; color:#fff !important; }
     .mention-link { color:#60a5fa; font-weight:600; cursor:pointer; }
     .mention-link:hover { text-decoration:underline; }
-    /* Mobilde body scroll kilidi */
     body.modal-open { overflow: hidden; }
   </style>
 </head>
-<body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-blue-500 selection:text-white no-animations overflow-x-hidden">
+<body class="h-full bg-slate-950 text-slate-100 antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
+
+  <!-- AÇILIŞ HACKER PATLAMA EKRANI (v3.3) -->
+  <div id="hacker-intro" class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden">
+    <div id="hacker-intro-text" class="font-mono text-emerald-400 text-center text-base sm:text-xl md:text-2xl font-bold tracking-wide max-w-2xl leading-relaxed drop-shadow-[0_0_12px_rgba(16,185,129,0.55)]">
+      Welcome to were programming media! If you want to learn, use msz ai...
+    </div>
+  </div>
+
+  <!-- KOD İNDİRME GÜVENLİK UYARISI MODALI (v3.3) -->
+  <div id="code-download-warning-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[130] items-center justify-center p-4 hidden" onclick="closeCodeDownloadWarning()">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4" onclick="event.stopPropagation()">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-white">Güvenlik Uyarısı</h3>
+          <p id="code-download-filename" class="text-[11px] font-mono text-amber-300 truncate"></p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Dikkat bu dosyalar taranmadı. Olası bi sorunda platformumuz sorumlu değildir, yine de indirmek istiyor musun?
+      </p>
+      <div class="flex gap-2 pt-1">
+        <button onclick="closeCodeDownloadWarning()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition">
+          Hayır, geri dön
+        </button>
+        <button id="confirm-code-download-btn" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition">
+          Evet, indir
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- TOAST -->
   <div id="toast-container" class="fixed top-3 right-3 left-3 sm:left-auto z-[120] flex flex-col gap-2 sm:max-w-sm pointer-events-none"></div>
 
-  <!-- AI PANEL -->
-  <div id="ai-panel" class="fixed bottom-3 right-2 left-2 sm:left-auto sm:right-4 w-auto sm:w-[350px] h-[70vh] sm:h-[500px] max-h-[80vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex-col hidden z-[80] overflow-hidden ai-panel">
-    <div id="ai-header" class="cursor-grab active:cursor-grabbing bg-slate-800 border-b border-slate-700 p-3 flex items-center justify-between shrink-0 select-none">
-      <div class="flex items-center gap-2">
-        <div class="w-6 h-6 rounded-md bg-purple-600 flex items-center justify-center"><i class="fa-solid fa-robot text-white text-xs"></i></div>
-        <span class="font-bold text-sm text-white pointer-events-none">MSZ AI</span>
-      </div>
-      <button onclick="closeAiPanel()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+  <!-- SADELEŞTİRİLMİŞ MSZ AI PANELİ (v3.3) -->
+  <div id="ai-panel" class="fixed bottom-3 right-2 left-2 sm:left-auto sm:right-4 w-auto sm:w-[340px] h-[62vh] sm:h-[420px] max-h-[75vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex-col hidden z-[80] overflow-hidden">
+    <div class="bg-slate-800 border-b border-slate-700 px-3.5 py-2.5 flex items-center justify-between shrink-0">
+      <a href="https://burak-code.github.io/msz_ai/" target="_blank" rel="noopener noreferrer" title="MSZ AI'ı yeni sekmede aç" class="flex items-center gap-2 hover:opacity-85 transition group">
+        <div class="w-6 h-6 rounded-md bg-purple-600 flex items-center justify-center">
+          <i class="fa-solid fa-robot text-white text-xs"></i>
+        </div>
+        <span class="font-bold text-sm text-white group-hover:text-purple-300 transition">MSZ AI</span>
+        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400 group-hover:text-purple-300"></i>
+      </a>
+      <button onclick="closeAiPanel()" class="text-slate-400 hover:text-white p-1 transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
-    <div class="flex-1 relative bg-slate-950 flex flex-col min-h-0">
-      <iframe id="ai-frame" src="https://burak-code.github.io/msz_ai/" class="w-full h-full border-0"></iframe>
-    </div>
-    <div class="bg-slate-900 border-t border-slate-700 p-3 shrink-0 flex flex-col gap-1.5">
-      <div class="flex justify-between items-center text-[10px] font-semibold gap-2">
-        <span class="text-slate-400 truncate" id="ai-limit-text">Limit: Hesaplanıyor...</span>
-        <span class="text-slate-500 font-mono text-right" id="ai-limit-timer"></span>
+    <div class="flex-1 bg-slate-950 flex flex-col min-h-0">
+      <div id="ai-simple-messages" class="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar text-xs">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-300">
+          Hazırım. Sorunu yaz, kısa ve net yanıtlayayım.
+        </div>
       </div>
-      <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-        <div id="ai-limit-bar" class="limit-bar-fill h-full bg-emerald-500 w-full rounded-full"></div>
-      </div>
+      <form id="ai-simple-form" onsubmit="sendSimpleAiMessage(event)" class="p-2.5 border-t border-slate-800 bg-slate-900 flex items-center gap-2 shrink-0">
+        <input id="ai-simple-input" type="text" placeholder="Mesaj yaz..." autocomplete="off" class="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500">
+        <button type="submit" id="ai-simple-send" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition shrink-0">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -72,8 +108,8 @@
     <div id="hamburger-panel" class="absolute left-0 top-0 h-full w-[85vw] max-w-72 bg-slate-900 border-r border-slate-800 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col pointer-events-auto safe-bottom">
       <div class="flex items-center justify-between p-4 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <img src="favicon.png" alt="MSZ MEDYA" class="h-8 w-auto object-contain">
-          <span class="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.1</span>
+          <img src="logo.png" alt="MSZ MEDYA" class="h-8 w-auto object-contain">
+          <span class="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.3</span>
         </div>
         <button onclick="closeHamburgerMenu()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition">
           <i class="fa-solid fa-xmark text-sm"></i>
@@ -81,6 +117,7 @@
       </div>
       <nav class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
         <button onclick="handleBannedClick('feed', event); closeHamburgerMenu();" id="nav-feed" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 bg-blue-500/10 text-blue-400 transition"><i class="fa-solid fa-house w-5 text-center"></i><span>Akış</span></button>
+        <button onclick="handleBannedClick('canvas', event); closeHamburgerMenu();" id="nav-canvas" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-code w-5 text-center"></i><span>Canvas</span></button>
         <button onclick="handleBannedClick('messages', event); closeHamburgerMenu();" id="nav-messages" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition relative"><i class="fa-solid fa-paper-plane w-5 text-center"></i><span>Mesajlar</span><span id="unread-dm-badge" class="hidden ml-auto bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">0</span></button>
         <button onclick="handleBannedClick('groups', event); closeHamburgerMenu();" id="nav-groups" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-users w-5 text-center"></i><span>Gruplar</span></button>
         <button onclick="handleBannedClick('users', event); closeHamburgerMenu();" id="nav-users" class="nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition"><i class="fa-solid fa-trophy w-5 text-center"></i><span>Topluluk</span></button>
@@ -415,10 +452,10 @@
   <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-slate-950">
     <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
       <div class="text-center mb-6 sm:mb-8">
-        <img src="favicon.png" alt="MSZ MEDYA" class="h-12 sm:h-14 mx-auto mb-3 object-contain">
+        <img src="logo.png" alt="MSZ MEDYA" class="h-12 sm:h-14 mx-auto mb-3 object-contain">
         <div class="flex items-center justify-center gap-2">
           <h1 class="text-xl sm:text-2xl font-bold text-white">Hoş Geldiniz</h1>
-          <span class="text-xs font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.1</span>
+          <span class="text-xs font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.3</span>
         </div>
       </div>
       <div class="flex bg-slate-950 p-1 rounded-xl mb-5 border border-slate-800">
@@ -451,7 +488,7 @@
         <div class="relative flex justify-center text-xs"><span class="bg-slate-900 px-2 text-slate-500">veya</span></div>
       </div>
       <button onclick="signInWithGoogle()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-medium rounded-xl text-sm flex items-center justify-center gap-2 transition">
-        <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         Google ile Giriş Yap
       </button>
     </div>
@@ -462,18 +499,19 @@
     <!-- Desktop Header -->
     <header class="hidden md:flex sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 h-16 items-center justify-between px-6">
       <div class="flex items-center gap-3">
-        <img src="favicon.png" alt="MSZ MEDYA" class="h-8 w-auto object-contain">
-        <span class="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.1</span>
+        <img src="logo.png" alt="MSZ MEDYA" class="h-8 w-auto object-contain">
+        <span class="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">v3.3</span>
       </div>
       <nav class="flex items-center gap-1">
-        <button onclick="handleBannedClick('feed', event)" id="nav-feed-desk" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/10 text-blue-400 transition flex items-center gap-2"><i class="fa-solid fa-house"></i> Akış</button>
-        <button onclick="handleBannedClick('messages', event)" id="nav-messages-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2 relative"><i class="fa-solid fa-paper-plane"></i> Mesajlar <span id="unread-dm-badge-desk" class="hidden ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">0</span></button>
-        <button onclick="handleBannedClick('groups', event)" id="nav-groups-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-users"></i> Gruplar</button>
-        <button onclick="handleBannedClick('users', event)" id="nav-users-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Topluluk</button>
-        <button onclick="handleBannedClick('games', event)" id="nav-games-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> Oyunlar</button>
-        <button onclick="handleBannedClick('profile', event)" id="nav-profile-desk" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-user"></i> Profilim</button>
-        <button onclick="toggleAiPanel()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-robot"></i> AI</button>
-        <button onclick="handleBannedClick('mod', event)" id="nav-mod-desk" class="hidden px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border border-red-500/30"><i class="fa-solid fa-shield-halved"></i> MOD</button>
+        <button onclick="handleBannedClick('feed', event)" id="nav-feed-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium bg-blue-500/10 text-blue-400 transition flex items-center gap-2"><i class="fa-solid fa-house"></i> Akış</button>
+        <button onclick="handleBannedClick('canvas', event)" id="nav-canvas-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-code"></i> Canvas</button>
+        <button onclick="handleBannedClick('messages', event)" id="nav-messages-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2 relative"><i class="fa-solid fa-paper-plane"></i> Mesajlar <span id="unread-dm-badge-desk" class="hidden ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">0</span></button>
+        <button onclick="handleBannedClick('groups', event)" id="nav-groups-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-users"></i> Gruplar</button>
+        <button onclick="handleBannedClick('users', event)" id="nav-users-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Topluluk</button>
+        <button onclick="handleBannedClick('games', event)" id="nav-games-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> Oyunlar</button>
+        <button onclick="handleBannedClick('profile', event)" id="nav-profile-desk" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-user"></i> Profilim</button>
+        <button onclick="toggleAiPanel()" class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2"><i class="fa-solid fa-robot"></i> AI</button>
+        <button onclick="handleBannedClick('mod', event)" id="nav-mod-desk" class="hidden px-3.5 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border border-red-500/30"><i class="fa-solid fa-shield-halved"></i> MOD</button>
       </nav>
       <div class="flex items-center gap-3">
         <button onclick="handleBannedClick('notifications', event)" class="relative w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-regular fa-bell"></i><span id="notification-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">0</span></button>
@@ -500,8 +538,8 @@
     <header class="md:hidden sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 h-14 flex items-center justify-between px-3">
       <button onclick="toggleHamburgerMenu()" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-bars"></i></button>
       <div class="flex items-center gap-2">
-        <img src="favicon.png" alt="MSZ MEDYA" class="h-7 w-auto object-contain">
-        <span class="text-[9px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">v3.1</span>
+        <img src="logo.png" alt="MSZ MEDYA" class="h-7 w-auto object-contain">
+        <span class="text-[9px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">v3.3</span>
       </div>
       <div class="flex items-center gap-1">
         <button onclick="handleBannedClick('notifications', event)" class="relative w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-regular fa-bell"></i><span id="notification-badge-mob" class="hidden absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold px-1">0</span></button>
@@ -519,11 +557,34 @@
               <div id="composer-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs overflow-hidden shrink-0"></div>
               <div class="flex-1 min-w-0">
                 <textarea id="post-input" placeholder="Neler oluyor? (@etiket)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 resize-none min-h-[70px] max-h-[300px]"></textarea>
+
+                <!-- GÖNDERİDE KOD GÖNDERME BÖLÜMÜ (v3.3) -->
+                <div id="post-code-composer" class="hidden mt-2.5 bg-slate-950 border border-emerald-500/30 rounded-xl p-3 space-y-2.5">
+                  <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-1.5">
+                      <i class="fa-solid fa-code text-emerald-400 text-xs"></i>
+                      <span class="text-xs font-bold text-emerald-300">Kod Dosyaları</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <input id="code-new-filename" type="text" placeholder="ör: app.js" class="w-28 sm:w-32 px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[11px] font-mono text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                      <button type="button" onclick="addComposerCodeFile()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 text-[11px] font-semibold rounded-lg transition">
+                        + Dosya Ekle
+                      </button>
+                      <button type="button" onclick="togglePostCodeComposer(false)" class="px-2 py-1 text-slate-400 hover:text-red-400 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="code-composer-tabs" class="flex items-center gap-1.5 flex-wrap"></div>
+                  <textarea id="code-composer-editor" rows="7" placeholder="Kodunu buraya yaz veya yapıştır..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-emerald-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 resize-y"></textarea>
+                </div>
+
                 <div id="post-media-preview" class="mt-2 hidden"></div>
                 <div class="flex items-center justify-between mt-2 gap-2">
                   <div class="flex items-center gap-1">
-                    <label class="cursor-pointer w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-solid fa-image text-xs"></i><input type="file" accept="image/*,video/*,audio/*" onchange="handlePostMediaSelect(event)" class="hidden"></label>
-                    <button onclick="openEmojiPanel('post-input')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-regular fa-face-smile text-xs"></i></button>
+                    <label class="cursor-pointer w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition" title="Medya Ekle"><i class="fa-solid fa-image text-xs"></i><input type="file" accept="image/*,video/*,audio/*" onchange="handlePostMediaSelect(event)" class="hidden"></label>
+                    <button type="button" onclick="togglePostCodeComposer()" id="toggle-code-composer-btn" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 flex items-center justify-center transition" title="Kod Gönder"><i class="fa-solid fa-code text-xs"></i></button>
+                    <button type="button" onclick="openEmojiPanel('post-input')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition" title="Emoji"><i class="fa-regular fa-face-smile text-xs"></i></button>
                   </div>
                   <div class="flex items-center gap-2">
                     <span id="char-counter" class="text-[10px] text-slate-500 font-mono">0 / 280</span>
@@ -562,6 +623,47 @@
             <div class="mt-2 flex items-center gap-2 text-[10px] text-slate-500"><i class="fa-solid fa-circle text-[6px] text-emerald-500"></i><span id="status-text">Bağlanıyor...</span></div>
           </div>
         </aside>
+      </div>
+
+      <!-- CANVAS SEKME BÖLÜMÜ (v3.3) -->
+      <div id="tab-content-canvas" class="hidden space-y-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-code text-emerald-400"></i> MSZ Canvas
+            </span>
+            <input id="canvas-new-file-input" type="text" placeholder="dosya adı (ör: style.css)" class="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500">
+            <button type="button" onclick="createCanvasFile()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition">
+              + Dosya Böl / Ekle
+            </button>
+            <label class="cursor-pointer px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-semibold rounded-lg transition">
+              <i class="fa-solid fa-file-import mr-1"></i> Dosya Yükle
+              <input type="file" id="canvas-file-upload" accept=".html,.htm,.css,.js,.mjs,.json,.txt,.md" onchange="handleCanvasFileUpload(event)" class="hidden">
+            </label>
+          </div>
+          <button type="button" onclick="runCanvasPreview()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-play"></i> Çalıştır
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-[540px]">
+          <!-- Sol: Dosyalar & Kod Editörü -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden min-h-[380px]">
+            <div id="canvas-file-tabs" class="flex items-center gap-1.5 p-2 bg-slate-950 border-b border-slate-800 overflow-x-auto custom-scrollbar shrink-0"></div>
+            <textarea id="canvas-code-editor" oninput="updateActiveCanvasFileContent(this.value)" spellcheck="false" placeholder="Kodunu yaz, yapıştır veya yukarıdan dosya yükle... (Tek index.html veya index.html + style.css + script.js)" class="flex-1 w-full bg-slate-950 p-3.5 text-xs font-mono text-emerald-200 placeholder-slate-600 focus:outline-none resize-none leading-relaxed custom-scrollbar"></textarea>
+          </div>
+
+          <!-- Sağ: Canlı Görünüm -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden min-h-[380px]">
+            <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+              <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-display text-emerald-400"></i> Görünüm
+              </span>
+              <span id="canvas-status-label" class="text-[10px] font-mono text-slate-500">Hazır</span>
+            </div>
+            <iframe id="canvas-preview-frame" sandbox="allow-scripts allow-modals allow-forms" class="flex-1 w-full bg-white border-0 min-h-[340px]"></iframe>
+          </div>
+        </div>
       </div>
 
       <!-- MESSAGES -->
