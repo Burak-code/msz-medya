@@ -3626,7 +3626,6 @@ function hideBootScreen() {
 
 /** Boot animasyonu index.html inline script'te. Burada sadece kapat. */
 function runBootSequence() {
-  hideBootScreen();
   return Promise.resolve();
 }
 
@@ -3880,8 +3879,7 @@ Object.assign(window, {
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
-  // Boot index.html'de bitti; emin olmak için kapat
-  try { hideBootScreen(); } catch(_) {}
+  // Boot ekranını index.html içindeki animasyon kendisi kapatır.
 
   try {
     await openDatabase();
