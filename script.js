@@ -1629,7 +1629,7 @@ async function launchMainApp() {
     const mainApp = $('main-app');
     if (authScreen) authScreen.classList.add('hidden');
     if (mainApp) mainApp.classList.remove('hidden');
-    console.log('🚀 MSZ MEDYA v3.1!', currentUser?.username);
+    console.log('🚀 MSZ MEDYA v3.3!', currentUser?.username);
     loadAnimationSettings();
     updateUserUI();
     updateModUI();
@@ -1657,7 +1657,7 @@ async function launchMainApp() {
     const iframe = $('ai-frame');
     if (iframe) iframe.onload = () => sendAiLimitToFrame();
 
-    logSystem('Ana uygulama başlatıldı (v3.1)');
+    logSystem('Ana uygulama başlatıldı (v3.3)');
 
     // Eski hesaplarda ülke / doğum tarihi yoksa zorunlu tamamlat
     if (currentUser && (!currentUser.country || !currentUser.birthDate)) {
@@ -3252,67 +3252,22 @@ function openMszAiInNewTab() {
 }
 
 // ---- BOOT SCREEN ----
-function runBootSequence() {
+function hideBootScreen() {
   const screen = document.getElementById('boot-screen');
-  const textEl = document.getElementById('boot-text');
-  if (!screen || !textEl) return Promise.resolve();
-  return new Promise(resolve => {
-    const lines = [
-      'Welcome to were programming media!',
-      'If you want to learn, use msz ai...',
-      '',
-      '> initializing modules...',
-      '> loading canvas engine...',
-      '> ready.'
-    ];
-    let i = 0, char = 0, full = '';
-    function type() {
-      if (i >= lines.length) {
-        setTimeout(explode, 600);
-        return;
-      }
-      const line = lines[i];
-      if (char <= line.length) {
-        textEl.innerHTML = full + line.slice(0, char) + '<span id="boot-cursor"></span>';
-        char++;
-        setTimeout(type, line.startsWith('>') ? 18 : 28);
-      } else {
-        full += line + '\n';
-        i++; char = 0;
-        setTimeout(type, 220);
-      }
-    }
-    function explode() {
-      const chars = '01<>{}[];:/\\|$#@*&';
-      const rect = textEl.getBoundingClientRect();
-      for (let n = 0; n < 48; n++) {
-        const el = document.createElement('div');
-        el.className = 'boot-particle';
-        el.textContent = chars[Math.floor(Math.random() * chars.length)];
-        el.style.left = (rect.left + Math.random() * rect.width) + 'px';
-        el.style.top = (rect.top + Math.random() * rect.height) + 'px';
-        el.style.fontSize = (10 + Math.random() * 14) + 'px';
-        document.body.appendChild(el);
-        const dx = (Math.random() - 0.5) * 600;
-        const dy = (Math.random() - 0.5) * 500;
-        el.animate([
-          { transform: 'translate(0,0) scale(1)', opacity: 1 },
-          { transform: `translate(${dx}px,${dy}px) scale(0)`, opacity: 0 }
-        ], { duration: 700 + Math.random() * 400, easing: 'cubic-bezier(0.2,0.8,0.2,1)' });
-        setTimeout(() => el.remove(), 1200);
-      }
-      textEl.style.transition = 'opacity 0.4s, transform 0.5s';
-      textEl.style.opacity = '0';
-      textEl.style.transform = 'scale(1.2)';
-      setTimeout(() => {
-        screen.classList.add('hidden');
-        screen.style.display = 'none';
-        resolve();
-      }, 500);
-    }
-    type();
-  });
+  if (!screen) return;
+  screen.classList.add('hidden');
+  screen.style.display = 'none';
+  screen.style.pointerEvents = 'none';
+  screen.style.opacity = '0';
+  document.querySelectorAll('.boot-particle').forEach(el => el.remove());
 }
+
+/** Boot animasyonu index.html inline script'te. Burada sadece kapat. */
+function runBootSequence() {
+  hideBootScreen();
+  return Promise.resolve();
+}
+
 
 // ---- CODE FILES IN COMPOSER ----
 function handlePostCodeSelect(event) {
@@ -3561,8 +3516,8 @@ Object.assign(window, {
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
-  // Boot intro (hacker style) — always runs first
-  try { await runBootSequence(); } catch(e) { console.warn('boot', e); const bs=$('boot-screen'); if(bs){bs.classList.add('hidden');bs.style.display='none';} }
+  // Boot index.html'de bitti; emin olmak için kapat
+  try { hideBootScreen(); } catch(_) {}
 
   try {
     await openDatabase();
