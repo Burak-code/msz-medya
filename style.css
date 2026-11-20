@@ -248,3 +248,63 @@ body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
   margin: 2px;
   color: #a7f3d0;
 }
+
+/* ============================================================
+   v3.4 — USER GAMES
+   ============================================================ */
+.game-card-v4 {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.game-card-v4:hover {
+  border-color: #334155;
+  transform: translateY(-2px);
+}
+.game-thumb-v4 {
+  height: 100px;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.game-thumb-v4 img { width: 100%; height: 100%; object-fit: cover; }
+.game-body-v4 { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+.vote-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.vote-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vote-like.active, .vote-like:hover { color: #60a5fa; background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); }
+.vote-dislike.active, .vote-dislike:hover { color: #f87171; background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); }
+.vote-heart.active, .vote-heart:hover { color: #34d399; background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); }
+.game-play-btn-v4 {
+  padding: 6px 12px;
+  background: #059669;
+  color: white;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.game-play-btn-v4:hover { background: #10b981; }
