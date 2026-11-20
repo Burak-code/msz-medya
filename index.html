@@ -24,7 +24,7 @@
     #boot-screen { position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;overflow:hidden; }
     #boot-screen.hidden { display:none !important; }
     #boot-text { color:#22c55e;font-size:clamp(14px,3vw,20px);text-align:center;padding:20px;max-width:90%;line-height:1.6;white-space:pre-wrap;text-shadow:0 0 10px #22c55e; }
-    #boot-cursor { display:inline-block;width:10px;height:1.1em;background:#22c55e;animation:blink 0.8s infinite;vertical-align:middle;margin-left:2px; }
+    #boot-cursor { animation:blink 0.8s infinite !important;display:inline-block;width:10px;height:1.1em;background:#22c55e;animation:blink 0.8s infinite;vertical-align:middle;margin-left:2px; }
     @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
     .boot-particle { position:absolute;color:#22c55e;font-size:12px;pointer-events:none;opacity:0; }
   </style>
@@ -50,7 +50,7 @@
     }
 
     // Mutlak güvenlik: 3.5 sn sonra ne olursa olsun kapat
-    setTimeout(hide, 15000);
+    setTimeout(hide, 20000);
 
     var lines = [
       'Welcome to were programming media!',
@@ -65,7 +65,7 @@
     function type() {
       try {
         if (i >= lines.length) {
-          setTimeout(explode, 300);
+          setTimeout(explode, 800);
           return;
         }
         var line = lines[i];
@@ -75,12 +75,12 @@
           cur.id = 'boot-cursor';
           textEl.appendChild(cur);
           char++;
-          setTimeout(type, line.charAt(0) === '>' ? 35 : 25);
+          setTimeout(type, line.charAt(0) === '>' ? 60 : 50);
         } else {
           full += line + '\n';
           i++;
           char = 0;
-          setTimeout(type, 350);
+          setTimeout(type, 700);
         }
       } catch (e) {
         hide();
@@ -114,7 +114,7 @@
         textEl.style.transition = 'opacity 0.3s, transform 0.35s';
         textEl.style.opacity = '0';
         textEl.style.transform = 'scale(1.12)';
-        setTimeout(hide, 1200);
+        setTimeout(hide, 1500);
       } catch (e) {
         hide();
       }
