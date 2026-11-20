@@ -2620,6 +2620,38 @@ function gameScore(g) {
   return hearts * 5 + likes * 1 + dislikes * (-1);
 }
 
+const TRUSTED_SCRIPT_HOSTS = [
+  'cdnjs.cloudflare.com','cdn.jsdelivr.net','unpkg.com','ajax.googleapis.com','code.jquery.com',
+  'threejs.org','cdn.skypack.dev','esm.sh','esm.run','cdn.babylonjs.com','pixijs.download',
+  'cdn.jsdelivr.net','d3js.org','cdn.plot.ly','cdn.tailwindcss.com','fonts.googleapis.com',
+  'fonts.gstatic.com','burak-code.github.io'
+];
+function isTrustedScriptHost(url) {
+  try {
+    const u = new URL(url.startsWith('//') ? 'https:' + url : url);
+    const h = u.hostname.toLowerCase();
+    return TRUSTED_SCRIPT_HOSTS.some(d => h === d || h.endsWith('.' + d));
+  } catch (e) { return false; }
+}
+function findUntrustedExternalUrls(rawText) {
+  const bad = new Set();
+  const patterns = [
+    /<script[^>]+src\s*=\s*['"]((?:https?:)?\/\/[^'"]+)['"]/gi,      // <script src="...">
+    /(?:from|import\s*\(|import)\s*['"](https?:\/\/[^'"]+)['"]/gi,   // ES import
+    /<script[^>]+type\s*=\s*['"]importmap['"][^>]*>([\s\S]*?)<\/script>/gi, // importmap (special)
+    /fetch\s*\(\s*['"](https?:\/\/[^'"]+)['"]/gi                    // fetch
+  ];
+  patterns.forEach((re, i) => {
+    let m;
+    while ((m = re.exec(rawText)) !== null) {
+      if (i === 2) {
+        (m[1].match(/https?:\/\/[^"'\s,}]+/g) || []).forEach(u => { if (!isTrustedScriptHost(u)) bad.add(u); });
+      } else if (!isTrustedScriptHost(m[1])) bad.add(m[1]);
+    }
+  });
+  return [...bad];
+}
+
 function scanGameFiles(files) {
   const joined = files.map(f => f.content || '').join('\n').toLowerCase();
   const risks = [
@@ -2627,17 +2659,17 @@ function scanGameFiles(files) {
     { re: /localstorage\.(clear|remove)/g, msg: 'storage silme' },
     { re: /eval\s*\(/g, msg: 'eval kullanımı' },
     { re: /new\s+function\s*\(/g, msg: 'dinamik function' },
-    { re: /fetch\s*\(\s*['"]https?:\/\/(?!burak-code\.github\.io)/gi, msg: 'dış fetch' },
     { re: /xmlhttprequest/g, msg: 'XHR' },
     { re: /window\.location\s*=/g, msg: 'yönlendirme' },
     { re: /document\.write\s*\(/g, msg: 'document.write' },
-    { re: /<script[^>]+src\s*=\s*['"]https?:\/\//gi, msg: 'dış script' },
     { re: /innerhtml\s*=\s*.*<script/gi, msg: 'script enjeksiyonu' }
   ];
   const found = [];
   for (const r of risks) {
     if (r.re.test(joined)) found.push(r.msg);
   }
+  const rawJoined = files.map(f => f.content || '').join('\n');
+  findUntrustedExternalUrls(rawJoined).forEach(u => found.push('güvenilmeyen dış kaynak: ' + u.slice(0, 60)));
   // reset lastIndex
   risks.forEach(r => { if (r.re.global) r.re.lastIndex = 0; });
   return found;
@@ -2950,7 +2982,7 @@ function playUserGame(gameId) {
   if (iframeContainer) {
     iframeContainer.innerHTML = '';
     const iframe = document.createElement('iframe');
-    iframe.sandbox = 'allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock';
+    iframe.sandbox = 'allow-scripts allow-modals allow-forms allow-pointer-lock';
     iframe.allow = 'fullscreen; autoplay; gamepad';
     iframe.style.cssText = 'width:100%;height:100%;border:0;background:#000';
     const srcdoc = buildGameSrcdoc(g);
