@@ -227,7 +227,25 @@ let dmRequestsDb = [], bannedUsers = [];
 let notifications = [], notificationCount = 0, dmUnreadCounts = {}, dmLastMessageTime = {};
 let db = null, followersModalTarget = null, followingModalTarget = null;
 let presenceInterval = null, banCheckInterval = null;
-let pendingPostMedia = null, replyToMessage = null, emojiTargetInput = null;
+let pendingPostMedia = null, pendingCodeFiles = [], replyToMessage = null, emojiTargetInput = null;
+let canvasFiles = [{ name: 'index.html', content: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Canvas</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 2rem; background: #0f172a; color: #e2e8f0; }
+    h1 { color: #34d399; }
+  </style>
+</head>
+<body>
+  <h1>Merhaba Canvas!</h1>
+  <p>Kod yazıp <b>Çalıştır</b> butonuna bas.</p>
+  <script>console.log('Canvas hazır');</script>
+</body>
+</html>` }];
+let canvasActiveFile = 0;
+let pendingDownloadFiles = null;
 let mediaRecorder = null, audioChunks = [], recordingTimer = null, recordingSeconds = 0;
 let modBanTarget = null, modDeletePostTarget = null;
 let currentGameUrl = null, currentGameName = null, isGameFullscreen = false;
@@ -2319,7 +2337,7 @@ function switchTab(tab) {
   activeTab = tab;
 
   // Desktop
-  ['feed','messages','groups','users','games','profile','mod'].forEach(t => {
+  ['feed','messages','groups','users','games','canvas','profile','mod'].forEach(t => {
     const el = $(`nav-${t}-desk`);
     if (!el) return;
     el.className = 'px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 transition flex items-center gap-2';
@@ -2332,7 +2350,7 @@ function switchTab(tab) {
   }
 
   // Mobile
-  ['feed','messages','groups','users','games','mod','profile'].forEach(t => {
+  ['feed','messages','groups','users','games','canvas','mod','profile'].forEach(t => {
     const el = $(`nav-${t}`);
     if (!el) return;
     el.className = 'nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-slate-400 hover:bg-slate-800 transition relative';
@@ -2341,7 +2359,7 @@ function switchTab(tab) {
   if (activeMob) activeMob.className = 'nav-btn w-full px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 bg-blue-500/10 text-blue-400 transition relative';
 
   // Content
-  const contentIds = ['tab-content-feed','tab-content-messages','tab-content-groups','tab-content-users','tab-content-games','tab-content-mod','tab-content-profile'];
+  const contentIds = ['tab-content-feed','tab-content-messages','tab-content-groups','tab-content-users','tab-content-games','tab-content-canvas','tab-content-mod','tab-content-profile'];
   contentIds.forEach(id => { const el = $(id); if (el) el.classList.add('hidden'); });
   const activeContent = $(`tab-content-${tab}`);
   if (activeContent) activeContent.classList.remove('hidden');
@@ -2357,6 +2375,7 @@ function switchTab(tab) {
   else if (tab === 'groups') renderGroups();
   else if (tab === 'users') renderUsersLeaderboard();
   else if (tab === 'games') renderGames();
+  else if (tab === 'canvas') { renderCanvasUI(); }
   else if (tab === 'mod') renderModPanel();
   else if (tab === 'profile') renderProfileTab();
 }
@@ -2401,7 +2420,7 @@ async function submitPost() {
   const input = $('post-input');
   if (!input) return;
   let text = input.value.trim();
-  if (!text && !pendingPostMedia) { showToast('Bir şeyler yaz veya medya ekle.', 'warning'); return; }
+  if (!text && !pendingPostMedia && pendingCodeFiles.length === 0) { showToast('Bir şeyler yaz, medya veya kod ekle.', 'warning'); return; }
   if (text && containsForbidden(text)) { showToast('Yasaklı içerik!', 'error'); return; }
   text = text ? censorText(text) : '';
   const now = Date.now();
@@ -2412,6 +2431,7 @@ async function submitPost() {
     id: 'post_' + Date.now() + '_' + Math.random().toString(36).substring(2,7),
     text, imageUrl: '',
     media: pendingPostMedia ? { type: pendingPostMedia.type, data: pendingPostMedia.data, name: pendingPostMedia.name } : null,
+    codeFiles: pendingCodeFiles.length ? pendingCodeFiles.map(f => ({ name: f.name, content: f.content })) : null,
     createdAt: new Date().toISOString(),
     likes: [], comments: [],
     author: {
@@ -2428,6 +2448,7 @@ async function submitPost() {
     // UI hemen güncelle
     input.value = ''; input.style.height = 'auto';
     pendingPostMedia = null; renderPostMediaPreview();
+    pendingCodeFiles = []; renderPostCodePreview();
     const cc = $('char-counter'); if (cc) cc.innerText = '0 / 280';
     renderFeed();
     showToast('✅ Gönderi yayınlandı!', 'success');
@@ -2552,6 +2573,7 @@ function createPostCard(post) {
     </div>
     ${post.text ? `<p class="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-line break-words">${renderText(post.text)}</p>` : ''}
     ${renderPostMedia(post)}
+     ${renderCodePostBlock(post)}
     <div class="flex items-center gap-4 sm:gap-6 pt-2 border-t border-slate-800 text-[11px] text-slate-400 flex-wrap">
       <button onclick="toggleLike('${post.id}')" class="flex items-center gap-1.5 hover:text-red-400 transition ${isLiked ? 'text-red-500 font-bold' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i> <span>${post.likes.length}</span></button>
       <button onclick="toggleComments('${post.id}')" class="flex items-center gap-1.5 hover:text-blue-400 transition"><i class="fa-regular fa-comment"></i> <span>${commentCount}</span></button>
@@ -3221,6 +3243,285 @@ async function confirmModBan() {
 // ============================================================
 // GLOBAL BINDINGS
 // ============================================================
+
+// ============================================================
+// v3.3 — MSZ AI + BOOT + CANVAS + CODE POSTS
+// ============================================================
+function openMszAiInNewTab() {
+  window.open('https://burak-code.github.io/msz_ai/', '_blank', 'noopener,noreferrer');
+}
+
+// ---- BOOT SCREEN ----
+function runBootSequence() {
+  const screen = document.getElementById('boot-screen');
+  const textEl = document.getElementById('boot-text');
+  if (!screen || !textEl) return Promise.resolve();
+  return new Promise(resolve => {
+    const lines = [
+      'Welcome to were programming media!',
+      'If you want to learn, use msz ai...',
+      '',
+      '> initializing modules...',
+      '> loading canvas engine...',
+      '> ready.'
+    ];
+    let i = 0, char = 0, full = '';
+    function type() {
+      if (i >= lines.length) {
+        setTimeout(explode, 600);
+        return;
+      }
+      const line = lines[i];
+      if (char <= line.length) {
+        textEl.innerHTML = full + line.slice(0, char) + '<span id="boot-cursor"></span>';
+        char++;
+        setTimeout(type, line.startsWith('>') ? 18 : 28);
+      } else {
+        full += line + '\n';
+        i++; char = 0;
+        setTimeout(type, 220);
+      }
+    }
+    function explode() {
+      const chars = '01<>{}[];:/\\|$#@*&';
+      const rect = textEl.getBoundingClientRect();
+      for (let n = 0; n < 48; n++) {
+        const el = document.createElement('div');
+        el.className = 'boot-particle';
+        el.textContent = chars[Math.floor(Math.random() * chars.length)];
+        el.style.left = (rect.left + Math.random() * rect.width) + 'px';
+        el.style.top = (rect.top + Math.random() * rect.height) + 'px';
+        el.style.fontSize = (10 + Math.random() * 14) + 'px';
+        document.body.appendChild(el);
+        const dx = (Math.random() - 0.5) * 600;
+        const dy = (Math.random() - 0.5) * 500;
+        el.animate([
+          { transform: 'translate(0,0) scale(1)', opacity: 1 },
+          { transform: `translate(${dx}px,${dy}px) scale(0)`, opacity: 0 }
+        ], { duration: 700 + Math.random() * 400, easing: 'cubic-bezier(0.2,0.8,0.2,1)' });
+        setTimeout(() => el.remove(), 1200);
+      }
+      textEl.style.transition = 'opacity 0.4s, transform 0.5s';
+      textEl.style.opacity = '0';
+      textEl.style.transform = 'scale(1.2)';
+      setTimeout(() => {
+        screen.classList.add('hidden');
+        screen.style.display = 'none';
+        resolve();
+      }, 500);
+    }
+    type();
+  });
+}
+
+// ---- CODE FILES IN COMPOSER ----
+function handlePostCodeSelect(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  const readers = files.map(file => new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => res({ name: file.name, content: String(r.result || '') });
+    r.onerror = () => res(null);
+    r.readAsText(file);
+  }));
+  Promise.all(readers).then(results => {
+    results.filter(Boolean).forEach(f => {
+      if (!pendingCodeFiles.find(x => x.name === f.name)) pendingCodeFiles.push(f);
+    });
+    renderPostCodePreview();
+    event.target.value = '';
+  });
+}
+function renderPostCodePreview() {
+  const box = $('post-code-preview');
+  if (!box) return;
+  if (!pendingCodeFiles.length) {
+    box.classList.add('hidden'); box.style.display = 'none'; box.innerHTML = '';
+    return;
+  }
+  box.classList.remove('hidden'); box.style.display = 'block';
+  box.innerHTML = `<div class="flex items-center justify-between mb-1"><span class="text-[10px] text-emerald-400 font-semibold"><i class="fa-solid fa-code mr-1"></i>${pendingCodeFiles.length} dosya</span>
+    <button type="button" onclick="clearPendingCodeFiles()" class="text-[10px] text-slate-500 hover:text-red-400">Temizle</button></div>
+    ${pendingCodeFiles.map((f,i) => `<span class="code-chip">${escapeHtml(f.name)} <button type="button" onclick="removePendingCodeFile(${i})" class="text-slate-500 hover:text-red-400 ml-1">×</button></span>`).join('')}`;
+}
+function removePendingCodeFile(i) {
+  pendingCodeFiles.splice(i, 1);
+  renderPostCodePreview();
+}
+function clearPendingCodeFiles() {
+  pendingCodeFiles = [];
+  renderPostCodePreview();
+}
+
+// ---- CODE POST RENDER + DOWNLOAD / RUN ----
+function renderCodePostBlock(post) {
+  if (!post.codeFiles || !post.codeFiles.length) return '';
+  const files = post.codeFiles;
+  const id = post.id;
+  return `<div class="code-post-box mt-2">
+    <div class="code-post-header">
+      <span class="text-[11px] font-semibold text-emerald-400"><i class="fa-solid fa-code mr-1"></i> Kod Paketi</span>
+      <span class="text-[10px] text-slate-500">${files.length} dosya</span>
+    </div>
+    <div class="code-post-files">${files.map(f => `<span class="code-file-chip">${escapeHtml(f.name)}</span>`).join('')}</div>
+    <div class="code-post-actions">
+      <button class="btn-code-dl" onclick="requestCodeDownload('${id}')"><i class="fa-solid fa-download"></i> İndir</button>
+      <button class="btn-code-run" onclick="runCodeInCanvas('${id}')"><i class="fa-solid fa-play"></i> Çalıştır</button>
+    </div>
+  </div>`;
+}
+function requestCodeDownload(postId) {
+  const post = postsDb.find(p => p.id === postId);
+  if (!post || !post.codeFiles) return;
+  pendingDownloadFiles = post.codeFiles;
+  const m = $('code-download-modal');
+  if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+}
+function cancelCodeDownload() {
+  pendingDownloadFiles = null;
+  const m = $('code-download-modal');
+  if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
+}
+function confirmCodeDownload() {
+  if (!pendingDownloadFiles) { cancelCodeDownload(); return; }
+  pendingDownloadFiles.forEach(f => {
+    const blob = new Blob([f.content], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = f.name || 'file.txt';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+  showToast('Dosyalar indirildi.', 'success');
+  cancelCodeDownload();
+}
+function runCodeInCanvas(postId) {
+  const post = postsDb.find(p => p.id === postId);
+  if (!post || !post.codeFiles) return;
+  canvasFiles = post.codeFiles.map(f => ({ name: f.name, content: f.content }));
+  canvasActiveFile = 0;
+  switchTab('canvas');
+  renderCanvasUI();
+  setTimeout(() => runCanvas(), 200);
+  showToast('Kod Canvas\'a yüklendi.', 'success');
+}
+
+// ---- CANVAS ----
+function renderCanvasUI() {
+  const tabs = $('canvas-file-tabs');
+  const editor = $('canvas-editor');
+  if (!tabs || !editor) return;
+  if (!canvasFiles.length) {
+    canvasFiles = [{ name: 'index.html', content: '' }];
+    canvasActiveFile = 0;
+  }
+  if (canvasActiveFile >= canvasFiles.length) canvasActiveFile = 0;
+  tabs.innerHTML = canvasFiles.map((f, i) =>
+    `<button type="button" class="canvas-file-tab ${i === canvasActiveFile ? 'active' : ''}" onclick="canvasSelectFile(${i})">${escapeHtml(f.name)}
+      ${canvasFiles.length > 1 ? `<span class="tab-close" onclick="event.stopPropagation();canvasRemoveFile(${i})">×</span>` : ''}</button>`
+  ).join('');
+  editor.value = canvasFiles[canvasActiveFile].content;
+  editor.oninput = () => {
+    if (canvasFiles[canvasActiveFile]) canvasFiles[canvasActiveFile].content = editor.value;
+  };
+  // drop support
+  const pane = editor.parentElement;
+  if (pane && !pane._dropBound) {
+    pane._dropBound = true;
+    pane.addEventListener('dragover', e => { e.preventDefault(); $('canvas-drop-overlay')?.classList.remove('hidden'); });
+    pane.addEventListener('dragleave', () => $('canvas-drop-overlay')?.classList.add('hidden'));
+    pane.addEventListener('drop', e => {
+      e.preventDefault();
+      $('canvas-drop-overlay')?.classList.add('hidden');
+      const files = Array.from(e.dataTransfer.files || []);
+      files.forEach(file => {
+        const r = new FileReader();
+        r.onload = () => {
+          const name = file.name;
+          const existing = canvasFiles.findIndex(x => x.name === name);
+          if (existing >= 0) canvasFiles[existing].content = String(r.result);
+          else canvasFiles.push({ name, content: String(r.result) });
+          canvasActiveFile = existing >= 0 ? existing : canvasFiles.length - 1;
+          renderCanvasUI();
+        };
+        r.readAsText(file);
+      });
+    });
+  }
+}
+function canvasSelectFile(i) {
+  const editor = $('canvas-editor');
+  if (editor && canvasFiles[canvasActiveFile]) canvasFiles[canvasActiveFile].content = editor.value;
+  canvasActiveFile = i;
+  renderCanvasUI();
+}
+function canvasAddFile() {
+  const name = prompt('Dosya adı (örn: style.css, script.js, index.html):', 'style.css');
+  if (!name) return;
+  if (canvasFiles.find(f => f.name === name)) { showToast('Bu isimde dosya var.', 'warning'); return; }
+  canvasFiles.push({ name, content: '' });
+  canvasActiveFile = canvasFiles.length - 1;
+  renderCanvasUI();
+}
+function canvasRemoveFile(i) {
+  if (canvasFiles.length <= 1) { showToast('En az bir dosya gerekli.', 'warning'); return; }
+  canvasFiles.splice(i, 1);
+  if (canvasActiveFile >= canvasFiles.length) canvasActiveFile = canvasFiles.length - 1;
+  renderCanvasUI();
+}
+function canvasClearAll() {
+  if (!confirm('Tüm dosyalar silinsin mi?')) return;
+  canvasFiles = [{ name: 'index.html', content: '' }];
+  canvasActiveFile = 0;
+  renderCanvasUI();
+  const prev = $('canvas-preview');
+  if (prev) prev.srcdoc = '';
+}
+function runCanvas() {
+  const editor = $('canvas-editor');
+  if (editor && canvasFiles[canvasActiveFile]) canvasFiles[canvasActiveFile].content = editor.value;
+  let html = '', css = '', js = '';
+  canvasFiles.forEach(f => {
+    const n = f.name.toLowerCase();
+    if (n.endsWith('.html') || n.endsWith('.htm')) html += f.content + '\n';
+    else if (n.endsWith('.css')) css += f.content + '\n';
+    else if (n.endsWith('.js')) js += f.content + '\n';
+  });
+  // single-file mode: if only one html and no separate css/js, use as-is
+  if (canvasFiles.length === 1 && (canvasFiles[0].name.toLowerCase().endsWith('.html') || canvasFiles[0].name.toLowerCase().endsWith('.htm'))) {
+    const prev = $('canvas-preview');
+    if (prev) prev.srcdoc = canvasFiles[0].content;
+    return;
+  }
+  // multi-file: inject
+  if (!html.trim()) {
+    html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Canvas</title></head><body></body></html>`;
+  }
+  // inject css/js into html
+  let out = html;
+  if (css.trim()) {
+    if (out.includes('</head>')) out = out.replace('</head>', `<style>${css}</style></head>`);
+    else out = `<style>${css}</style>` + out;
+  }
+  if (js.trim()) {
+    if (out.includes('</body>')) out = out.replace('</body>', `<script>${js}<\/script></body>`);
+    else out = out + `<script>${js}<\/script>`;
+  }
+  const prev = $('canvas-preview');
+  if (prev) prev.srcdoc = out;
+}
+function canvasOpenPreviewFullscreen() {
+  const prev = $('canvas-preview');
+  if (!prev) return;
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(prev.srcdoc || '<p>Önizleme boş. Önce Çalıştır.</p>');
+    w.document.close();
+  }
+}
+
+
 Object.assign(window, {
   signInWithGoogle, handleLogin, handleRegister, logout, switchAuthTab,
   sendPasswordReset, openForgotPasswordModal, closeForgotPasswordModal,
@@ -3249,13 +3550,20 @@ Object.assign(window, {
   openModDeletePostModal, closeModDeletePostModal, confirmModDeletePost,
   modUnbanUser, modRemoveTik, filterModUserSearch,
   openGame, closeGameModal, openGameInNewTab, toggleGameFullscreen,
-  openSafeLink, openNotificationModal
+  openSafeLink, openNotificationModal,
+  openMszAiInNewTab,
+  handlePostCodeSelect, clearPendingCodeFiles, removePendingCodeFile,
+  requestCodeDownload, cancelCodeDownload, confirmCodeDownload, runCodeInCanvas,
+  renderCanvasUI, canvasSelectFile, canvasAddFile, canvasRemoveFile, canvasClearAll, runCanvas, canvasOpenPreviewFullscreen
 });
 
 // ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
+  // Boot intro (hacker style) — always runs first
+  try { await runBootSequence(); } catch(e) { console.warn('boot', e); const bs=$('boot-screen'); if(bs){bs.classList.add('hidden');bs.style.display='none';} }
+
   try {
     await openDatabase();
     const data = await loadAllFromDB();
