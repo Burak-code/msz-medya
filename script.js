@@ -62,7 +62,7 @@ const TOPICS = {
 const POST_COOLDOWN_MS = 180000;
 const MAX_POSTS = 100;
 const DB_NAME = 'MSZMedyaDB';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const USER_COLORS = ['bg-blue-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-purple-600', 'bg-rose-600', 'bg-amber-600'];
 const PRESENCE_INTERVAL_MS = 30000;
 const BAN_MIN_HOURS = 1;
@@ -223,7 +223,7 @@ const EMOJI_LIST = [
 let currentUser = null, mqttClient = null, activeTab = 'feed', selectedDmUser = null, viewingPublicUsername = null;
 let tempAvatarBase64 = null, isMqttConnected = false, isDBReady = false, lastPostTime = 0, selectedGroupId = null;
 let usersDb = {}, postsDb = [], dmsDb = [], commentsDb = [], groupsDb = [], groupChatsDb = {};
-let dmRequestsDb = [], bannedUsers = [];
+let dmRequestsDb = [], bannedUsers = [], gamesDb = [], gamesViewMode = 'all'; // all | mine
 let notifications = [], notificationCount = 0, dmUnreadCounts = {}, dmLastMessageTime = {};
 let db = null, followersModalTarget = null, followingModalTarget = null;
 let presenceInterval = null, banCheckInterval = null;
@@ -360,7 +360,7 @@ function openDatabase() {
     req.onsuccess = () => { db = req.result; isDBReady = true; resolve(db); };
     req.onupgradeneeded = (e) => {
       const d = e.target.result;
-      const stores = ['users', 'posts', 'comments', 'messages', 'groups', 'group_chats', 'dm_requests', 'banned_users'];
+      const stores = ['users', 'posts', 'comments', 'messages', 'groups', 'group_chats', 'dm_requests', 'banned_users', 'games'];
       stores.forEach(name => {
         if (!d.objectStoreNames.contains(name)) {
           const keyPath = name === 'users' ? 'username' : 'id';
@@ -433,14 +433,14 @@ const saveBannedUsersToDB = () => saveToDBAll('banned_users', bannedUsers);
 
 async function loadAllFromDB() {
   try {
-    const [users, posts, comments, messages, groups, dmReqs, bans] = await Promise.all([
+    const [users, posts, comments, messages, groups, dmReqs, bans, games] = await Promise.all([
       getAllFromDB('users'), getAllFromDB('posts'), getAllFromDB('comments'),
       getAllFromDB('messages'), getAllFromDB('groups'), getAllFromDB('dm_requests'),
-      getAllFromDB('banned_users')
+      getAllFromDB('banned_users'), getAllFromDB('games').catch(() => [])
     ]);
     const usersObj = {};
     users.forEach(u => usersObj[u.username] = u);
-    return { users: usersObj, posts, comments, messages, groups, dmReqs, bans };
+    return { users: usersObj, posts, comments, messages, groups, dmReqs, bans, games };
   } catch (e) {
     console.error('Yükleme hatası:', e);
     return null;
@@ -1629,7 +1629,7 @@ async function launchMainApp() {
     const mainApp = $('main-app');
     if (authScreen) authScreen.classList.add('hidden');
     if (mainApp) mainApp.classList.remove('hidden');
-    console.log('🚀 MSZ MEDYA v3.3!', currentUser?.username);
+    console.log('🚀 MSZ MEDYA v3.4!', currentUser?.username);
     loadAnimationSettings();
     updateUserUI();
     updateModUI();
@@ -1657,7 +1657,7 @@ async function launchMainApp() {
     const iframe = $('ai-frame');
     if (iframe) iframe.onload = () => sendAiLimitToFrame();
 
-    logSystem('Ana uygulama başlatıldı (v3.3)');
+    logSystem('Ana uygulama başlatıldı (v3.4)');
 
     // Eski hesaplarda ülke / doğum tarihi yoksa zorunlu tamamlat
     if (currentUser && (!currentUser.country || !currentUser.birthDate)) {
@@ -2613,18 +2613,362 @@ function renderFeed() {
 // ============================================================
 // GAMES
 // ============================================================
+function gameScore(g) {
+  const likes = Array.isArray(g.likes) ? g.likes.length : 0;
+  const dislikes = Array.isArray(g.dislikes) ? g.dislikes.length : 0;
+  const hearts = Array.isArray(g.hearts) ? g.hearts.length : 0;
+  return hearts * 5 + likes * 1 + dislikes * (-1);
+}
+
+function scanGameFiles(files) {
+  const joined = files.map(f => f.content || '').join('\n').toLowerCase();
+  const risks = [
+    { re: /document\.cookie/g, msg: 'cookie erişimi' },
+    { re: /localstorage\.(clear|remove)/g, msg: 'storage silme' },
+    { re: /eval\s*\(/g, msg: 'eval kullanımı' },
+    { re: /new\s+function\s*\(/g, msg: 'dinamik function' },
+    { re: /fetch\s*\(\s*['"]https?:\/\/(?!burak-code\.github\.io)/gi, msg: 'dış fetch' },
+    { re: /xmlhttprequest/g, msg: 'XHR' },
+    { re: /window\.location\s*=/g, msg: 'yönlendirme' },
+    { re: /document\.write\s*\(/g, msg: 'document.write' },
+    { re: /<script[^>]+src\s*=\s*['"]https?:\/\//gi, msg: 'dış script' },
+    { re: /innerhtml\s*=\s*.*<script/gi, msg: 'script enjeksiyonu' }
+  ];
+  const found = [];
+  for (const r of risks) {
+    if (r.re.test(joined)) found.push(r.msg);
+  }
+  // reset lastIndex
+  risks.forEach(r => { if (r.re.global) r.re.lastIndex = 0; });
+  return found;
+}
+
+function buildGameSrcdoc(game) {
+  if (game.srcdoc) return game.srcdoc;
+  const files = game.files || [];
+  if (files.length === 1 && /\.html?$/i.test(files[0].name)) return files[0].content;
+  let html = '', css = '', js = '';
+  files.forEach(f => {
+    const n = (f.name || '').toLowerCase();
+    if (n.endsWith('.html') || n.endsWith('.htm')) html += f.content + '\n';
+    else if (n.endsWith('.css')) css += f.content + '\n';
+    else if (n.endsWith('.js')) js += f.content + '\n';
+  });
+  if (!html.trim()) html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>';
+  let out = html;
+  if (css.trim()) {
+    if (out.includes('</head>')) out = out.replace('</head>', '<style>' + css + '</style></head>');
+    else out = '<style>' + css + '</style>' + out;
+  }
+  if (js.trim()) {
+    if (out.includes('</body>')) out = out.replace('</body>', '<script>' + js + '<\/script></body>');
+    else out = out + '<script>' + js + '<\/script>';
+  }
+  return out;
+}
+
+function getDisplayGames() {
+  let list = (gamesDb || []).filter(g => g.status === 'approved');
+  // Official seed games (read-only, always shown)
+  const official = (typeof OYUNLAR !== 'undefined' ? OYUNLAR : []).map(o => ({
+    id: 'official_' + o.id,
+    name: o.name,
+    desc: o.desc,
+    emoji: o.emoji,
+    category: o.category,
+    url: o.url,
+    official: true,
+    author: 'msz',
+    likes: o.likes || [],
+    dislikes: o.dislikes || [],
+    hearts: o.hearts || [],
+    status: 'approved',
+    logo: null
+  }));
+  // merge: user games + official (official only if not duplicated)
+  const ids = new Set(list.map(g => g.id));
+  official.forEach(o => { if (!ids.has(o.id)) list.push(o); });
+  if (gamesViewMode === 'mine' && currentUser) {
+    list = list.filter(g => g.author === currentUser.username);
+  }
+  list.sort((a, b) => gameScore(b) - gameScore(a));
+  return list;
+}
+
 function renderGames() {
   const container = document.getElementById('games-container');
   if (!container) return;
   const countEl = document.getElementById('games-count');
-  if (countEl) countEl.innerText = OYUNLAR.length + ' Oyun';
-  container.innerHTML = OYUNLAR.map(function(game) {
-    return '<div class="game-card" onclick="openGame(\'' + game.id + '\')"><div class="game-thumbnail"><span class="game-thumbnail-emoji">' + game.emoji + '</span></div><div class="game-info"><div class="game-title-row"><h4 class="game-title">' + escapeHtml(game.name) + '</h4><span class="game-category-badge">' + game.category + '</span></div><p class="game-desc">' + escapeHtml(game.desc) + '</p><button class="game-play-btn" onclick="event.stopPropagation(); openGame(\'' + game.id + '\')"><i class="fa-solid fa-play text-[10px]"></i> OYNA</button></div></div>';
-  }).join('');
+  const list = getDisplayGames();
+  if (countEl) countEl.innerText = list.length + ' Oyun';
+  const filterBar = document.getElementById('games-filter-bar');
+  if (filterBar) {
+    if (gamesViewMode === 'mine') { filterBar.classList.remove('hidden'); }
+    else filterBar.classList.add('hidden');
+  }
+  if (list.length === 0) {
+    container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-xl">
+      ${gamesViewMode === 'mine' ? 'Henüz oyun eklemedin. <button onclick="openAddGameModal()" class="text-emerald-400 hover:underline">Oyun Ekle</button>' : 'Henüz oyun yok. İlk oyunu sen ekle!'}
+    </div>`;
+    return;
+  }
+  container.innerHTML = list.map(g => createGameCard(g)).join('');
 }
+
+function createGameCard(g) {
+  const score = gameScore(g);
+  const likes = Array.isArray(g.likes) ? g.likes : [];
+  const dislikes = Array.isArray(g.dislikes) ? g.dislikes : [];
+  const hearts = Array.isArray(g.hearts) ? g.hearts : [];
+  const me = currentUser?.username;
+  const liked = me && likes.includes(me);
+  const disliked = me && dislikes.includes(me);
+  const hearted = me && hearts.includes(me);
+  const canHeart = currentUser && currentUser.hasTik;
+  const isOwner = me && g.author === me;
+  const logoHtml = g.logo
+    ? `<img src="${g.logo}" class="w-full h-full object-cover" alt="">`
+    : `<span class="game-thumbnail-emoji">${g.emoji || '🎮'}</span>`;
+  const authorLabel = g.official ? 'MSZ Resmi' : ('@' + escapeHtml(g.author || '?'));
+  return `<div class="game-card-v4" data-gid="${escapeHtml(g.id)}">
+    <div class="game-thumb-v4">${logoHtml}</div>
+    <div class="game-body-v4">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0 flex-1">
+          <h4 class="font-bold text-xs text-white truncate">${escapeHtml(g.name)}</h4>
+          <p class="text-[10px] text-slate-500 truncate">${authorLabel}${g.desc ? ' · ' + escapeHtml(g.desc) : ''}</p>
+        </div>
+        <div class="text-[10px] font-mono text-amber-400 shrink-0" title="Puan">${score}p</div>
+      </div>
+      <div class="flex items-center justify-between gap-2 mt-2">
+        <div class="flex items-center gap-1">
+          <button onclick="event.stopPropagation();voteGame('${escapeHtml(g.id)}','like')" class="vote-btn vote-like ${liked ? 'active' : ''}" title="Beğen (+1)"><i class="fa-solid fa-thumbs-up"></i> <span>${likes.length}</span></button>
+          <button onclick="event.stopPropagation();voteGame('${escapeHtml(g.id)}','dislike')" class="vote-btn vote-dislike ${disliked ? 'active' : ''}" title="Beğenme (-1)"><i class="fa-solid fa-thumbs-down"></i> <span>${dislikes.length}</span></button>
+          <button onclick="event.stopPropagation();voteGame('${escapeHtml(g.id)}','heart')" class="vote-btn vote-heart ${hearted ? 'active' : ''}" title="Kalp (+5) — sadece Tik${canHeart ? '' : ' (Tik gerekli)'}" ${canHeart || hearted ? '' : 'disabled'}><i class="fa-solid fa-heart"></i> <span>${hearts.length}</span></button>
+        </div>
+        <div class="flex items-center gap-1">
+          ${isOwner && !g.official ? `<button onclick="event.stopPropagation();deleteUserGame('${escapeHtml(g.id)}')" class="px-2 py-1 text-[10px] text-red-400 hover:bg-red-500/10 rounded-lg" title="Sil"><i class="fa-solid fa-trash"></i></button>` : ''}
+          <button onclick="event.stopPropagation();playUserGame('${escapeHtml(g.id)}')" class="game-play-btn-v4"><i class="fa-solid fa-play text-[9px]"></i> Oyna</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openMyGamesView() {
+  gamesViewMode = 'mine';
+  renderGames();
+}
+function showAllGames() {
+  gamesViewMode = 'all';
+  renderGames();
+}
+
+function openAddGameModal() {
+  if (!currentUser) return;
+  if (isBanned()) { showToast('Banlıyken oyun ekleyemezsin.', 'error'); return; }
+  const m = $('add-game-modal');
+  if (!m) return;
+  $('ugame-name').value = '';
+  const desc = $('ugame-desc'); if (desc) desc.value = '';
+  const logo = $('ugame-logo'); if (logo) logo.value = '';
+  const files = $('ugame-files'); if (files) files.value = '';
+  const lp = $('ugame-logo-preview'); if (lp) { lp.classList.add('hidden'); lp.innerHTML = ''; }
+  const fl = $('ugame-files-list'); if (fl) fl.innerHTML = '';
+  window._ugameLogo = null;
+  window._ugameFiles = [];
+  m.classList.remove('hidden'); m.style.display = 'flex';
+  // bind file list once
+  if (files && !files._bound) {
+    files._bound = true;
+    files.addEventListener('change', async (e) => {
+      const arr = Array.from(e.target.files || []);
+      window._ugameFiles = [];
+      for (const f of arr) {
+        const content = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = () => res(String(r.result || ''));
+          r.onerror = () => res('');
+          r.readAsText(f);
+        });
+        window._ugameFiles.push({ name: f.name, content });
+      }
+      const listEl = $('ugame-files-list');
+      if (listEl) listEl.innerHTML = window._ugameFiles.map(f => `<div class="text-emerald-400/80">📄 ${escapeHtml(f.name)} (${Math.round((f.content||'').length/1024)}KB)</div>`).join('');
+    });
+  }
+  if (logo && !logo._bound) {
+    logo._bound = true;
+    logo.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      if (f.size > 200 * 1024) { showToast('Logo max 200KB', 'warning'); e.target.value = ''; return; }
+      const r = new FileReader();
+      r.onload = () => {
+        window._ugameLogo = r.result;
+        const prev = $('ugame-logo-preview');
+        if (prev) { prev.classList.remove('hidden'); prev.innerHTML = `<img src="${r.result}" class="h-16 rounded-lg object-cover">`; }
+      };
+      r.readAsDataURL(f);
+    });
+  }
+}
+function closeAddGameModal() {
+  const m = $('add-game-modal');
+  if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
+}
+
+async function submitUserGame(e) {
+  e.preventDefault();
+  if (!currentUser) return;
+  const name = ($('ugame-name')?.value || '').trim();
+  const desc = ($('ugame-desc')?.value || '').trim();
+  const files = window._ugameFiles || [];
+  if (!name) { showToast('Oyun adı gerekli', 'error'); return; }
+  if (!files.length) { showToast('En az bir dosya yükle (HTML)', 'error'); return; }
+  const hasHtml = files.some(f => /\.html?$/i.test(f.name));
+  if (!hasHtml) { showToast('En az bir .html dosyası gerekli', 'error'); return; }
+  // size limit total ~1.5MB text
+  const totalSize = files.reduce((s, f) => s + (f.content?.length || 0), 0);
+  if (totalSize > 1.5 * 1024 * 1024) { showToast('Dosyalar çok büyük (max ~1.5MB)', 'error'); return; }
+
+  const risks = scanGameFiles(files);
+  if (risks.length) {
+    showToast('Oyun reddedildi: ' + risks.join(', '), 'error');
+    return;
+  }
+
+  const game = {
+    id: 'ugame_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    name,
+    desc,
+    logo: window._ugameLogo || null,
+    emoji: '🎮',
+    author: currentUser.username,
+    files: files.map(f => ({ name: f.name, content: f.content })),
+    likes: [],
+    dislikes: [],
+    hearts: [],
+    status: 'approved',
+    createdAt: new Date().toISOString(),
+    official: false
+  };
+
+  gamesDb.push(game);
+  await saveGamesToDB();
+  await saveGameToFirebase(game);
+  if (mqttClient?.connected) {
+    try { mqttClient.publish(TOPICS.GROUPS, JSON.stringify({ type: 'NEW_GAME', game: { ...game, files: undefined } })); } catch(_) {}
+  }
+  closeAddGameModal();
+  gamesViewMode = 'all';
+  renderGames();
+  showToast('Oyun yayınlandı! 🎮', 'success');
+}
+
+async function voteGame(gameId, type) {
+  if (!currentUser) return;
+  if (isBanned()) { showToast('Banlıyken oy veremezsin.', 'error'); return; }
+  let g = gamesDb.find(x => x.id === gameId);
+  // official games stored lightly in gamesDb when voted
+  if (!g && String(gameId).startsWith('official_')) {
+    const oid = gameId.replace('official_', '');
+    const o = OYUNLAR.find(x => x.id === oid);
+    if (!o) return;
+    g = {
+      id: gameId, name: o.name, desc: o.desc, emoji: o.emoji, category: o.category, url: o.url,
+      official: true, author: 'msz', likes: [], dislikes: [], hearts: [], status: 'approved', logo: null
+    };
+    gamesDb.push(g);
+  }
+  if (!g) return;
+  if (!Array.isArray(g.likes)) g.likes = [];
+  if (!Array.isArray(g.dislikes)) g.dislikes = [];
+  if (!Array.isArray(g.hearts)) g.hearts = [];
+  const me = currentUser.username;
+
+  if (type === 'heart') {
+    if (!currentUser.hasTik) { showToast('Kalp sadece Tik sahiplerine özel!', 'warning'); return; }
+    if (g.hearts.includes(me)) g.hearts = g.hearts.filter(u => u !== me);
+    else g.hearts.push(me);
+  } else if (type === 'like') {
+    if (g.likes.includes(me)) g.likes = g.likes.filter(u => u !== me);
+    else {
+      g.likes.push(me);
+      g.dislikes = g.dislikes.filter(u => u !== me);
+    }
+  } else if (type === 'dislike') {
+    if (g.dislikes.includes(me)) g.dislikes = g.dislikes.filter(u => u !== me);
+    else {
+      g.dislikes.push(me);
+      g.likes = g.likes.filter(u => u !== me);
+    }
+  }
+  await saveGamesToDB();
+  await saveGameToFirebase(g);
+  renderGames();
+}
+
+async function deleteUserGame(gameId) {
+  if (!currentUser) return;
+  const g = gamesDb.find(x => x.id === gameId);
+  if (!g || g.author !== currentUser.username) return;
+  if (!confirm('Bu oyunu silmek istiyor musun?')) return;
+  gamesDb = gamesDb.filter(x => x.id !== gameId);
+  await saveGamesToDB();
+  try { await remove(ref(rtdb, 'games/' + gameId)); } catch(_) {}
+  renderGames();
+  showToast('Oyun silindi.', 'success');
+}
+
+function playUserGame(gameId) {
+  let g = gamesDb.find(x => x.id === gameId);
+  if (!g && String(gameId).startsWith('official_')) {
+    const oid = gameId.replace('official_', '');
+    const o = OYUNLAR.find(x => x.id === oid);
+    if (o) return openGame(o.id); // existing official player
+  }
+  if (!g) return;
+  if (g.official && g.url) return openGame(g.id.replace('official_', ''));
+
+  currentGameUrl = null;
+  currentGameName = g.name;
+  const modal = document.getElementById('game-modal');
+  const iframeContainer = document.getElementById('game-iframe-container');
+  const loading = document.getElementById('game-loading');
+  const error = document.getElementById('game-error');
+  const emojiEl = document.getElementById('game-modal-emoji');
+  const titleEl = document.getElementById('game-modal-title');
+  const catEl = document.getElementById('game-modal-category');
+  if (emojiEl) emojiEl.innerText = g.emoji || '🎮';
+  if (titleEl) titleEl.innerText = g.name;
+  if (catEl) catEl.innerText = '@' + (g.author || '');
+  if (loading) { loading.classList.remove('hidden'); loading.style.display = 'flex'; }
+  if (error) { error.classList.add('hidden'); error.style.display = 'none'; }
+  if (modal) { modal.classList.remove('hidden'); modal.style.display = 'flex'; }
+  document.body.style.overflow = 'hidden';
+  if (iframeContainer) {
+    iframeContainer.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.sandbox = 'allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock';
+    iframe.allow = 'fullscreen; autoplay; gamepad';
+    iframe.style.cssText = 'width:100%;height:100%;border:0;background:#000';
+    const srcdoc = buildGameSrcdoc(g);
+    iframe.srcdoc = srcdoc;
+    iframe.onload = function() {
+      if (loading) { loading.classList.add('hidden'); loading.style.display = 'none'; }
+    };
+    iframeContainer.appendChild(iframe);
+  }
+}
+
 function openGame(gameId) {
   const game = OYUNLAR.find(g => g.id === gameId);
-  if (!game) return;
+  if (!game) {
+    // try user game
+    playUserGame(gameId);
+    return;
+  }
   currentGameUrl = game.url; currentGameName = game.name;
   const modal = document.getElementById('game-modal');
   const iframeContainer = document.getElementById('game-iframe-container');
@@ -2663,6 +3007,24 @@ function toggleGameFullscreen() {
     if (modal.requestFullscreen) modal.requestFullscreen().catch(function() {});
   } else document.exitFullscreen().catch(function() {});
 }
+
+async function saveGameToFirebase(game) {
+  try {
+    // don't store huge files twice if too big — store meta + files
+    const payload = { ...game };
+    await set(ref(rtdb, 'games/' + game.id), payload);
+  } catch (e) { console.error('game save fb', e); }
+}
+async function loadGamesFromFirebase() {
+  try {
+    const snap = await get(ref(rtdb, 'games'));
+    if (!snap.exists()) return [];
+    return Object.values(snap.val()).filter(g => g && g.id);
+  } catch (e) { return []; }
+}
+const saveGamesToDB = () => {
+  try { return saveToDBAll('games', gamesDb); } catch (e) { return Promise.resolve(); }
+};
 
 // ============================================================
 // LEADERBOARD
@@ -3505,6 +3867,8 @@ Object.assign(window, {
   openModDeletePostModal, closeModDeletePostModal, confirmModDeletePost,
   modUnbanUser, modRemoveTik, filterModUserSearch,
   openGame, closeGameModal, openGameInNewTab, toggleGameFullscreen,
+  openAddGameModal, closeAddGameModal, submitUserGame, openMyGamesView, showAllGames,
+  voteGame, deleteUserGame, playUserGame,
   openSafeLink, openNotificationModal,
   openMszAiInNewTab,
   handlePostCodeSelect, clearPendingCodeFiles, removePendingCodeFile,
@@ -3530,6 +3894,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       groupsDb = data.groups || [];
       dmRequestsDb = data.dmReqs || [];
       bannedUsers = data.bans || [];
+      gamesDb = data.games || [];
       Object.values(usersDb).forEach(u => { if (typeof u.postCount !== 'number') u.postCount = postsDb.filter(p => p.author?.username === u.username).length; });
       await saveUsersToDB();
     }
@@ -3596,6 +3961,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     const rm = $('remember-me');
     if (rm) rm.checked = true;
   }
+  // Kullanıcı oyunlarını Firebase'den çek
+  try {
+    const remoteGames = await loadGamesFromFirebase();
+    if (remoteGames.length) {
+      const map = new Map();
+      gamesDb.forEach(g => map.set(g.id, g));
+      remoteGames.forEach(g => map.set(g.id, g));
+      gamesDb = Array.from(map.values());
+      await saveGamesToDB();
+    }
+  } catch (e) { console.warn('games fb load', e); }
+
   onAuthStateChanged(auth, async fbUser => {
     if (!fbUser || currentUser) return;
     const username = (fbUser.email || '').split('@')[0].toLowerCase();
